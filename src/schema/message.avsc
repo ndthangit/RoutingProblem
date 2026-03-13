@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "PromptEvent",
+  "namespace": "com.multiagents.events",
+  "fields": [
+    {"name": "session_id",   "type": "string", "doc": "Unique session identifier (UUID)"},
+    {"name": "user_email",  "type": "string", "doc": "Email of the user who sent the prompt"},
+    {"name": "prompt",      "type": "string", "doc": "The user prompt text"},
+    {"name": "timestamp",   "type": "string", "doc": "ISO-8601 UTC timestamp"}
+  ]
+}

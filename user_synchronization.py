@@ -23,9 +23,10 @@ from typing import Optional
 import httpx
 from dotenv import load_dotenv
 
+from src.config.config import settings
+
 load_dotenv()
 
-from config.config import settings
 
 # ---------------------------------------------------------------------------
 # Logging

@@ -29,7 +29,7 @@ services:
       # See https://docs.confluent.io/kafka/operations-tools/kafka-tools.html#kafka-storage-sh
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
     networks:
-      - multi-agents
+      - RoutingProblem
 
   schema-registry:
     image: confluentinc/cp-schema-registry:8.0.0
@@ -44,7 +44,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
     networks:
-      - multi-agents
+      - RoutingProblem
 
   connect:
     image: cnfldemos/kafka-connect-datagen:0.6.4-7.6.0
@@ -71,7 +71,7 @@ services:
       CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
     networks:
-      - multi-agents
+      -  RoutingProblem
 
 #  keycloak-db:
 #    image: postgres:17
@@ -115,27 +115,12 @@ services:
 #      - keycloak_data:/opt/keycloak/data
 #      - ./themes:/opt/keycloak/providers/
 
-  minio:
-    image: minio/minio
-    environment:
-      - MINIO_ROOT_USER=root
-      - MINIO_ROOT_PASSWORD=rootpass123
-      - MINIO_DEFAULT_BUCKETS=bucket
-    networks:
-      - multi-agents
-    volumes:
-      - minio_data:/data
-    ports:
-      - "9222:9000"
-      - "9223:9001"
-    command: [ "server", "--console-address", ":9001", "/data" ]
 
 volumes:
   keycloak_db_data:
   keycloak_data:
-  minio_data:
 
 
 networks:
-  multi-agents:
-   external: true
+  RoutingProblem:
+   driver: bridge
