@@ -1,0 +1,141 @@
+services:
+
+
+  broker:
+    image: confluentinc/cp-kafka:8.0.0
+    hostname: broker
+    container_name: broker
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      # Replace CLUSTER_ID with a unique base64 UUID using "bin/kafka-storage.sh random-uuid"
+      # See https://docs.confluent.io/kafka/operations-tools/kafka-tools.html#kafka-storage-sh
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    networks:
+      - multi-agents
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:8.0.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - multi-agents
+
+  connect:
+    image: cnfldemos/kafka-connect-datagen:0.6.4-7.6.0
+    hostname: connect
+    container_name: connect
+    depends_on:
+      - broker
+      - schema-registry
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: 'broker:29092'
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_GROUP_ID: compose-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
+      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+    networks:
+      - multi-agents
+
+#  keycloak-db:
+#    image: postgres:17
+#    container_name: keycloak-db
+#    environment:
+#      POSTGRES_DB: keycloakdb
+#      POSTGRES_USER: user
+#      POSTGRES_PASSWORD: password
+#    volumes:
+#      - keycloak_db_data:/var/lib/postgresql/data
+#    ports:
+#      - "5433:5432"
+#    networks:
+#      - multi-agents
+#    healthcheck:
+#      test: [ "CMD", "pg_isready", "-d", "keycloakdb", "-U", "user" ]
+#      interval: 30s
+#      timeout: 30s
+#      retries: 3
+#    restart: on-failure
+#
+#  keycloak:
+#    image: quay.io/keycloak/keycloak:26.3.1
+#    container_name: keycloak
+#    command: start-dev
+#    environment:
+#      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+#      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+#      # Có thể thêm các biến môi trường khác nếu cần
+#      - KC_DB=postgres
+#      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloakdb
+#      - KC_DB_USERNAME=user
+#      - KC_DB_PASSWORD=password
+#
+#    ports:
+#      - "8092:8080"
+#    networks:
+#      - multi-agents
+#    # Nếu muốn persist data, có thể thêm volume
+#    volumes:
+#      - keycloak_data:/opt/keycloak/data
+#      - ./themes:/opt/keycloak/providers/
+
+  minio:
+    image: minio/minio
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=rootpass123
+      - MINIO_DEFAULT_BUCKETS=bucket
+    networks:
+      - multi-agents
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9222:9000"
+      - "9223:9001"
+    command: [ "server", "--console-address", ":9001", "/data" ]
+
+volumes:
+  keycloak_db_data:
+  keycloak_data:
+  minio_data:
+
+
+networks:
+  multi-agents:
+   external: true
