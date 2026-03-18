@@ -49,6 +49,7 @@ from couchbase.exceptions import CouchbaseException
 
 SYNC_INTERVAL_SECONDS = 5 * 60   # 5 phút
 LOOKBACK_SECONDS      = 5 * 60   # lấy user tạo trong 5 phút trước
+USER_COLLECTION= "user"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -188,13 +189,13 @@ class CouchbaseSyncWriter:
         bucket = self._cluster.bucket(settings.COUCHBASE_BUCKET)
 
         try:
-            if settings.COUCHBASE_SCOPE and hasattr(settings, "COUCHBASE_COLLECTION") and settings.COUCHBASE_COLLECTION:
+            if settings.COUCHBASE_SCOPE :
                 scope = bucket.scope(settings.COUCHBASE_SCOPE)
-                self._collection = scope.collection(settings.COUCHBASE_COLLECTION)
+                self._collection = scope.collection(USER_COLLECTION)
                 logger.info(
                     "Couchbase connected → %s.%s",
                     settings.COUCHBASE_SCOPE,
-                    settings.COUCHBASE_COLLECTION,
+                    USER_COLLECTION,
                 )
             else:
                 self._collection = bucket.default_collection()
@@ -231,14 +232,9 @@ def keycloak_user_to_doc(kc_user: dict) -> dict:
     attributes = kc_user.get("attributes", {}) or {}
 
     return {
-        "type":       "user",
         "sub":        kc_user.get("id", ""),
         "username":   kc_user.get("username", ""),
         "email":      kc_user.get("email", ""),
-        "name":       " ".join(filter(None, [
-                          kc_user.get("firstName", ""),
-                          kc_user.get("lastName",  ""),
-                      ])).strip() or kc_user.get("username", ""),
         "firstName":  kc_user.get("firstName", ""),
         "lastName":   kc_user.get("lastName", ""),
         "phone":      (attributes.get("phone") or [None])[0],
@@ -246,7 +242,6 @@ def keycloak_user_to_doc(kc_user: dict) -> dict:
         "emailVerified": kc_user.get("emailVerified", False),
         "createdTimestamp": created_ts_ms,
         "createdAt":  created_at,
-        "syncedAt":   datetime.now(tz=timezone.utc).isoformat(),
         "attributes": attributes,
     }
 

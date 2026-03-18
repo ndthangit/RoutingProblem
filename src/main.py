@@ -132,3 +132,4 @@ async def debug_consumer():
             status["assignment_error"] = str(e)
 
     return status
+
