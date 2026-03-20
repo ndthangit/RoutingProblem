@@ -37,10 +37,9 @@ keycloak_config = KeycloakConfiguration(
         "family_name",
         "name",
         "email_verified",
-        "phone_number",
+        "phone",
         # custom claims (if your KC mappers add them)
         "attributes",
-        "createdTimestamp",
         "createdAt",
         "enabled",
         "emailVerified",

@@ -1,7 +1,48 @@
-import { useState } from 'react';
-import { Package, Menu, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Package} from 'lucide-react';
+import Toast from './Toast';
+import { useKeycloak } from '@react-keycloak/web';
+import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
+  const navigate = useNavigate();
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({
+    visible: false,
+    message: '',
+    type: 'success'
+  });
+
+  const { keycloak, initialized } = useKeycloak();
+
+  // useEffect(() => {
+  //   if (initialized) {
+  //     if (keycloak.authenticated) {
+  //       setToast({
+  //         visible: true,
+  //         message: 'Login successful!',
+  //         type: 'success'
+  //       });
+        
+  //       const timer = setTimeout(() => {
+  //         navigate('/dashboard');
+  //       }, 1500);
+        
+  //       return () => clearTimeout(timer);
+  //     }
+  //   }
+  // }, [initialized, keycloak.authenticated, navigate]);
+
+  const handleLogin = () => {
+    keycloak.login({
+      redirectUri: window.location.origin + '/dashboard',
+    });
+  };
+
+  const handleSignup = () => {
+    keycloak.register({
+      redirectUri: window.location.origin + '/',
+    });
+  };
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -28,11 +69,17 @@ export default function Header() {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <button className="px-6 py-2 text-blue-900 font-semibold border-2 border-blue-900 rounded-lg hover:bg-blue-50 transition">
-              Đăng nhập
+            <button 
+                onClick={handleLogin}
+                className="px-6 py-2 text-blue-900 font-semibold border-2 border-blue-900 rounded-lg hover:bg-blue-50 transition"
+              >
+                Đăng nhập
             </button>
-            <button className="px-6 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition shadow-md">
-              Đăng ký
+            <button 
+                onClick={handleSignup}
+                className="px-6 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition shadow-md"
+              >
+                Đăng ký
             </button>
           </div>
         </div>

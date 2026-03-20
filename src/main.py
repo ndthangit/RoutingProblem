@@ -11,6 +11,7 @@ from src.config.couchbase import get_couchbase_lifespan
 from src.config.keycloak import keycloak_config, map_user
 from src.models.consumer import kafka_consumer
 from src.models.producer import kafka_producer
+from src.api.vehicles import router as vehicles_router
 
 # Configure logging
 logging.basicConfig(
@@ -26,7 +27,7 @@ async def app_lifespan(app: FastAPI):
     async with AsyncExitStack() as stack:
         # Register infrastructure lifespans
         await stack.enter_async_context(get_couchbase_lifespan(app))
-        logger.info("✅ Couchbase and MinIO lifespans initialized.")
+        logger.info("✅ Couchbase lifespans initialized.")
 
         # Kafka producer - connect
         try:
@@ -132,4 +133,8 @@ async def debug_consumer():
             status["assignment_error"] = str(e)
 
     return status
+
+
+# API routers
+app.include_router(vehicles_router, prefix=settings.API_V1_PREFIX)
 

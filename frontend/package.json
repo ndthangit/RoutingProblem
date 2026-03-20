@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.9",
+    "@react-keycloak/web": "^3.4.0",
     "@tailwindcss/vite": "^4.2.2",
     "axios": "^1.13.6",
     "keycloak-js": "^26.2.3",

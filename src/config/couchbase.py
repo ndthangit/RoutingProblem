@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import timedelta
 from contextlib import asynccontextmanager
@@ -8,7 +9,6 @@ from couchbase.auth import PasswordAuthenticator
 from couchbase.options import ClusterOptions
 from couchbase.exceptions import CouchbaseException, DocumentNotFoundException
 from couchbase.bucket import Bucket
-from couchbase.collection import Collection
 from fastapi import FastAPI
 
 from src.config.config import settings
@@ -20,7 +20,6 @@ class CouchbaseClient:
     def __init__(self):
         self._cluster: Optional[Cluster] = None
         self._bucket: Optional[Bucket] = None
-        self._collection: Optional[Collection] = None
         self._scope = None
 
     async def connect(self):
@@ -49,19 +48,13 @@ class CouchbaseClient:
             # Get bucket
             self._bucket = self._cluster.bucket(settings.COUCHBASE_BUCKET)
 
-            # Get collection (với fallback)
-            try:
-                if settings.COUCHBASE_SCOPE and settings.COUCHBASE_COLLECTION:
-                    self._scope = self._bucket.scope(settings.COUCHBASE_SCOPE)
-                    self._collection = self._scope.collection(settings.COUCHBASE_COLLECTION)
-                    logger.info(f"Connected to {settings.COUCHBASE_SCOPE}.{settings.COUCHBASE_COLLECTION}")
-                else:
-                    self._collection = self._bucket.default_collection()
-                    logger.info("Connected to default collection")
-            except Exception as e:
-                logger.warning(f"Could not connect to specific scope/collection: {e}")
-                self._collection = self._bucket.default_collection()
-                logger.info("Falling back to default collection")
+            # Get scope (nếu có chỉ định)
+            if settings.COUCHBASE_SCOPE:
+                self._scope = self._bucket.scope(settings.COUCHBASE_SCOPE)
+                logger.info(f"Connected to scope: {settings.COUCHBASE_SCOPE}")
+            else:
+                self._scope = self._bucket.default_scope()
+                logger.info("Connected to default scope")
 
             logger.info("Successfully connected to Couchbase")
 
@@ -91,54 +84,72 @@ class CouchbaseClient:
         return self._bucket
 
     @property
-    def collection(self) -> Collection:
-        if not self._collection:
-            raise RuntimeError("Couchbase collection not initialized")
-        return self._collection
-
-    @property
     def scope(self):
+        if not self._scope:
+            raise RuntimeError("Couchbase scope not initialized")
         return self._scope
 
-    # Helper methods
-    async def get_document(self, doc_id: str):
-        """Get document by ID"""
+    # Helper methods - yêu cầu truyền collection name
+    async def get_document(self, doc_id: str, collection_name: str = None):
+        """Get document by ID from specified collection"""
         try:
-            result = self.collection.get(doc_id)
+            if collection_name:
+                collection = self.scope.collection(collection_name)
+            else:
+                collection = self.scope.collection("_default")  # hoặc collection mặc định
+
+            result = collection.get(doc_id)
             return result.content_as[dict]
         except DocumentNotFoundException:
             return None
         except CouchbaseException as e:
-            logger.error(f"Error getting document {doc_id}: {e}")
+            logger.error(f"Error getting document {doc_id} from collection {collection_name}: {e}")
             raise
 
-    async def upsert_document(self, doc_id: str, doc: dict):
-        """Upsert document"""
+    async def upsert_document(self, doc_id: str, doc: dict, collection_name: str = None):
+        """Upsert document to specified collection"""
         try:
-            result = self.collection.upsert(doc_id, doc)
+            if collection_name:
+                collection = self.scope.collection(collection_name)
+            else:
+                collection = self.scope.collection("_default")
+
+            result = collection.upsert(doc_id, doc)
             return result.cas
         except CouchbaseException as e:
-            logger.error(f"Error upserting document {doc_id}: {e}")
+            logger.error(f"Error upserting document {doc_id} to collection {collection_name}: {e}")
             raise
 
-    async def remove_document(self, doc_id: str):
-        """Remove document"""
+    async def remove_document(self, doc_id: str, collection_name: str = None):
+        """Remove document from specified collection"""
         try:
-            self.collection.remove(doc_id)
+            if collection_name:
+                collection = self.scope.collection(collection_name)
+            else:
+                collection = self.scope.collection("_default")
+
+            collection.remove(doc_id)
             return True
         except DocumentNotFoundException:
             return False
         except CouchbaseException as e:
-            logger.error(f"Error removing document {doc_id}: {e}")
+            logger.error(f"Error removing document {doc_id} from collection {collection_name}: {e}")
             raise
 
+    # async def query(self, statement: str, *args, **kwargs):
+    #     """Execute N1QL query within scope"""
+    #     try:
+    #         return self.scope.query(statement, *args, **kwargs)
+    #     except CouchbaseException as e:
+    #         logger.error(f"Error executing query: {e}")
+    #         raise
+
     async def query(self, statement: str, *args, **kwargs):
-        """Execute N1QL query"""
+        """Execute N1QL query within scope using thread pool"""
         try:
-            if self._scope:
-                return self._scope.query(statement, *args, **kwargs)
-            else:
-                return self.cluster.query(statement, *args, **kwargs)
+            # Chạy synchronous query trong thread pool
+            result = await asyncio.to_thread(self.scope.query, statement, *args, **kwargs)
+            return result
         except CouchbaseException as e:
             logger.error(f"Error executing query: {e}")
             raise

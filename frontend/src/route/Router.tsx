@@ -1,21 +1,34 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "../pages/Home";
 import ProtectedRoute from "./ProtectedRoute";
+import Layout from "../components/layout/Layout";
+import Vehicles from "../pages/Vehicles";
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/" element={<Home />} />
 
         {/* Protected routes */}
-        <Route element={<ProtectedRoute />}>
+        {/* <Route element={<ProtectedRoute />}>
           <Route path="/home" element={<Home />} />
+        </Route> */}
+        {/* Protected routes with Layout */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<div>404 Page</div>} />
+            <Route path="/orders" element={<div>404 Page</div>} />
+            <Route path="/fleet" element={<Vehicles />} />
+            <Route path="/drivers" element={<div>404 Page</div>} />
+            <Route path="/warehouses" element={<div>404 Page</div>} />
+            <Route path="/ai-optimization" element={<div>404 Page</div>} />
+          </Route>
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        <Route path="*" element={<div>404 Page</div>} />
       </Routes>
     </BrowserRouter>
   );

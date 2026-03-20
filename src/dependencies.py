@@ -15,7 +15,7 @@ import logging
 
 from fastapi import Depends, HTTPException, Request, status
 
-from models.user import User
+from src.models.user import User
 
 logger = logging.getLogger(__name__)
 
