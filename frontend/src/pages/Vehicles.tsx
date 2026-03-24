@@ -1,144 +1,195 @@
 import { useEffect, useState } from "react";
 import { request } from "../api";
+import { Chip } from "@mui/material";
+import AddVehicleModal from "./Vehicle/AddVehicleModal.tsx";
+import { Plus, Truck } from "lucide-react";
+import { Box as MuiBox } from "@mui/material";
+import type { Vehicle, VehicleStatus } from "../types";
+import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";
 
-interface Vehicle {
-  [key: string]: unknown;
+
+
+function StatusBadge({ status }: { status: VehicleStatus }) {
+  const colorMap: Record<VehicleStatus, 'success' | 'default' | 'warning' | 'error'> = {
+    ACTIVE: 'success',
+    INACTIVE: 'error',
+    MAINTENANCE: 'warning',
+    RESERVED: 'default',
+    EXPIRED_DOCUMENTS: 'error',
+  };
+
+  const labelMap: Record<VehicleStatus, string> = {
+    ACTIVE: 'Active',
+    INACTIVE: 'Inactive',
+    MAINTENANCE: 'Maintenance',
+    RESERVED: 'Reserved',
+    EXPIRED_DOCUMENTS: 'Expired Documents',
+  };
+
+  return (
+    <Chip
+      label={labelMap[status] ?? status}
+      color={colorMap[status] || 'default'}
+      size="small"
+      sx={{ fontWeight: 500 }}
+    />
+  );
 }
 
 export default function Vehicles() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState<boolean>(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [newVehicleJson, setNewVehicleJson] = useState<string>("{}\n");
+  const [loading, setLoading] = useState(true);
+
+  const fetchVehicles = async () => {
+    try {
+      const res = await request<Vehicle[]>("GET", "/v1/vehicles");
+      if (res?.data) {
+        setVehicles(res.data);
+      } else {
+        setVehicles([]);
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchVehicles = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const res = await request<Vehicle[]>(
-          "GET",
-          "/v1/vehicles",
-          undefined,
-          undefined,
-          undefined,
-          {},
-          controller
-        );
-
-        if (res && Array.isArray(res.data)) {
-          setVehicles(res.data);
-        } else {
-          setError("Dữ liệu phương tiện không hợp lệ.");
-        }
-      } catch (err) {
-        setError("Không thể tải danh sách phương tiện.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchVehicles();
-
-    return () => {
-      controller.abort();
-    };
   }, []);
 
-  if (loading) {
-    return <div className="p-6 text-white">Đang tải danh sách phương tiện...</div>;
-  }
+  const handleSuccess = () => {
+    fetchVehicles();
+  };
 
-  if (error) {
-    return <div className="p-6 text-red-400">{error}</div>;
-  }
+  const displayVehicles = vehicles;
+
+  const columns: GridColDef[] = [
+    {
+      field: 'id',
+      headerName: 'Vehicle ID',
+      width: 210,
+    },
+    {
+      field: 'vehicleType',
+      headerName: 'Type',
+      width: 120,
+      valueGetter: (value) => value || 'N/A',
+    },
+    {
+      field: 'licensePlate',
+      headerName: 'License Plate',
+      width: 150,
+      valueGetter: (value) => value || 'N/A',
+    },
+    {
+      field: 'brandModel',
+      headerName: 'Brand/Model',
+      width: 200,
+      sortable: false,
+      valueGetter: (_value, row: Vehicle) =>
+        row.brand && row.model ? `${row.brand} ${row.model}` : (row.brand || row.model || 'N/A'),
+    },
+    {
+      field: 'year',
+      headerName: 'Year',
+      width: 90,
+      type: 'number',
+      valueGetter: (value) => value ?? 'N/A',
+    },
+    {
+      field: 'capacity',
+      headerName: 'Capacity',
+      width: 120,
+      valueFormatter: (value) => value != null ? `${value} kg` : 'N/A',
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 160,
+      renderCell: (params: GridRenderCellParams<Vehicle, Vehicle['status']>) => (
+        <StatusBadge status={params.value as VehicleStatus} />
+      ),
+    },
+    {
+      field: 'driverId',
+      headerName: 'Driver',
+      width: 170,
+      valueGetter: (value) => value || 'Unassigned',
+    },
+  ];
 
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-2xl font-bold mb-4">Danh sách phương tiện</h1>
-      <div className="mb-6 p-4 border border-slate-700 rounded-lg bg-slate-900/60">
-        <h2 className="text-lg font-semibold mb-2">Thêm phương tiện mới</h2>
-        <p className="text-xs text-slate-400 mb-2">
-          Nhập dữ liệu JSON theo schema VehicleCreate rồi bấm "Tạo phương tiện".
-        </p>
-        <textarea
-          className="w-full h-32 bg-slate-950 border border-slate-700 rounded-md p-2 text-xs font-mono text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          value={newVehicleJson}
-          onChange={(e) => setNewVehicleJson(e.target.value)}
-        />
-        {createError && (
-          <div className="mt-2 text-xs text-red-400">{createError}</div>
-        )}
-        <button
-          className="mt-3 inline-flex items-center px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-sm font-medium"
-          disabled={creating}
-          onClick={async () => {
-            setCreateError(null);
-
-            let payload: unknown;
-            try {
-              payload = JSON.parse(newVehicleJson);
-            } catch {
-              setCreateError("JSON không hợp lệ. Vui lòng kiểm tra lại.");
-              return;
-            }
-
-            setCreating(true);
-            try {
-              const res = await request<Vehicle>(
-                "POST",
-                "/v1/vehicles",
-                undefined,
-                undefined,
-                payload as Vehicle,
-                {}
-              );
-
-              if (res && res.data) {
-                setVehicles((prev) => [res.data, ...prev]);
-                setNewVehicleJson("{}\n");
-              }
-            } catch {
-              setCreateError("Không thể tạo phương tiện mới.");
-            } finally {
-              setCreating(false);
-            }
-          }}
-        >
-          {creating ? "Đang tạo..." : "Tạo phương tiện"}
-        </button>
-      </div>
-      {vehicles.length === 0 ? (
-        <p className="text-slate-400">Chưa có phương tiện nào.</p>
-      ) : (
-        <div className="overflow-x-auto border border-slate-700 rounded-lg">
-          <table className="min-w-full bg-slate-900">
-            <thead>
-              <tr className="bg-slate-800 text-left text-sm text-slate-300">
-                <th className="px-4 py-2 border-b border-slate-700">#</th>
-                <th className="px-4 py-2 border-b border-slate-700">Thông tin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.map((vehicle, index) => (
-                <tr key={index} className="border-t border-slate-800 hover:bg-slate-800/60">
-                  <td className="px-4 py-2 align-top text-sm text-slate-300">
-                    {index + 1}
-                  </td>
-                  <td className="px-4 py-2 text-xs text-slate-200 font-mono whitespace-pre-wrap break-words">
-                    {JSON.stringify(vehicle, null, 2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <Truck className="w-5 h-5 text-slate-600" />
+            <h2 className="text-lg font-bold text-slate-900">Fleet Status</h2>
+            <span className="ml-auto text-sm text-slate-500">{displayVehicles.length} vehicles</span>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="ml-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Add Vehicle
+            </button>
+          </div>
         </div>
-      )}
-    </div>
+
+        <MuiBox sx={{ width: '100%' }}>
+          <DataGrid
+            rows={displayVehicles}
+            columns={columns}
+            loading={loading}
+            getRowId={(row) => row.id}
+            initialState={{
+              pagination: {
+                paginationModel: { page: 0, pageSize: 10 },
+              },
+            }}
+            pageSizeOptions={[5, 10, 25, 50]}
+            checkboxSelection
+            disableRowSelectionOnClick
+            autoHeight
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-cell': {
+                borderBottom: '1px solid #e2e8f0',
+              },
+              '& .MuiDataGrid-columnHeaders': {
+                backgroundColor: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: '#475569',
+                textTransform: 'uppercase',
+              },
+              '& .MuiDataGrid-row:hover': {
+                backgroundColor: '#f8fafc',
+              },
+              '& .MuiDataGrid-footerContainer': {
+                borderTop: '1px solid #e2e8f0',
+              },
+              '& .MuiCheckbox-root': {
+                color: '#3b82f6',
+              },
+              '& .MuiDataGrid-columnSeparator': {
+                display: 'none',
+              },
+            }}
+          />
+        </MuiBox>
+      </div>
+
+      <AddVehicleModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleSuccess}
+      />
+    </>
   );
 }

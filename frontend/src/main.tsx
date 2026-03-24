@@ -14,13 +14,6 @@ async function bootstrap() {
         <ReactKeycloakProvider
           authClient={keycloak}
           initOptions={initOptions}
-          onTokens={(tokens) => {
-            if (tokens?.token) {
-              localStorage.setItem('access_token', tokens.token);
-            } else {
-              localStorage.removeItem('access_token');
-            }
-          }}
         >
           <AppRouter />
         </ReactKeycloakProvider>

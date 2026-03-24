@@ -6,7 +6,7 @@ from typing import Optional, AsyncGenerator
 
 from couchbase.cluster import Cluster
 from couchbase.auth import PasswordAuthenticator
-from couchbase.options import ClusterOptions
+from couchbase.options import ClusterOptions, ClusterTimeoutOptions
 from couchbase.exceptions import CouchbaseException, DocumentNotFoundException
 from couchbase.bucket import Bucket
 from fastapi import FastAPI
@@ -31,9 +31,24 @@ class CouchbaseClient:
                 settings.COUCHBASE_USER,
                 settings.COUCHBASE_PASSWORD
             )
+            timeout_options = ClusterTimeoutOptions(
+                kv_timeout=timedelta(seconds=10),  # Tăng lên 10s
+                kv_durable_timeout=timedelta(seconds=10),  # 10s
+                query_timeout=timedelta(seconds=75),  # 75s
+                analytics_timeout=timedelta(seconds=75),  # 75s
+                search_timeout=timedelta(seconds=75),  # 75s
+                management_timeout=timedelta(seconds=75),  # 75s
+                connect_timeout=timedelta(seconds=10),  # 10s
+                resolve_timeout=timedelta(seconds=10),  # 10s
+            )
+
+
 
             # Cluster options
-            options = ClusterOptions(auth)
+            options = ClusterOptions(
+                auth,
+                timeout_options = timeout_options
+            )
 
             # Áp dụng WAN profile nếu là cloud connection
             if "cloud.couchbase.com" in settings.COUCHBASE_CONNECT_ENDPOINT:

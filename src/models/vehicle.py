@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
+
+from src.models.event import EventBase, EventType
+
 
 class VehicleStatus(str, Enum):
     ACTIVE = "ACTIVE"
@@ -25,7 +29,6 @@ class VehicleType(str, Enum):
 
 class VehicleBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
-
     license_plate: str = Field(..., min_length=1, max_length=32, description="Biển số xe", alias="licensePlate")
     model: Optional[str] = Field(default=None, max_length=128, description="Model xe")
     brand: Optional[str] = Field(default=None, max_length=64, description="Hãng xe")
@@ -36,28 +39,39 @@ class VehicleBase(BaseModel):
     status: VehicleStatus = Field(default=VehicleStatus.ACTIVE, description="Trạng thái xe")
     driver_id: Optional[str] = Field(default=None, alias="driverId")
 
-
-class VehicleCreate(VehicleBase):
-    id: Optional[str] = None
-
-
-class VehicleUpdate(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    license_plate: Optional[str] = Field(default=None, min_length=1, max_length=32, alias="licensePlate")
-    model: Optional[str] = Field(default=None, max_length=128)
-    capacity: Optional[int] = Field(default=None, ge=1, le=100)
-    status: Optional[VehicleStatus] = None
-    driver_id: Optional[str] = Field(default=None, alias="driverId")
-
-
 class Vehicle(VehicleBase):
-    id: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json", by_alias=True, exclude_none=True)
+
+# api model
+
+# ============== EVENT TYPES ==============
+class VehicleEventType(EventType):
+    """Các loại event cho vehicle"""
+    VEHICLE_REGISTERED = "VEHICLE.REGISTERED"
+    VEHICLE_UPDATED = "VEHICLE.UPDATED"
+    VEHICLE_DRIVER_ASSIGNED = "VEHICLE.DRIVER.ASSIGNED"
+    VEHICLE_DRIVER_UNASSIGNED = "VEHICLE.DRIVER.UNASSIGNED"
+    VEHICLE_STATUS_CHANGED = "VEHICLE.STATUS.CHANGED"
+    VEHICLE_MAINTENANCE_SCHEDULED = "VEHICLE.MAINTENANCE.SCHEDULED"
+    VEHICLE_MAINTENANCE_COMPLETED = "VEHICLE.MAINTENANCE.COMPLETED"
+    VEHICLE_DOCUMENTS_EXPIRED = "VEHICLE.DOCUMENTS.EXPIRED"
+    VEHICLE_DOCUMENTS_RENEWED = "VEHICLE.DOCUMENTS.RENEWED"
+    VEHICLE_DELETED = "VEHICLE.DELETED"
+    VEHICLE_INSPECTION_REQUIRED = "VEHICLE.INSPECTION.REQUIRED"
+
+# ============== EVENT ==============
+class VehicleEvent(EventBase):
+    """Base class cho tất cả vehicle events"""
+    event_type: VehicleEventType = Field(..., alias="eventType")
+    vehicle : Vehicle
+
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json", by_alias=True, exclude_none=True)
 
 
-# api model

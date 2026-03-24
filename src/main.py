@@ -78,9 +78,14 @@ setup_keycloak_middleware(
     app,
     keycloak_configuration=keycloak_config,
     user_mapper=map_user,
-    exclude_patterns=[r"^/health$", r"^/docs", r"^/redoc", r"^/openapi\.json", "/v1/retrieval/sse/.*"],
+    exclude_patterns=[
+        r"^/health$",
+        r"^/docs",
+        r"^/redoc",
+        r"^/openapi\.json",
+        r"^/v1/retrieval/sse/.*",
+    ],
 )
-
 
 # CORS middleware
 app.add_middleware(
@@ -91,6 +96,7 @@ app.add_middleware(
     allow_headers=["*"],
 
 )
+
 
 @app.get("/health")
 async def health_check():
@@ -137,4 +143,3 @@ async def debug_consumer():
 
 # API routers
 app.include_router(vehicles_router, prefix=settings.API_V1_PREFIX)
-
