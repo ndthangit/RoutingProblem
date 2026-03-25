@@ -32,7 +32,7 @@ interface AddVehicleModalProps {
 export default function AddVehicleModal({ isOpen, onClose, onSuccess }: AddVehicleModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { keycloak, initialized } = useKeycloak();
+  const { keycloak } = useKeycloak();
 
 
   const [formData, setFormData] = useState<Partial<Vehicle>>({

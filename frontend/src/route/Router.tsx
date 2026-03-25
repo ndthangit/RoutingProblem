@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "../pages/Home";
 import ProtectedRoute from "./ProtectedRoute";
 import Layout from "../components/layout/Layout";
 import Vehicles from "../pages/Vehicles";
+import Drivers from "../pages/Drivers";
 
 export function AppRouter() {
   return (
@@ -21,7 +22,7 @@ export function AppRouter() {
             <Route path="/dashboard" element={<div>404 Page</div>} />
             <Route path="/orders" element={<div>404 Page</div>} />
             <Route path="/fleet" element={<Vehicles />} />
-            <Route path="/drivers" element={<div>404 Page</div>} />
+            <Route path="/drivers" element={<Drivers />} />
             <Route path="/warehouses" element={<div>404 Page</div>} />
             <Route path="/ai-optimization" element={<div>404 Page</div>} />
           </Route>

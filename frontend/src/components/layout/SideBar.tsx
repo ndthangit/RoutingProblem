@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Truck, Sparkles, Settings, Users, Warehouse, MoreVertical, LogOut, CircleUser as UserCircle } from 'lucide-react';
+import { LayoutDashboard, Package, Truck, Sparkles, Users, Warehouse, MoreVertical, LogOut, CircleUser as UserCircle } from 'lucide-react';
 import { useKeycloak } from '@react-keycloak/web';
 
 interface SidebarProps {

@@ -1,4 +1,4 @@
-import {type Video as LucideIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface ServiceCardProps {
   icon: LucideIcon;

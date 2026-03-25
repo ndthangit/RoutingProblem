@@ -1,18 +1,8 @@
-import { useEffect, useState } from 'react';
 import { Package} from 'lucide-react';
-import Toast from './Toast';
 import { useKeycloak } from '@react-keycloak/web';
-import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
-  const navigate = useNavigate();
-  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({
-    visible: false,
-    message: '',
-    type: 'success'
-  });
-
-  const { keycloak, initialized } = useKeycloak();
+  const { keycloak } = useKeycloak();
 
   // useEffect(() => {
   //   if (initialized) {
