@@ -95,7 +95,7 @@ setup_keycloak_middleware(
 # preflight (OPTIONS) can be answered without being blocked by auth.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[settings.HOST_FRONTEND],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

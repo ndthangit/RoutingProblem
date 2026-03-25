@@ -219,6 +219,12 @@ class Settings(BaseSettings):
         json_schema_extra={"env": "KEYCLOAK_ADMIN_PASSWORD"}
     )
 
+    HOST_FRONTEND: str = Field(
+        default="http://localhost:5173",
+        description="Host frontend",
+        json_schema_extra={"env": "HOST_FRONTEND"}
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -18,7 +18,7 @@ export const isFunction = (func: unknown): func is (...args: unknown[]) => unkno
 
 // Tạo instance axios với cấu hình cơ bản
 const axiosInstance = axios.create({
-    baseURL: "http://localhost:8000",
+    baseURL: import.meta.env.VITE_HOST_FRONTEND,
     headers: { "Content-Type": "application/json" },
 });
 
