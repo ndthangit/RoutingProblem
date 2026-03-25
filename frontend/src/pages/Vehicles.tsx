@@ -71,24 +71,24 @@ export default function Vehicles() {
     {
       field: 'id',
       headerName: 'Vehicle ID',
-      width: 210,
+      width: 200,
     },
     {
       field: 'vehicleType',
       headerName: 'Type',
-      width: 120,
+      width: 80,
       valueGetter: (value) => value || 'N/A',
     },
     {
       field: 'licensePlate',
       headerName: 'License Plate',
-      width: 150,
+      width: 120,
       valueGetter: (value) => value || 'N/A',
     },
     {
       field: 'brandModel',
       headerName: 'Brand/Model',
-      width: 200,
+      width: 120,
       sortable: false,
       valueGetter: (_value, row: Vehicle) =>
         row.brand && row.model ? `${row.brand} ${row.model}` : (row.brand || row.model || 'N/A'),

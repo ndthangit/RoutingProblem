@@ -12,6 +12,7 @@ from src.config.keycloak import keycloak_config, map_user
 from src.models.consumer import kafka_consumer
 from src.models.producer import kafka_producer
 from src.api.vehicles import router as vehicles_router
+from src.api.drivers import router as drivers_router
 
 # Configure logging
 logging.basicConfig(
@@ -71,9 +72,11 @@ app = FastAPI(
 )
 
 
+
+
 # Keycloak authentication middleware
 # All routes are protected by default.  Pass exclude_patterns to skip paths:
-# exclude_patterns=[r"^/health$", r"^/docs", r"^/openapi\.json"]
+# exclude_patterns=[r"^/health$", r"^/docs", r"^/openapi\\.json"]
 setup_keycloak_middleware(
     app,
     keycloak_configuration=keycloak_config,
@@ -82,12 +85,14 @@ setup_keycloak_middleware(
         r"^/health$",
         r"^/docs",
         r"^/redoc",
-        r"^/openapi\.json",
+        r"^/openapi.json$",
         r"^/v1/retrieval/sse/.*",
     ],
 )
 
 # CORS middleware
+# IMPORTANT: CORS should be registered BEFORE auth middleware so browser
+# preflight (OPTIONS) can be answered without being blocked by auth.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -95,8 +100,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 
-)
 
+)
 
 @app.get("/health")
 async def health_check():
@@ -143,3 +148,4 @@ async def debug_consumer():
 
 # API routers
 app.include_router(vehicles_router, prefix=settings.API_V1_PREFIX)
+app.include_router(drivers_router, prefix=settings.API_V1_PREFIX)
