@@ -4,6 +4,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Layout from "../components/layout/Layout";
 import Vehicles from "../pages/Vehicles";
 import Drivers from "../pages/Drivers";
+import Warehouses from "../pages/Warehouses";
 
 export function AppRouter() {
   return (
@@ -23,7 +24,7 @@ export function AppRouter() {
             <Route path="/orders" element={<div>404 Page</div>} />
             <Route path="/fleet" element={<Vehicles />} />
             <Route path="/drivers" element={<Drivers />} />
-            <Route path="/warehouses" element={<div>404 Page</div>} />
+            <Route path="/warehouses" element={<Warehouses />} />
             <Route path="/ai-optimization" element={<div>404 Page</div>} />
           </Route>
         </Route>

@@ -13,6 +13,7 @@ from src.models.consumer import kafka_consumer
 from src.models.producer import kafka_producer
 from src.api.vehicles import router as vehicles_router
 from src.api.drivers import router as drivers_router
+from src.api.warehouses import router as warehouses_router
 
 # Configure logging
 logging.basicConfig(
@@ -149,3 +150,4 @@ async def debug_consumer():
 # API routers
 app.include_router(vehicles_router, prefix=settings.API_V1_PREFIX)
 app.include_router(drivers_router, prefix=settings.API_V1_PREFIX)
+app.include_router(warehouses_router, prefix=settings.API_V1_PREFIX)
