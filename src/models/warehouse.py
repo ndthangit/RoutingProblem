@@ -9,8 +9,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.models.event import EventBase, EventType
 
-
-
 class WarehouseStatus(str, Enum):
     ACTIVE = "ACTIVE"              # Đang hoạt động
     INACTIVE = "INACTIVE"          # Tạm ngưng hoạt động
@@ -26,6 +24,8 @@ class WarehouseType(str, Enum):
     
     # Kho của khách hàng
     CUSTOMER_LOCATION = "CUSTOMER_LOCATION" # Nơi đơn vị vận chuyển đến lấy hàng
+
+    RECEIVER_LOCATION = "RECEIVER_LOCATION"   # Nơi đơn vị vận chuyển cần giao đến
 
 
 class WarehouseBase(BaseModel):
