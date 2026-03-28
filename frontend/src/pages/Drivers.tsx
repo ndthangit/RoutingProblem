@@ -9,6 +9,7 @@ import AddDriverModal from "./Driver/AddDriverModal";
 import type { Driver, DriverHiredEvent, DriverStatus } from "../types";
 
 function StatusBadge({ status }: { status: DriverStatus }) {
+
   const colorMap: Record<DriverStatus, "success" | "default" | "warning" | "error"> = {
     ACTIVE: "success",
     INACTIVE: "error",

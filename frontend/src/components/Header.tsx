@@ -4,28 +4,10 @@ import { useKeycloak } from '@react-keycloak/web';
 export default function Header() {
   const { keycloak } = useKeycloak();
 
-  // useEffect(() => {
-  //   if (initialized) {
-  //     if (keycloak.authenticated) {
-  //       setToast({
-  //         visible: true,
-  //         message: 'Login successful!',
-  //         type: 'success'
-  //       });
-        
-  //       const timer = setTimeout(() => {
-  //         navigate('/dashboard');
-  //       }, 1500);
-        
-  //       return () => clearTimeout(timer);
-  //     }
-  //   }
-  // }, [initialized, keycloak.authenticated, navigate]);
-
   const handleLogin = () => {
     keycloak.login({
       redirectUri: window.location.origin + '/dashboard',
-    });
+    }).then(r => console.log('Login response:', r)).catch(e => console.error('Login error:', e));
   };
 
   const handleSignup = () => {

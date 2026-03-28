@@ -7,10 +7,14 @@ import { Box as MuiBox } from "@mui/material";
 import type { Vehicle, VehicleStatus } from "../types";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
+import {useKeycloak} from "@react-keycloak/web";
 
 
 
 function StatusBadge({ status }: { status: VehicleStatus }) {
+
+
+
   const colorMap: Record<VehicleStatus, 'success' | 'default' | 'warning' | 'error'> = {
     ACTIVE: 'success',
     INACTIVE: 'error',
@@ -41,6 +45,8 @@ export default function Vehicles() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const { keycloak } = useKeycloak();
+
 
   const fetchVehicles = async () => {
     try {
@@ -59,6 +65,7 @@ export default function Vehicles() {
 
   useEffect(() => {
     fetchVehicles();
+      console.log("User info:", keycloak?.tokenParsed);
   }, []);
 
   const handleSuccess = () => {

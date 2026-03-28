@@ -20,11 +20,20 @@ export function AppRouter() {
         {/* Protected routes with Layout */}
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
-            <Route path="/dashboard" element={<div>404 Page</div>} />
+            <Route element={<ProtectedRoute requiredRole="dashboard" />}>
+              <Route path="/dashboard" element={<div>Dashboard Page</div>} />
+            </Route>
             <Route path="/orders" element={<div>404 Page</div>} />
-            <Route path="/fleet" element={<Vehicles />} />
-            <Route path="/drivers" element={<Drivers />} />
-            <Route path="/warehouses" element={<Warehouses />} />
+
+            <Route element={<ProtectedRoute requiredRole="fleet" />}>
+              <Route path="/fleet" element={<Vehicles />} />
+            </Route>
+            <Route element={<ProtectedRoute requiredRole="drivers" />}>
+              <Route path="/drivers" element={<Drivers />} />
+            </Route>
+            <Route element={<ProtectedRoute requiredRole="warehouses" />}>
+              <Route path="/warehouses" element={<Warehouses />} />
+            </Route>
             <Route path="/ai-optimization" element={<div>404 Page</div>} />
           </Route>
         </Route>
