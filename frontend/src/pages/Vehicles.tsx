@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { request } from "../api";
 import { Chip } from "@mui/material";
 import AddVehicleModal from "./Vehicle/AddVehicleModal.tsx";
@@ -8,6 +8,7 @@ import type { Vehicle, VehicleStatus } from "../types";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
 import {useKeycloak} from "@react-keycloak/web";
+import { connectVehicleLocationSocket, type VehicleLocationUpdate } from "../ws/vehicleLocationClient";
 
 
 
@@ -46,9 +47,11 @@ export default function Vehicles() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const { keycloak } = useKeycloak();
+  const wsConnRef = useRef<{ subscribe: (msg: { action: "subscribe"; vehicleIds?: string[] }) => void; close: () => void } | null>(null);
 
 
   const fetchVehicles = async () => {
+    setLoading(true);
     try {
       const res = await request<Vehicle[]>("GET", "/v1/vehicles");
       if (res?.data) {
@@ -67,6 +70,64 @@ export default function Vehicles() {
     fetchVehicles();
       console.log("User info:", keycloak?.tokenParsed);
   }, []);
+
+  // Real-time vehicle locations from backend WebSocket
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const conn = await connectVehicleLocationSocket({
+          onUpdate: (update: VehicleLocationUpdate) => {
+            // merge location into existing vehicle rows
+            setVehicles((prev) =>
+              prev.map((v) =>
+                v.id === update.vehicleId
+                  ? {
+                      ...v,
+                      location: {
+                        latitude: update.location.latitude,
+                        longitude: update.location.longitude,
+                      },
+                    }
+                  : v
+              )
+            );
+          },
+          onError: (e) => console.error("Vehicle location socket error:", e),
+          onOpen: () => {
+            // subscribe current list right after socket opens
+            const ids = vehicles.map((v) => v.id).filter(Boolean);
+            conn.subscribe({ action: "subscribe", vehicleIds: ids.length ? ids : undefined });
+          },
+        });
+
+        if (cancelled) {
+          conn.close();
+          return;
+        }
+
+        wsConnRef.current = conn;
+      } catch (e) {
+        console.error("Failed to connect vehicle location socket:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      wsConnRef.current?.close();
+      wsConnRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const vehicleIds = useMemo(() => vehicles.map((v) => v.id).filter(Boolean), [vehicles]);
+
+  // When vehicle list changes (after fetch/add), re-subscribe with current ids
+  useEffect(() => {
+    if (!wsConnRef.current) return;
+    wsConnRef.current.subscribe({ action: "subscribe", vehicleIds: vehicleIds.length ? vehicleIds : undefined });
+  }, [vehicleIds]);
 
   const handleSuccess = () => {
     fetchVehicles();
@@ -126,6 +187,17 @@ export default function Vehicles() {
       headerName: 'Driver',
       width: 170,
       valueGetter: (value) => value || 'Unassigned',
+    },
+    {
+      field: 'location',
+      headerName: 'Location',
+      width: 220,
+      sortable: false,
+      valueGetter: (_value, row: Vehicle & { location?: { latitude: number; longitude: number } | null }) => {
+        const loc = (row as any)?.location;
+        if (!loc) return 'N/A';
+        return `${Number(loc.latitude).toFixed(6)}, ${Number(loc.longitude).toFixed(6)}`;
+      },
     },
   ];
 

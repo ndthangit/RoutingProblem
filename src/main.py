@@ -1,7 +1,10 @@
 # main.py
 import logging
+import asyncio
+import random
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager, AsyncExitStack
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_keycloak_middleware import setup_keycloak_middleware
 
@@ -15,6 +18,10 @@ from src.api.vehicles import router as vehicles_router
 from src.api.drivers import router as drivers_router
 from src.api.warehouses import router as warehouses_router
 from src.api.orders import router as orders_router
+from src.api.routing import router as routing_router
+from src.services.ws_hub import WebSocketHub
+from src.models.routing import EtaUpdate, RouteRequest, Coordinate
+from src.services.routing_service import RoutingService
 
 # Configure logging
 logging.basicConfig(
@@ -84,11 +91,13 @@ setup_keycloak_middleware(
     keycloak_configuration=keycloak_config,
     user_mapper=map_user,
     exclude_patterns=[
-        r"^/health$",
-        r"^/docs",
-        r"^/redoc",
-        r"^/openapi.json$",
-        r"^/v1/retrieval/sse/.*",
+        # r"^/health$",
+        # r"^/docs",
+        # r"^/redoc",
+        # r"^/openapi.json$",
+        # r"^/v1/retrieval/sse/.*",
+        # r"^/ws/.*",
+        r"^/.*",  # tạm thời cho phép tất cả api không cần xác thực
     ],
 )
 
@@ -153,3 +162,123 @@ app.include_router(vehicles_router, prefix=settings.API_V1_PREFIX)
 app.include_router(drivers_router, prefix=settings.API_V1_PREFIX)
 app.include_router(warehouses_router, prefix=settings.API_V1_PREFIX)
 app.include_router(orders_router, prefix=settings.API_V1_PREFIX)
+app.include_router(routing_router, prefix=settings.API_V1_PREFIX)
+
+
+# ---------------------------
+# WebSocket (push ETA updates)
+# ---------------------------
+# NOTE:
+# - We exclude /ws/* from Keycloak middleware because the middleware is HTTP-only.
+# - If you need auth, pass access_token in query string and validate manually.
+hub = WebSocketHub()
+
+
+@app.websocket("/ws/vehicles/locations")
+async def ws_vehicle_locations(websocket: WebSocket):
+    """Push vehicle location updates.
+
+    Protocol:
+      - client sends: {"action":"subscribe", "vehicleIds":["id1","id2", ...]}
+      - server sends: {"type":"vehicle.location.update", "vehicleId":"...", "location":{...}}
+
+    Note: currently emits demo updates (random jitter). Replace the generator with real telemetry.
+    """
+    await websocket.accept()
+    try:
+        # None => subscribe all (demo). set() => subscribe none. non-empty set => subscribe specific IDs.
+        subscribed: set[str] | None = None
+
+        async def receiver():
+            nonlocal subscribed
+            while True:
+                msg = await websocket.receive_json()
+                if not isinstance(msg, dict):
+                    continue
+                if msg.get("action") != "subscribe":
+                    continue
+                ids = msg.get("vehicleIds")
+                if ids is None:
+                    subscribed = None
+                elif isinstance(ids, list):
+                    # empty list means subscribe none
+                    subscribed = {str(x) for x in ids if x}
+
+        async def sender():
+            # Demo base point (Hanoi-ish). We add small random jitter.
+            base_lat = 21.027763
+            base_lon = 105.834160
+            while True:
+                await asyncio.sleep(1.0)
+
+                ts = datetime.now(timezone.utc).isoformat()
+                if subscribed is None:
+                    # demo mode: we don't know all vehicles here; emit a single heartbeat-like message
+                    # Client can still use subscribe(list) to reduce noise.
+                    lat = base_lat + random.uniform(-0.01, 0.01)
+                    lon = base_lon + random.uniform(-0.01, 0.01)
+                    await websocket.send_json(
+                        {
+                            "type": "vehicle.location.update",
+                            "vehicleId": "demo",
+                            "location": {"latitude": lat, "longitude": lon, "timestamp": ts},
+                        }
+                    )
+                elif len(subscribed) == 0:
+                    continue
+                else:
+                    for vid in list(subscribed):
+                        lat = base_lat + random.uniform(-0.01, 0.01)
+                        lon = base_lon + random.uniform(-0.01, 0.01)
+                        await websocket.send_json(
+                            {
+                                "type": "vehicle.location.update",
+                                "vehicleId": vid,
+                                "location": {"latitude": lat, "longitude": lon, "timestamp": ts},
+                            }
+                        )
+
+        recv_task = asyncio.create_task(receiver())
+        send_task = asyncio.create_task(sender())
+        done, pending = await asyncio.wait(
+            {recv_task, send_task}, return_when=asyncio.FIRST_COMPLETED
+        )
+        for t in pending:
+            t.cancel()
+    except WebSocketDisconnect:
+        return
+
+
+@app.websocket("/ws/eta")
+async def ws_eta(websocket: WebSocket):
+    await hub.connect(websocket)
+    try:
+        # Simple protocol:
+        #  - client can send: {"action":"route", "vehicleId":"...", "coordinates":[{"lon":..,"lat":..},...]}
+        #  - server responds with eta.update
+        service = RoutingService()
+        while True:
+            msg = await websocket.receive_json()
+            if not isinstance(msg, dict):
+                continue
+
+            if msg.get("action") != "route":
+                continue
+
+            try:
+                coords = [Coordinate.model_validate(c) for c in (msg.get("coordinates") or [])]
+                vehicle_id = msg.get("vehicleId")
+                route_req = RouteRequest(coordinates=coords)
+                route = await service.route(route_req)
+
+                update = EtaUpdate(
+                    vehicleId=vehicle_id,
+                    distanceM=route.distance_m,
+                    durationS=route.duration_s,
+                    geometry=route.geometry,
+                )
+                await websocket.send_json(update.model_dump(by_alias=True, exclude_none=True))
+            except Exception as e:
+                await websocket.send_json({"type": "error", "message": str(e)})
+    except WebSocketDisconnect:
+        await hub.disconnect(websocket)

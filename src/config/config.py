@@ -225,6 +225,47 @@ class Settings(BaseSettings):
         json_schema_extra={"env": "HOST_FRONTEND"}
     )
 
+    # OSRM (OpenStreetMap Routing Machine)
+    # Example public server: https://router.project-osrm.org
+    # If you run OSRM in docker-compose, point it to http://osrm:5000
+    OSRM_BASE_URL: str = Field(
+        default=os.getenv("OSRM_BASE_URL", "https://router.project-osrm.org"),
+        description="Base URL for OSRM server",
+        json_schema_extra={"env": "OSRM_BASE_URL"},
+    )
+
+    # Routing provider selection
+    # Values: "osrm" (direct OSRM) or "rapidapi" (RapidAPI fast-routing)
+    ROUTING_PROVIDER: str = Field(
+        default=os.getenv("ROUTING_PROVIDER", "osrm"),
+        description="Routing provider to use (osrm|rapidapi)",
+        json_schema_extra={"env": "ROUTING_PROVIDER"},
+    )
+
+    # RapidAPI fast-routing (OSRM-compatible)
+    RAPIDAPI_BASE_URL: str = Field(
+        default=os.getenv("RAPIDAPI_BASE_URL", "https://fast-routing.p.rapidapi.com"),
+        description="RapidAPI base URL for fast-routing",
+        json_schema_extra={"env": "RAPIDAPI_BASE_URL"},
+    )
+    RAPIDAPI_HOST: str = Field(
+        default=os.getenv("RAPIDAPI_HOST", "fast-routing.p.rapidapi.com"),
+        description="RapidAPI host header value",
+        json_schema_extra={"env": "RAPIDAPI_HOST"},
+    )
+    RAPIDAPI_KEY: str = Field(
+        default=os.getenv("RAPIDAPI_KEY", ""),
+        description="RapidAPI key (secret)",
+        json_schema_extra={"env": "RAPIDAPI_KEY"},
+    )
+    ROUTING_UPSTREAM_TIMEOUT_S: float = Field(
+        default=float(os.getenv("ROUTING_UPSTREAM_TIMEOUT_S", "20")),
+        description="Timeout (seconds) for upstream routing HTTP calls",
+        ge=1,
+        le=120,
+        json_schema_extra={"env": "ROUTING_UPSTREAM_TIMEOUT_S"},
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

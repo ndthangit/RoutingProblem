@@ -24,6 +24,7 @@ export interface Vehicle {
   vehicleType: VehicleType;
   status: VehicleStatus;
   driverId: string | null;
+  location?: { latitude: number; longitude: number } | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
   deletedAt?: Date | string | null;

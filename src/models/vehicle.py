@@ -8,6 +8,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 from src.models.event import EventBase, EventType
+from src.models.location import Location
 
 
 class VehicleStatus(str, Enum):
@@ -38,6 +39,7 @@ class VehicleBase(BaseModel):
     vehicle_type: VehicleType = Field(default=VehicleType.SEDAN, description="Loại xe", alias="vehicleType")
     status: VehicleStatus = Field(default=VehicleStatus.ACTIVE, description="Trạng thái xe")
     driver_id: Optional[str] = Field(default=None, alias="driverId")
+    location: Optional[Location] = Field(default=None, description="Vị trí hiện tại của xe")
 
 class Vehicle(VehicleBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -73,5 +75,4 @@ class VehicleEvent(EventBase):
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json", by_alias=True, exclude_none=True)
-
 
