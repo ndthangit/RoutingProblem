@@ -6,6 +6,7 @@ import Vehicles from "../pages/Vehicles";
 import Drivers from "../pages/Drivers";
 import Warehouses from "../pages/Warehouses";
 import Orders from "../pages/Orders";
+import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage";
 
 export function AppRouter() {
   return (
@@ -21,7 +22,15 @@ export function AppRouter() {
         {/* Protected routes with Layout */}
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
-            <Route element={<ProtectedRoute requiredRole="dashboard" />}>
+          <Route path="/dashboard" element={<div>Dashboard Page</div>} />
+                        <Route path="/orders" element={<Orders />} />
+                                      <Route path="/fleet" element={<Vehicles />} />
+                                      <Route path="/drivers" element={<Drivers />} />
+                                      <Route path="/warehouses" element={<Warehouses />} />
+                                      <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />
+
+
+            {/* <Route element={<ProtectedRoute requiredRole="dashboard" />}>
               <Route path="/dashboard" element={<div>Dashboard Page</div>} />
             </Route>
             <Route element={<ProtectedRoute requiredRole="orders" />}>
@@ -36,7 +45,10 @@ export function AppRouter() {
             </Route>
             <Route element={<ProtectedRoute requiredRole="warehouses" />}>
               <Route path="/warehouses" element={<Warehouses />} />
-            </Route>
+              <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />
+            </Route> */}
+
+
             <Route path="/ai-optimization" element={<div>404 Page</div>} />
           </Route>
         </Route>

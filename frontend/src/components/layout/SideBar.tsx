@@ -80,6 +80,11 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     setShowUserMenu(false);
   };
 
+  const handleWarehouseRegistration = () => {
+    setShowUserMenu(false);
+    navigate('/warehouses/register');
+  };
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (initialized && !keycloak?.authenticated) {
@@ -152,6 +157,15 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
                 <UserCircle className="w-5 h-5 text-slate-400" />
                 <span className="text-sm font-medium text-white">Quản lý tài khoản</span>
               </button>
+
+              <button
+                onClick={handleWarehouseRegistration}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left"
+              >
+                <Warehouse className="w-5 h-5 text-slate-400" />
+                <span className="text-sm font-medium text-white">Đăng ký kho</span>
+              </button>
+
               <div className="border-t border-slate-700" />
               <button
                 onClick={handleLogout}
