@@ -6,10 +6,10 @@ import { Plus, Users } from "lucide-react";
 
 import { request } from "../api";
 import AddDriverModal from "./Driver/AddDriverModal";
-import type { Driver, DriverHiredEvent, DriverStatus } from "../types";
+import AssignVehicleModal from "./Driver/AssignVehicleModal";
+import type { Driver, DriverHiredEvent, DriverStatus, Vehicle } from "../types";
 
 function StatusBadge({ status }: { status: DriverStatus }) {
-
   const colorMap: Record<DriverStatus, "success" | "default" | "warning" | "error"> = {
     ACTIVE: "success",
     INACTIVE: "error",
@@ -60,8 +60,12 @@ function normalizeDrivers(data: unknown): Driver[] {
 
 export default function Drivers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
   const fetchDrivers = async () => {
     try {
@@ -76,26 +80,40 @@ export default function Drivers() {
     }
   };
 
+  const fetchVehicles = async () => {
+    setVehiclesLoading(true);
+    try {
+      const res = await request<Vehicle[]>("GET", "/v1/vehicles");
+      setVehicles(res?.data ?? []);
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+      setVehicles([]);
+    } finally {
+      setVehiclesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchDrivers();
+    fetchVehicles();
   }, []);
 
   const handleSuccess = () => {
     setLoading(true);
     fetchDrivers();
+    fetchVehicles();
   };
+
+  const vehicleById = useMemo(() => {
+    return new Map(vehicles.map((v) => [v.id, v] as const));
+  }, [vehicles]);
 
   const columns: GridColDef[] = useMemo(
     () => [
       {
-        field: "id",
-        headerName: "Driver ID",
-        width: 220,
-      },
-      {
         field: "employeeCode",
         headerName: "Employee Code",
-        width: 140,
+        width: 180,
         valueGetter: (value) => value || "N/A",
       },
       {
@@ -125,13 +143,13 @@ export default function Drivers() {
       {
         field: "licenseNumber",
         headerName: "License No.",
-        width: 140,
+        width: 200,
         valueGetter: (value) => value || "N/A",
       },
       {
         field: "licenseExpiryDate",
         headerName: "License Expiry",
-        width: 140,
+        width: 200,
         valueGetter: (_value, row: Driver) => {
           const value = row.licenseExpiryDate;
           if (!value) return "N/A";
@@ -140,26 +158,48 @@ export default function Drivers() {
       },
       {
         field: "assignedVehicleId",
-        headerName: "Assigned Vehicle",
-        width: 160,
-        valueGetter: (value) => value || "Unassigned",
+        headerName: "Action",
+        width: 120,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Driver, Driver["assignedVehicleId"]>) => {
+          const driver = params.row;
+          const assignedId = driver.assignedVehicleId;
+          const isUnassigned = !assignedId;
+
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedDriver(driver);
+                setIsAssignModalOpen(true);
+              }}
+              className={`px-3 py-1 rounded-lg transition-colors text-xs font-medium ${
+                isUnassigned
+                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                  : "bg-red-500 text-white hover:bg-red-600"
+              }`}
+            >
+              {isUnassigned ? "Assign" : "Unassign"}
+            </button>
+          );
+        },
       },
       {
         field: "rating",
         headerName: "Rating",
-        width: 100,
+        width: 120,
         type: "number",
         valueGetter: (value) => (value ?? "N/A"),
       },
       {
         field: "totalTrips",
         headerName: "Trips",
-        width: 90,
+        width: 120,
         type: "number",
         valueGetter: (value) => (value ?? "N/A"),
       },
     ],
-    []
+    [vehicleById]
   );
 
   return (
@@ -229,6 +269,18 @@ export default function Drivers() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleSuccess}
+      />
+
+      <AssignVehicleModal
+        isOpen={isAssignModalOpen}
+        onClose={() => {
+          setIsAssignModalOpen(false);
+          setSelectedDriver(null);
+        }}
+        onSuccess={handleSuccess}
+        driver={selectedDriver}
+        vehicles={vehicles}
+        vehiclesLoading={vehiclesLoading}
       />
     </>
   );

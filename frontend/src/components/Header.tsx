@@ -22,7 +22,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2">
             <Package className="h-8 w-8 text-blue-900" />
-            <span className="text-2xl font-bold text-blue-900">GlobalShip</span>
+            <span className="text-2xl font-bold text-blue-900">GoShip</span>
           </div>
 
           <div className="hidden md:flex items-center space-x-8">

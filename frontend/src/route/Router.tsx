@@ -6,7 +6,7 @@ import Vehicles from "../pages/Vehicles";
 import Drivers from "../pages/Drivers";
 import Warehouses from "../pages/Warehouses";
 import Orders from "../pages/Orders";
-import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage";
+// import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage";
 
 export function AppRouter() {
   return (
@@ -27,7 +27,7 @@ export function AppRouter() {
                                       <Route path="/fleet" element={<Vehicles />} />
                                       <Route path="/drivers" element={<Drivers />} />
                                       <Route path="/warehouses" element={<Warehouses />} />
-                                      <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />
+                                      {/* <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} /> */}
 
 
             {/* <Route element={<ProtectedRoute requiredRole="dashboard" />}>
