@@ -37,9 +37,7 @@ export default function Orders() {
     }
   };
 
-  useEffect(() => {
-
-    
+  useEffect(() => {    
     fetchOrders();
   }, []);
 
@@ -57,14 +55,14 @@ export default function Orders() {
         headerName: "Origin",
         width: 200,
         sortable: false,
-        valueGetter: (_v, row: Order) => row.origin?.name || row.origin?.id || "N/A",
+        valueGetter: (_v, row: Order) => row.origin || "N/A",
       },
       {
         field: "destination",
         headerName: "Destination",
         width: 200,
         sortable: false,
-        valueGetter: (_v, row: Order) => row.destination?.name || row.destination?.id || "N/A",
+        valueGetter: (_v, row: Order) => row.destination || "N/A",
       },
       { field: "senderName", headerName: "Sender", width: 160, valueGetter: (v) => v || "N/A" },
       { field: "receiverName", headerName: "Receiver", width: 160, valueGetter: (v) => v || "N/A" },

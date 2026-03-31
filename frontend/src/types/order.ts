@@ -1,5 +1,3 @@
-import type { Warehouse } from "./warehouse";
-
 export interface PackageDetails {
   description?: string;
   weightKg?: number;
@@ -13,8 +11,8 @@ export interface Order {
   id: string;
   trackingNumber?: string;
 
-  origin?: Warehouse;
-  destination?: Warehouse;
+  origin?: string;
+  destination?: string;
 
   senderName?: string;
   receiverName?: string;

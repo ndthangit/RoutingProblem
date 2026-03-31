@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -8,11 +8,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   TextField,
   Typography,
 } from "@mui/material";
@@ -21,7 +17,7 @@ import PackageIcon from "@mui/icons-material/LocalShipping";
 import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
-import type { Order, Warehouse } from "../../types";
+import type { Order } from "../../types";
 
 interface AddOrderModalProps {
   isOpen: boolean;
@@ -35,25 +31,9 @@ function compactObject<T extends object>(obj: T): Partial<T> {
   ) as Partial<T>;
 }
 
-function buildWarehouseLite(id: string): Warehouse {
-  const nowIso = new Date().toISOString();
-  return {
-    id,
-    name: "",
-    address: "",
-    warehouseType: "DEPOT",
-    status: "ACTIVE",
-    createdAt: nowIso,
-    updatedAt: nowIso,
-  };
-}
-
 export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
 
   type FormData = {
     trackingNumber: string;
@@ -61,14 +41,12 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
     receiverName: string;
     note: string;
 
-    originWarehouseId: string;
-    destinationWarehouseId: string;
+    origin: string;
+    destination: string;
 
     description: string;
     weightKg: string;
-    lengthCm: string;
-    widthCm: string;
-    heightCm: string;
+    
     declaredValue: string;
 
     codAmount: string;
@@ -81,14 +59,12 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
     receiverName: "",
     note: "",
 
-    originWarehouseId: "",
-    destinationWarehouseId: "",
+    origin: "",
+    destination: "",
 
     description: "",
     weightKg: "1",
-    lengthCm: "1",
-    widthCm: "1",
-    heightCm: "1",
+
     declaredValue: "0",
 
     codAmount: "0",
@@ -103,14 +79,12 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
       receiverName: "",
       note: "",
 
-      originWarehouseId: "",
-      destinationWarehouseId: "",
+      origin: "",
+      destination: "",
 
       description: "",
       weightKg: "1",
-      lengthCm: "1",
-      widthCm: "1",
-      heightCm: "1",
+      
       declaredValue: "0",
 
       codAmount: "0",
@@ -124,25 +98,10 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
     onClose();
   };
 
-  const fetchWarehouses = async () => {
-    setLoadingWarehouses(true);
-    try {
-      const res = await request<Warehouse[]>("GET", "/v1/warehouses");
-      setWarehouses(res?.data ?? []);
-    } catch (e) {
-      console.error("Error fetching warehouses", e);
-      setWarehouses([]);
-    } finally {
-      setLoadingWarehouses(false);
-    }
-  };
-
   useEffect(() => {
     if (!isOpen) return;
-    fetchWarehouses();
+    setError(null);
   }, [isOpen]);
-
-  const warehouseById = useMemo(() => new Map(warehouses.map((w) => [w.id, w])), [warehouses]);
 
   const handleChange = (
     e:
@@ -169,29 +128,32 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
         setError("Vui lòng nhập Tracking number.");
         return;
       }
-      if (!formData.originWarehouseId || !formData.destinationWarehouseId) {
-        setError("Vui lòng chọn Origin và Destination warehouse.");
+      if (!formData.origin || !formData.destination) {
+        setError("Vui lòng nhập địa chỉ lấy hàng (Origin) và địa chỉ nhận hàng (Destination).");
+        return;
+      }
+      if (!formData.senderName || !formData.receiverName) {
+        setError("Vui lòng nhập tên người gửi và tên người nhận.");
+        return;
+      }
+      if (!formData.description || !formData.weightKg) {
+        setError("Vui lòng nhập mô tả kiện hàng và cân nặng.");
         return;
       }
 
       const nowIso = new Date().toISOString();
-      const origin = warehouseById.get(formData.originWarehouseId) ?? buildWarehouseLite(formData.originWarehouseId);
-      const destination =
-        warehouseById.get(formData.destinationWarehouseId) ?? buildWarehouseLite(formData.destinationWarehouseId);
 
       const payload: Order = compactObject({
         id: window.crypto?.randomUUID?.() ?? "",
         trackingNumber: formData.trackingNumber,
-        origin,
-        destination,
+        origin: formData.origin,
+        destination: formData.destination,
         senderName: formData.senderName,
         receiverName: formData.receiverName,
         package: compactObject({
           description: formData.description,
           weightKg: toNumberOrUndefined(formData.weightKg),
-          lengthCm: toNumberOrUndefined(formData.lengthCm),
-          widthCm: toNumberOrUndefined(formData.widthCm),
-          heightCm: toNumberOrUndefined(formData.heightCm),
+         
           declaredValue: toNumberOrUndefined(formData.declaredValue),
         }),
         codAmount: toNumberOrUndefined(formData.codAmount),
@@ -199,6 +161,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
         note: formData.note,
         createdAt: nowIso,
       } as Order) as Order;
+
+      console.log("Submitting new order:", payload);
 
       await request<Order>("POST", "/v1/orders", undefined, undefined, payload);
 
@@ -267,40 +231,24 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
             </Grid>
 
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Origin</InputLabel>
-                <Select
-                  name="originWarehouseId"
-                  value={formData.originWarehouseId}
-                  onChange={handleChange}
-                  label="Origin"
-                  disabled={loadingWarehouses}
-                >
-                  {warehouses.map((w) => (
-                    <MenuItem key={w.id} value={w.id}>
-                      {w.name} ({w.id.slice(0, 8)})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                fullWidth
+                required
+                label="Origin (Pickup address)"
+                name="origin"
+                value={formData.origin}
+                onChange={handleChange}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Destination</InputLabel>
-                <Select
-                  name="destinationWarehouseId"
-                  value={formData.destinationWarehouseId}
-                  onChange={handleChange}
-                  label="Destination"
-                  disabled={loadingWarehouses}
-                >
-                  {warehouses.map((w) => (
-                    <MenuItem key={w.id} value={w.id}>
-                      {w.name} ({w.id.slice(0, 8)})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                fullWidth
+                required
+                label="Destination (Delivery address)"
+                name="destination"
+                value={formData.destination}
+                onChange={handleChange}
+              />
             </Grid>
 
             <Grid size={{ xs: 12 }}>
@@ -313,20 +261,12 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
               </Typography>
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <TextField fullWidth label="Description" name="description" value={formData.description} onChange={handleChange} />
+              <TextField fullWidth required label="Description" name="description" value={formData.description} onChange={handleChange} />
             </Grid>
             <Grid size={{ xs: 12, sm: 3 }}>
-              <TextField fullWidth label="Weight (kg)" name="weightKg" type="number" value={formData.weightKg} onChange={handleChange} />
+              <TextField fullWidth required label="Weight (kg)" name="weightKg" type="number" value={formData.weightKg} onChange={handleChange} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 3 }}>
-              <TextField fullWidth label="Length (cm)" name="lengthCm" type="number" value={formData.lengthCm} onChange={handleChange} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 3 }}>
-              <TextField fullWidth label="Width (cm)" name="widthCm" type="number" value={formData.widthCm} onChange={handleChange} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 3 }}>
-              <TextField fullWidth label="Height (cm)" name="heightCm" type="number" value={formData.heightCm} onChange={handleChange} />
-            </Grid>
+            
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="Declared Value" name="declaredValue" type="number" value={formData.declaredValue} onChange={handleChange} />
             </Grid>
