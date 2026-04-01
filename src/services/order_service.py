@@ -32,6 +32,8 @@ class OrderService:
         )
 
     async def create_order(self, order: Order) -> Order:
+
+        # print(order)
         await self._cb.upsert_document(_doc_id(order.id), order.to_dict(), ORDER_COLLECTION)
         return order
 
@@ -44,7 +46,7 @@ class OrderService:
     async def list_orders(self, *, limit: int = 100, offset: int = 0) -> list[Order]:
         scope_name = self._cb.scope.name if self._cb.scope else "default"
         statement = (
-            f"SELECT o.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{ORDER_COLLECTION} o "
+            f"SELECT o.* FROM `{self._cb.bucket.name}`.`{scope_name}`.`{ORDER_COLLECTION}` o "
             "ORDER BY o.createdAt DESC "
             "LIMIT $limit OFFSET $offset"
         )
@@ -92,7 +94,7 @@ class OrderService:
     async def list_movement_events(self, order_id: str, *, limit: int = 200, offset: int = 0) -> list[OrderMovementEvent]:
         scope_name = self._cb.scope.name if self._cb.scope else "default"
         statement = (
-            f"SELECT e.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{ORDER_MOVEMENT_EVENT_COLLECTION} e "
+            f"SELECT e.* FROM `{self._cb.bucket.name}`.`{scope_name}`.`{ORDER_MOVEMENT_EVENT_COLLECTION}` e "
             "WHERE e.orderId = $order_id "
             "ORDER BY e.timestamp DESC "
             "LIMIT $limit OFFSET $offset"

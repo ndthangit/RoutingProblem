@@ -42,14 +42,27 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<Partial<Warehouse>>({
+  type FormData = {
+    name: string;
+    address: string;
+    warehouseType: WarehouseType;
+    status: WarehouseStatus;
+    capacity: number | null;
+    coordLat: number | null;
+    coordLon: number | null;
+    managerId: string | null;
+    customerId: string | null;
+    contactPhone: string | null;
+  };
+
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     address: "",
-    warehouseType: "DEPOT" as WarehouseType,
-    status: "ACTIVE" as WarehouseStatus,
-    latitude: null,
-    longitude: null,
+    warehouseType: "DEPOT",
+    status: "ACTIVE",
     capacity: null,
+    coordLat: null,
+    coordLon: null,
     managerId: null,
     customerId: null,
     contactPhone: null,
@@ -63,7 +76,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
     const { name, value } = e.target;
 
     setFormData((prev) => {
-      if (["latitude", "longitude", "capacity"].includes(name)) {
+      if (["coordLat", "coordLon", "capacity"].includes(name)) {
         return { ...prev, [name]: value === "" ? null : Number(value) };
       }
       return { ...prev, [name]: value };
@@ -75,11 +88,11 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
     setFormData({
       name: "",
       address: "",
-      warehouseType: "DEPOT" as WarehouseType,
-      status: "ACTIVE" as WarehouseStatus,
-      latitude: null,
-      longitude: null,
+      warehouseType: "DEPOT",
+      status: "ACTIVE",
       capacity: null,
+      coordLat: null,
+      coordLon: null,
       managerId: null,
       customerId: null,
       contactPhone: null,
@@ -104,8 +117,24 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
       }
 
       const nowIso = new Date().toISOString();
+      const coordinate =
+      formData.coordLat !== null &&
+      formData.coordLat !== undefined &&
+      formData.coordLon !== null &&
+      formData.coordLon !== undefined
+        ? { lon: Number(formData.coordLon), lat: Number(formData.coordLat) }
+          : undefined;
+
       const warehouse: Partial<Warehouse> = compactObject({
-        ...formData,
+      name: formData.name,
+      address: formData.address,
+      warehouseType: formData.warehouseType,
+      status: formData.status,
+      capacity: formData.capacity,
+      managerId: formData.managerId,
+      customerId: formData.customerId,
+      contactPhone: formData.contactPhone,
+        coordinate,
         id: window.crypto?.randomUUID?.() ?? undefined,
         createdAt: nowIso,
         updatedAt: nowIso,
@@ -118,6 +147,8 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
         eventType: "WAREHOUSE.REGISTERED",
         warehouse: warehouse as Warehouse,
       };
+
+      console.log("Submitting warehouse:", payload);
 
       await request("POST", "/v1/warehouses", undefined, undefined, payload as any);
 
@@ -257,9 +288,9 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
               <TextField
                 fullWidth
                 label="Latitude"
-                name="latitude"
+                name="coordLat"
                 type="number"
-                value={formData.latitude ?? ""}
+                value={formData.coordLat ?? ""}
                 onChange={handleChange}
                 slotProps={{ htmlInput: { min: -90, max: 90, step: "any" } }}
                 variant="outlined"
@@ -270,9 +301,9 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
               <TextField
                 fullWidth
                 label="Longitude"
-                name="longitude"
+                name="coordLon"
                 type="number"
-                value={formData.longitude ?? ""}
+                value={formData.coordLon ?? ""}
                 onChange={handleChange}
                 slotProps={{ htmlInput: { min: -180, max: 180, step: "any" } }}
                 variant="outlined"

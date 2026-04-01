@@ -5,9 +5,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.models.event import EventBase, EventType
+from src.models.routing import Coordinate
 
 class WarehouseStatus(str, Enum):
     ACTIVE = "ACTIVE"              # Đang hoạt động
@@ -34,9 +35,12 @@ class WarehouseBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=128, description="Tên kho/Điểm tập kết")
     address: str = Field(..., min_length=5, max_length=255, description="Địa chỉ đầy đủ")
     
-    # Tọa độ GPS để tối ưu hóa tuyến đường cho xe đến lấy/giao hàng
-    latitude: Optional[float] = Field(default=None, ge=-90, le=90, description="Vĩ độ")
-    longitude: Optional[float] = Field(default=None, ge=-180, le=180, description="Kinh độ")
+    # # Tọa độ GPS để tối ưu hóa tuyến đường cho xe đến lấy/giao hàng
+    # latitude: Optional[float] = Field(default=None, ge=-90, le=90, description="Vĩ độ")
+    # longitude: Optional[float] = Field(default=None, ge=-180, le=180, description="Kinh độ")
+
+    # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
+    coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
     
     warehouse_type: WarehouseType = Field(
         default=WarehouseType.DEPOT, 
@@ -54,6 +58,21 @@ class WarehouseBase(BaseModel):
     
     # Thông tin liên hệ chung
     contact_phone: Optional[str] = Field(default=None, max_length=20, description="Số điện thoại liên hệ tại kho", alias="contactPhone")
+
+    @model_validator(mode="after")
+    def _sync_coordinate(self) -> "WarehouseBase":
+        # If client provides coordinate, backfill legacy latitude/longitude.
+        if self.coordinate is not None:
+            if self.latitude is None:
+                self.latitude = self.coordinate.lat
+            if self.longitude is None:
+                self.longitude = self.coordinate.lon
+            return self
+
+        # If client provides legacy latitude/longitude, synthesize coordinate.
+        if self.latitude is not None and self.longitude is not None:
+            self.coordinate = Coordinate(lon=float(self.longitude), lat=float(self.latitude))
+        return self
 
 
 class Warehouse(WarehouseBase):

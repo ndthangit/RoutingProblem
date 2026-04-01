@@ -24,8 +24,8 @@ export interface Warehouse {
   name: string;
   address: string;
 
-  latitude?: number | null;
-  longitude?: number | null;
+  // OSRM-style coordinate (lon/lat). Backend will also keep latitude/longitude for compatibility.
+  coordinate?: { lon: number; lat: number } | null;
 
   warehouseType?: WarehouseType;
   status?: WarehouseStatus;

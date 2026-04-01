@@ -70,7 +70,7 @@ export default function Warehouses() {
 
   const columns: GridColDef[] = useMemo(
     () => [
-      { field: "id", headerName: "Warehouse ID", width: 240 },
+      // { field: "id", headerName: "Warehouse ID", width: 240 },
       { field: "name", headerName: "Name", width: 200, valueGetter: (value) => value || "N/A" },
       { field: "address", headerName: "Address", width: 280, sortable: false, valueGetter: (value) => value || "N/A" },
       {

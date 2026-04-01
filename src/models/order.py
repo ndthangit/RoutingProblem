@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 # Giả định import từ các module của bạn
 from src.models.event import EventBase, EventType
-from src.models.warehouse import Warehouse 
+
 
 
 # ============== ENUMS CHO EVENT ==============
@@ -37,9 +37,7 @@ class PackageDetails(BaseModel):
     
     description: str = Field(..., max_length=500, description="Mô tả hàng hóa")
     weight_kg: float = Field(..., gt=0, alias="weightKg")
-    length_cm: Optional[float] = Field(default=None, gt=0, alias="lengthCm")
-    width_cm: Optional[float] = Field(default=None, gt=0, alias="widthCm")
-    height_cm: Optional[float] = Field(default=None, gt=0, alias="heightCm")
+
     declared_value: Optional[float] = Field(default=0, alias="declaredValue")
 
 
@@ -54,9 +52,13 @@ class Order(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tracking_number: str = Field(..., max_length=32, alias="trackingNumber")
     
+    # # Điểm đầu và điểm cuối cố định
+    # origin: Warehouse = Field(..., description="Điểm lấy hàng ban đầu")
+    # destination: Warehouse = Field(..., description="Điểm giao hàng đích")
+
     # Điểm đầu và điểm cuối cố định
-    origin: Warehouse = Field(..., description="Điểm lấy hàng ban đầu")
-    destination: Warehouse = Field(..., description="Điểm giao hàng đích")
+    origin: str = Field(..., description="Điểm lấy hàng ban đầu")
+    destination: str = Field(..., description="Điểm giao hàng đích")
     
     sender_name: str = Field(..., description="Tên người gửi", alias="senderName")
     receiver_name: str = Field(..., description="Tên người nhận", alias="receiverName")

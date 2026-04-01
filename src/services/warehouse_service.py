@@ -48,6 +48,7 @@ class WarehouseService:
             WAREHOUSE_COLLECTION,
         )
         await self._persist_event(event)
+        
         return event.warehouse
 
     async def get_warehouse(self, warehouse_id: str) -> Optional[Warehouse]:
