@@ -92,18 +92,21 @@ export default function WarehouseRegistrationPage() {
       const nowIso = new Date().toISOString();
       const warehouse: Partial<Warehouse> = compactObject({
         ...formData,
+        // coordinate is intentionally omitted; backend will geocode from address
       } as Warehouse);
 
       const payload: WarehouseEvent = {
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
-        ownerEmail: (keycloak?.tokenParsed as any)?.email || "unknown",
+        ownerEmail:
+          ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
+          "unknown",
         eventType: "WAREHOUSE.REGISTERED",
         warehouse: warehouse as Warehouse,
       };
       console.log("Submitting warehouse registration:", payload);
 
-      await request("POST", "/v1/warehouses", undefined, undefined, payload as any);
+      await request<WarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
 
       navigate("/warehouses");
     } catch (err) {

@@ -114,6 +114,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
       const warehouse: Partial<Warehouse> = compactObject({
         name: formData.name,
         address: formData.address,
+        // coordinate is intentionally omitted; backend will geocode from address
         warehouseType: formData.warehouseType,
         status: formData.status,
         capacity: formData.capacity,
@@ -126,14 +127,16 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
         // backend overrides ownerEmail based on auth token, but keep for compatibility
-        ownerEmail: (keycloak?.tokenParsed as any)?.email || "unknown",
+        ownerEmail:
+          ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
+          "unknown",
         eventType: "WAREHOUSE.REGISTERED",
         warehouse: warehouse as Warehouse,
       };
 
       console.log("Submitting warehouse:", payload);
 
-      await request("POST", "/v1/warehouses", undefined, undefined, payload as any);
+      await request<WarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
 
       onSuccess();
       handleClose();
@@ -263,32 +266,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
                 value={formData.capacity ?? ""}
                 onChange={handleChange}
                 slotProps={{ htmlInput: { min: 0, step: 1 } }}
-                variant="outlined"
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Latitude"
-                name="coordLat"
-                type="number"
-                value={formData.coordLat ?? ""}
-                onChange={handleChange}
-                slotProps={{ htmlInput: { min: -90, max: 90, step: "any" } }}
-                variant="outlined"
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Longitude"
-                name="coordLon"
-                type="number"
-                value={formData.coordLon ?? ""}
-                onChange={handleChange}
-                slotProps={{ htmlInput: { min: -180, max: 180, step: "any" } }}
                 variant="outlined"
               />
             </Grid>

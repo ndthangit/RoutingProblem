@@ -10,7 +10,7 @@ def test_routing_service_creation():
 @pytest.mark.asyncio
 async def test_geocode_address():
     service = RoutingService()
-    address = "Đồng Tâm, Hai Bà Trưng, Hà Nội, Việt Nam"
+    address = "huyện Hậu Lộc, Thanh Hóa, Việt Nam"
     try:
         location = await service.geocode_address(address)
         print(location)

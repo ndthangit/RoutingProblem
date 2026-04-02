@@ -20,7 +20,7 @@ export type WarehouseEventType =
   | "WAREHOUSE.DELETED";
 
 export interface Warehouse {
-  id: string;
+  id?: string;
 
   name: string;
   address: string;
@@ -38,10 +38,6 @@ export interface Warehouse {
 
   createdAt?: Date | string;
   updatedAt?: Date | string;
-
-  // Optional snake_case timestamps if backend returns them without aliases
-  created_at?: Date | string;
-  updated_at?: Date | string;
 }
 
 export interface WarehouseEvent {

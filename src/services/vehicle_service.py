@@ -32,18 +32,17 @@ class VehicleService:
         )
 
     async def create_vehicle(self, event: VehicleEvent) -> Vehicle:
-        # if event.event_type !=  VehicleEventType.VEHICLE_REGISTERED:
-        #     raise ValueError(f"Invalid eventType: expected {VehicleEventType.VEHICLE_REGISTERED}, got {event.event_type}")
-        #
-        # # ensure timestamps
-        # now = datetime.now(timezone.utc)
-        # if event.vehicle.created_at is None:
-        #     event.vehicle.created_at = now
-        # event.vehicle.updated_at = now
-        #
-        # await self._cb.upsert_document(_doc_id(event.vehicle.id), event.vehicle.to_dict(), VEHICLE_COLLECTION)
-        # await self._persist_event(event)
-        print(event)
+        if event.event_type !=  VehicleEventType.VEHICLE_REGISTERED:
+            raise ValueError(f"Invalid eventType: expected {VehicleEventType.VEHICLE_REGISTERED}, got {event.event_type}")
+
+        # ensure timestamps
+        now = datetime.now(timezone.utc)
+        if event.vehicle.created_at is None:
+            event.vehicle.created_at = now
+        event.vehicle.updated_at = now
+
+        await self._cb.upsert_document(_doc_id(event.vehicle.id), event.vehicle.to_dict(), VEHICLE_COLLECTION)
+        await self._persist_event(event)
         return event.vehicle
 
     async def get_vehicle(self, vehicle_id: str) -> Optional[Vehicle]:
