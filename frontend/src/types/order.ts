@@ -1,33 +1,49 @@
 export interface PackageDetails {
   description?: string;
   weightKg?: number;
-  lengthCm?: number;
-  widthCm?: number;
-  heightCm?: number;
   declaredValue?: number;
 }
 
 export interface Order {
   id: string;
-  trackingNumber?: string;
 
-  origin?: string;
-  destination?: string;
+  senderName: string;
+  receiverName: string;
 
-  senderName?: string;
-  receiverName?: string;
+  origin: string;
+  origin_coordinate?: { lon: number; lat: number } | null;
 
-  package?: PackageDetails;
+  destination: string;
+  destination_coordinate?: { lon: number; lat: number } | null;
+
+  package: PackageDetails;
 
   codAmount?: number;
   shippingFee?: number;
   note?: string;
 
   createdAt?: Date | string;
-
-  // Optional snake_case timestamps if backend returns them
-  created_at?: Date | string;
+  vehicleId?: string | null;
 }
 
-export type OrderCreatePayload = Order;
+export type OrderEventType =
+  | "ORDER.CREATED"
+  | "ORDER.PICKED_UP"
+  | "ORDER.ARRIVED_AT_HUB"
+  | "ORDER.DISPATCHED"
+  | "ORDER.OUT_FOR_DELIVERY"
+  | "ORDER.DELIVERED"
+  | "ORDER.PAYMENT_RECEIVED"
+  | "ORDER.FAILED_ATTEMPT"
+  | "ORDER.CANCELLED";
+
+export interface OrderEvent {
+  event_id: string;
+  timestamp: string;
+  ownerEmail?: string;
+  eventType: OrderEventType;
+  order: Order;
+}
+
+export type OrderCreatePayload = OrderEvent;
 

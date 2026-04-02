@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from src.config.couchbase import CouchbaseClient
 from src.dependencies import get_current_user
-from src.models.order import Order, OrderMovementEvent
+from src.models.order import Order, OrderEvent
 from src.models.user import User
 from src.services.order_service import OrderService
 
@@ -20,13 +20,16 @@ def _get_service(request: Request) -> OrderService:
 
 @router.post("", response_model=Order, status_code=status.HTTP_201_CREATED)
 async def create_order(
-    payload: Order,
+    payload: OrderEvent,
     request: Request,
     current_user: User = Depends(get_current_user),
 ):
     service = _get_service(request)
-    _ = current_user  # Order model currently doesn't include owner info
-    return await service.create_order(payload)
+    event = payload.model_copy(update={"owner_email": current_user.email})
+    try:
+        return await service.create_order(event)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/{order_id}", response_model=Order)
@@ -75,20 +78,20 @@ async def delete_order(
     return None
 
 
-@router.post("/{order_id}/movement", response_model=OrderMovementEvent, status_code=status.HTTP_201_CREATED)
-async def append_movement_event(
+@router.post("/{order_id}/events", response_model=OrderEvent, status_code=status.HTTP_201_CREATED)
+async def append_event(
     order_id: str,
-    payload: OrderMovementEvent,
+    payload: OrderEvent,
     request: Request,
     current_user: User = Depends(get_current_user),
 ):
     service = _get_service(request)
 
     event = payload.model_copy(update={"owner_email": current_user.email})
-    event.order_id = order_id
+    event.order.id = order_id
 
     try:
-        return await service.append_movement_event(event)
+        return await service.append_event(event)
     except ValueError as e:
         msg = str(e)
         if msg.lower() == "order not found":
@@ -96,12 +99,12 @@ async def append_movement_event(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
 
 
-@router.get("/{order_id}/movement", response_model=list[OrderMovementEvent])
-async def list_movement_events(
+@router.get("/{order_id}/events", response_model=list[OrderEvent])
+async def list_events(
     order_id: str,
     request: Request,
     limit: int = 200,
     offset: int = 0,
 ):
     service = _get_service(request)
-    return await service.list_movement_events(order_id, limit=limit, offset=offset)
+    return await service.list_events(order_id, limit=limit, offset=offset)

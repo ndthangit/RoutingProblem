@@ -17,7 +17,7 @@ import PackageIcon from "@mui/icons-material/LocalShipping";
 import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
-import type { Order } from "../../types";
+import type { Order, OrderEvent, PackageDetails } from "../../types";
 
 interface AddOrderModalProps {
   isOpen: boolean;
@@ -25,18 +25,11 @@ interface AddOrderModalProps {
   onSuccess: () => void;
 }
 
-function compactObject<T extends object>(obj: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(obj as Record<string, unknown>).filter(([, v]) => v !== null && v !== undefined && v !== "")
-  ) as Partial<T>;
-}
-
 export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   type FormData = {
-    trackingNumber: string;
     senderName: string;
     receiverName: string;
     note: string;
@@ -54,7 +47,6 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
   };
 
   const [formData, setFormData] = useState<FormData>({
-    trackingNumber: "",
     senderName: "",
     receiverName: "",
     note: "",
@@ -74,7 +66,6 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
   const resetForm = () => {
     setError(null);
     setFormData({
-      trackingNumber: "",
       senderName: "",
       receiverName: "",
       note: "",
@@ -124,10 +115,6 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
     setError(null);
 
     try {
-      if (!formData.trackingNumber) {
-        setError("Vui lòng nhập Tracking number.");
-        return;
-      }
       if (!formData.origin || !formData.destination) {
         setError("Vui lòng nhập địa chỉ lấy hàng (Origin) và địa chỉ nhận hàng (Destination).");
         return;
@@ -143,28 +130,36 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
 
       const nowIso = new Date().toISOString();
 
-      const payload: Order = compactObject({
+      const pkg: PackageDetails = {
+        description: formData.description,
+        weightKg: toNumberOrUndefined(formData.weightKg),
+        declaredValue: toNumberOrUndefined(formData.declaredValue),
+      };
+
+      const order: Order = {
         id: window.crypto?.randomUUID?.() ?? "",
-        trackingNumber: formData.trackingNumber,
         origin: formData.origin,
         destination: formData.destination,
         senderName: formData.senderName,
         receiverName: formData.receiverName,
-        package: compactObject({
-          description: formData.description,
-          weightKg: toNumberOrUndefined(formData.weightKg),
-         
-          declaredValue: toNumberOrUndefined(formData.declaredValue),
-        }),
+        package: pkg,
         codAmount: toNumberOrUndefined(formData.codAmount),
         shippingFee: toNumberOrUndefined(formData.shippingFee),
         note: formData.note,
         createdAt: nowIso,
-      } as Order) as Order;
+      };
 
-      console.log("Submitting new order:", payload);
+      const payload: OrderEvent = {
+        event_id: window.crypto?.randomUUID?.() ?? "",
+        timestamp: nowIso,
+        ownerEmail: "unknown",
+        eventType: "ORDER.CREATED",
+        order,
+      };
 
-      await request<Order>("POST", "/v1/orders", undefined, undefined, payload);
+      console.log("Submitting new order event:", payload);
+
+      await request<OrderEvent>("POST", "/v1/orders", undefined, undefined, payload);
 
       onSuccess();
       handleClose();
@@ -196,16 +191,16 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
           )}
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                required
-                label="Tracking Number"
-                name="trackingNumber"
-                value={formData.trackingNumber}
-                onChange={handleChange}
-              />
-            </Grid>
+            {/*<Grid size={{ xs: 12, sm: 6 }}>*/}
+            {/*  <TextField*/}
+            {/*    fullWidth*/}
+            {/*    required*/}
+            {/*    label="Sender Name"*/}
+            {/*    name="senderName"*/}
+            {/*    value={formData.senderName}*/}
+            {/*    onChange={handleChange}*/}
+            {/*  />*/}
+            {/*</Grid>*/}
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth

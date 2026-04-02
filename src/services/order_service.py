@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Optional
 
 from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
-from src.models.order import Order, OrderMovementEvent
+from src.models.order import Order, OrderEvent
+from src.services.routing_service import RoutingService
 
 ORDER_COLLECTION = "order"
-ORDER_MOVEMENT_EVENT_COLLECTION = "order_movement_event"
+ORDER_EVENT_COLLECTION = "order_event"
 
 
 def _doc_id(order_id: str) -> str:
@@ -17,24 +17,34 @@ def _doc_id(order_id: str) -> str:
 
 
 def _event_doc_id(order_id: str, event_id: str) -> str:
-    return f"order_movement_event::{order_id}::{event_id}"
+    return f"order_event::{order_id}::{event_id}"
 
 
 class OrderService:
     def __init__(self, cb: CouchbaseClient):
         self._cb = cb
 
-    async def _persist_movement_event(self, event: OrderMovementEvent) -> None:
+    async def _persist_event(self, event: OrderEvent) -> None:
         await self._cb.upsert_document(
-            _event_doc_id(event.order_id, event.event_id),
+            _event_doc_id(event.order.id, event.event_id),
             event.to_dict(),
-            ORDER_MOVEMENT_EVENT_COLLECTION,
+            ORDER_EVENT_COLLECTION,
         )
 
-    async def create_order(self, order: Order) -> Order:
+    async def create_order(self, event: OrderEvent) -> Order:
+        """Create an order from an event envelope and persist both aggregate + event."""
+        # Ensure eventType is the expected one for creating an order.
+        if event.event_type != event.event_type.ORDER_CREATED:
+            raise ValueError(f"Invalid eventType for create: {event.event_type}")
 
-        # print(order)
+
+        event.order.destination_coordinate = await RoutingService().geocode_address(event.order.destination)
+        event.order.origin_coordinate = await RoutingService().geocode_address(event.order.destination)
+
+
+        order = event.order
         await self._cb.upsert_document(_doc_id(order.id), order.to_dict(), ORDER_COLLECTION)
+        await self._persist_event(event)
         return order
 
     async def get_order(self, order_id: str) -> Optional[Order]:
@@ -82,20 +92,23 @@ class OrderService:
         except CouchbaseException:
             return False
 
-    async def append_movement_event(self, event: OrderMovementEvent) -> OrderMovementEvent:
-        # Ensure the order exists before writing tracking history.
-        existing = await self.get_order(event.order_id)
+    async def append_event(self, event: OrderEvent) -> OrderEvent:
+        # Ensure the order exists before writing history.
+        existing = await self.get_order(event.order.id)
         if existing is None:
             raise ValueError("Order not found")
 
-        await self._persist_movement_event(event)
+        # Keep the stored order immutable fields stable.
+        event.order.created_at = existing.created_at
+        await self._persist_event(event)
         return event
 
-    async def list_movement_events(self, order_id: str, *, limit: int = 200, offset: int = 0) -> list[OrderMovementEvent]:
+    async def list_events(self, order_id: str, *, limit: int = 200, offset: int = 0) -> list[OrderEvent]:
         scope_name = self._cb.scope.name if self._cb.scope else "default"
         statement = (
-            f"SELECT e.* FROM `{self._cb.bucket.name}`.`{scope_name}`.`{ORDER_MOVEMENT_EVENT_COLLECTION}` e "
-            "WHERE e.orderId = $order_id "
+            f"SELECT e.* FROM `{self._cb.bucket.name}`.`{scope_name}`.`{ORDER_EVENT_COLLECTION}` e "
+            # New schema stores nested order object. Keep a fallback for old documents if any.
+            "WHERE e.order.id = $order_id OR e.orderId = $order_id "
             "ORDER BY e.timestamp DESC "
             "LIMIT $limit OFFSET $offset"
         )
@@ -103,7 +116,7 @@ class OrderService:
         try:
             result = await self._cb.query(statement, order_id=order_id, limit=limit, offset=offset)
             rows = list(result)
-            return [OrderMovementEvent.model_validate(row) for row in rows]
+            return [OrderEvent.model_validate(row) for row in rows]
         except CouchbaseException as e:
             print(f"Couchbase query failed: {e}")
             return []
