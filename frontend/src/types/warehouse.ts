@@ -8,7 +8,8 @@ export type WarehouseStatus =
 export type WarehouseType =
   | "HUB"
   | "DEPOT"
-  | "CUSTOMER_LOCATION";
+  | "CUSTOMER_LOCATION"
+  | "RECEIVER_LOCATION";
 
 export type WarehouseEventType =
   | "WAREHOUSE.REGISTERED"

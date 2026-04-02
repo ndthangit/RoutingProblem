@@ -48,8 +48,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
     warehouseType: WarehouseType;
     status: WarehouseStatus;
     capacity: number | null;
-    coordLat: number | null;
-    coordLon: number | null;
     managerId: string | null;
     customerId: string | null;
     contactPhone: string | null;
@@ -61,8 +59,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
     warehouseType: "DEPOT",
     status: "ACTIVE",
     capacity: null,
-    coordLat: null,
-    coordLon: null,
     managerId: null,
     customerId: null,
     contactPhone: null,
@@ -76,7 +72,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
     const { name, value } = e.target;
 
     setFormData((prev) => {
-      if (["coordLat", "coordLon", "capacity"].includes(name)) {
+      if (["capacity"].includes(name)) {
         return { ...prev, [name]: value === "" ? null : Number(value) };
       }
       return { ...prev, [name]: value };
@@ -91,8 +87,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
       warehouseType: "DEPOT",
       status: "ACTIVE",
       capacity: null,
-      coordLat: null,
-      coordLon: null,
       managerId: null,
       customerId: null,
       contactPhone: null,
@@ -117,32 +111,21 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
       }
 
       const nowIso = new Date().toISOString();
-      const coordinate =
-      formData.coordLat !== null &&
-      formData.coordLat !== undefined &&
-      formData.coordLon !== null &&
-      formData.coordLon !== undefined
-        ? { lon: Number(formData.coordLon), lat: Number(formData.coordLat) }
-          : undefined;
-
       const warehouse: Partial<Warehouse> = compactObject({
-      name: formData.name,
-      address: formData.address,
-      warehouseType: formData.warehouseType,
-      status: formData.status,
-      capacity: formData.capacity,
-      managerId: formData.managerId,
-      customerId: formData.customerId,
-      contactPhone: formData.contactPhone,
-        coordinate,
-        id: window.crypto?.randomUUID?.() ?? undefined,
-        createdAt: nowIso,
-        updatedAt: nowIso,
+        name: formData.name,
+        address: formData.address,
+        warehouseType: formData.warehouseType,
+        status: formData.status,
+        capacity: formData.capacity,
+        managerId: formData.managerId,
+        customerId: formData.customerId,
+        contactPhone: formData.contactPhone,
       } as Warehouse);
 
       const payload: WarehouseEvent = {
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
+        // backend overrides ownerEmail based on auth token, but keep for compatibility
         ownerEmail: (keycloak?.tokenParsed as any)?.email || "unknown",
         eventType: "WAREHOUSE.REGISTERED",
         warehouse: warehouse as Warehouse,

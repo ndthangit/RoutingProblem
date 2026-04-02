@@ -8,8 +8,8 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 # Giả định import từ các module của bạn
-from src.models.event import EventBase, EventType
-
+from src.models.event import EventBase
+from src.models.routing import Coordinate
 
 
 # ============== ENUMS CHO EVENT ==============
@@ -50,18 +50,13 @@ class Order(BaseModel):
     model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tracking_number: str = Field(..., max_length=32, alias="trackingNumber")
     
-    # # Điểm đầu và điểm cuối cố định
-    # origin: Warehouse = Field(..., description="Điểm lấy hàng ban đầu")
-    # destination: Warehouse = Field(..., description="Điểm giao hàng đích")
+    sender_name: str = Field(..., description="Tên người gửi", alias="senderName")
+    receiver_name: str = Field(..., description="Tên người nhận", alias="receiverName")
 
     # Điểm đầu và điểm cuối cố định
     origin: str = Field(..., description="Điểm lấy hàng ban đầu")
     destination: str = Field(..., description="Điểm giao hàng đích")
-    
-    sender_name: str = Field(..., description="Tên người gửi", alias="senderName")
-    receiver_name: str = Field(..., description="Tên người nhận", alias="receiverName")
     
     package: PackageDetails = Field(..., description="Thông tin kiện hàng")
     

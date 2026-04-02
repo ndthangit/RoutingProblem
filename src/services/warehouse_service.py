@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Optional
+import uuid
 
 from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
+from src.services.routing_service import RoutingService
 from src.models.warehouse import Warehouse, WarehouseEvent, WarehouseEventType
 
 WAREHOUSE_COLLECTION = "warehouse"
@@ -31,16 +33,28 @@ class WarehouseService:
             WAREHOUSE_EVENT_COLLECTION,
         )
 
+
     async def create_warehouse(self, event: WarehouseEvent) -> Warehouse:
         if event.event_type != WarehouseEventType.WAREHOUSE_REGISTERED:
             raise ValueError(
                 f"Invalid eventType: expected {WarehouseEventType.WAREHOUSE_REGISTERED}, got {event.event_type}"
             )
 
+        # Frontend may send only address/name and omit id. Generate it here.
+        if not getattr(event.warehouse, "id", None):
+            event.warehouse.id = str(uuid.uuid4())
+
         now = datetime.now(timezone.utc)
         if getattr(event.warehouse, "created_at", None) is None:
             event.warehouse.created_at = now
         event.warehouse.updated_at = now
+
+        # Enrich coordinate from address (geocoding) when missing.
+        # Frontend can omit lat/lon; backend will resolve address -> coordinate before persisting.
+        if event.warehouse.coordinate is None:
+            coord = await RoutingService().geocode_address(event.warehouse.address)
+            event.warehouse.coordinate = coord
+
 
         await self._cb.upsert_document(
             _doc_id(event.warehouse.id),

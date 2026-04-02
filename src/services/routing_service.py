@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from src.config.config import settings
-from src.models.routing import RouteLeg, RouteRequest, RouteResponse
+from src.models.routing import Coordinate, RouteLeg, RouteRequest, RouteResponse
 
 logger = logging.getLogger(__name__)
 
@@ -135,4 +135,66 @@ class RoutingService:
 			geometry=geometry_obj,
 			legs=legs,
 		)
+
+	async def geocode_address(self, address: str) -> Coordinate:
+		"""Geocode an address into a Coordinate (lon/lat).
+
+		This is used to enrich Warehouse creation when the client only provides an address.
+		Default implementation uses OpenStreetMap Nominatim.
+		
+		Configure via env:
+		- GEOCODING_PROVIDER: 'nominatim' (default)
+		- NOMINATIM_BASE_URL: default 'https://nominatim.openstreetmap.org'
+		"""
+		address = (address or "").strip()
+		if not address:
+			raise ValueError("Address is required for geocoding")
+
+		provider = (getattr(settings, "GEOCODING_PROVIDER", None) or "nominatim").strip().lower()
+		if provider not in {"nominatim"}:
+			raise OsrmError(f"Unknown GEOCODING_PROVIDER='{provider}'.")
+
+		base_url = (getattr(settings, "NOMINATIM_BASE_URL", None) or "https://nominatim.openstreetmap.org").rstrip(
+			"/"
+		)
+		url = f"{base_url}/search"
+		params = {
+			"format": "jsonv2",
+			"q": address,
+			"limit": "1",
+		}
+		headers = {
+			# Nominatim requires a valid User-Agent identifying the application.
+			"User-Agent": getattr(settings, "APP_NAME", "routing-app") + " (geocoding)",
+			"Accept": "application/json",
+		}
+
+		async with httpx.AsyncClient(timeout=self._timeout) as client:
+			try:
+				r = await client.get(url, params=params, headers=headers)
+			except httpx.TimeoutException as e:
+				raise OsrmError(f"Geocoding timed out: {e}") from e
+			except httpx.RequestError as e:
+				raise OsrmError(f"Geocoding request error: {e}") from e
+
+		if r.status_code != 200:
+			raise OsrmError(f"Geocoding HTTP {r.status_code}: {r.text}")
+
+		try:
+			data = r.json()
+		except ValueError as e:
+			raise OsrmError("Geocoding returned non-JSON response") from e
+
+		if not data:
+			raise OsrmError("Geocoding returned no results")
+
+		best = data[0]
+		try:
+			lat = float(best["lat"])
+			lon = float(best["lon"])
+		except Exception as e:
+			raise OsrmError(f"Unexpected geocoding response: {best}") from e
+
+		# Coordinate is lon/lat.
+		return Coordinate(lon=lon, lat=lat)
 

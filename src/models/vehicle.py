@@ -8,7 +8,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 from src.models.event import EventBase, EventType
-from src.models.location import Location
+from src.models.routing import Coordinate
 
 
 class VehicleStatus(str, Enum):
@@ -39,7 +39,9 @@ class VehicleBase(BaseModel):
     vehicle_type: VehicleType = Field(default=VehicleType.SEDAN, description="Loại xe", alias="vehicleType")
     status: VehicleStatus = Field(default=VehicleStatus.ACTIVE, description="Trạng thái xe")
     driver_id: Optional[str] = Field(default=None, alias="driverId")
-    location: Optional[Location] = Field(default=None, description="Vị trí hiện tại của xe")
+    # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
+    coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
+
 
 class Vehicle(VehicleBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -70,7 +72,7 @@ class VehicleEventType(EventType):
 class VehicleEvent(EventBase):
     """Base class cho tất cả vehicle events"""
     event_type: VehicleEventType = Field(..., alias="eventType")
-    vehicle : Vehicle
+    vehicle: Vehicle
 
 
     def to_dict(self) -> dict:

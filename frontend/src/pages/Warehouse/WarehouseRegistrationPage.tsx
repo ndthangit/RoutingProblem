@@ -37,8 +37,6 @@ export default function WarehouseRegistrationPage() {
     address: "",
     warehouseType: "CUSTOMER_LOCATION" as WarehouseType,
     status: "ACTIVE" as WarehouseStatus,
-    latitude: null,
-    longitude: null,
     capacity: null,
     managerId: keycloak?.tokenParsed?.sub || null,
     customerId: null,
@@ -53,7 +51,7 @@ export default function WarehouseRegistrationPage() {
     const { name, value } = e.target;
 
     setFormData((prev) => {
-      if (["latitude", "longitude", "capacity"].includes(name)) {
+      if (["capacity"].includes(name)) {
         return { ...prev, [name]: value === "" ? null : Number(value) };
       }
       return { ...prev, [name]: value };
@@ -67,8 +65,6 @@ export default function WarehouseRegistrationPage() {
       address: "",
       warehouseType: "CUSTOMER_LOCATION" as WarehouseType,
       status: "ACTIVE" as WarehouseStatus,
-      latitude: null,
-      longitude: null,
       capacity: null,
       managerId: keycloak?.tokenParsed?.sub || null,
       customerId: null,
@@ -96,9 +92,6 @@ export default function WarehouseRegistrationPage() {
       const nowIso = new Date().toISOString();
       const warehouse: Partial<Warehouse> = compactObject({
         ...formData,
-        id: window.crypto?.randomUUID?.() ?? undefined,
-        createdAt: nowIso,
-        updatedAt: nowIso,
       } as Warehouse);
 
       const payload: WarehouseEvent = {

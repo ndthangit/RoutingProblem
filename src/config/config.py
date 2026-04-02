@@ -140,6 +140,20 @@ class Settings(BaseSettings):
         json_schema_extra={"env": "RATE_LIMIT_WINDOW"}
     )
 
+    # ── Geocoding (address -> coordinate) ─────────────────────────────────────────
+    GEOCODING_PROVIDER: str = Field(
+        default=os.getenv("GEOCODING_PROVIDER", "nominatim"),
+        description="Geocoding provider (currently: 'nominatim')",
+        examples=["nominatim"],
+        json_schema_extra={"env": "GEOCODING_PROVIDER"},
+    )
+    NOMINATIM_BASE_URL: str = Field(
+        default=os.getenv("NOMINATIM_BASE_URL", "https://nominatim.openstreetmap.org"),
+        description="Base URL for Nominatim geocoding",
+        examples=["https://nominatim.openstreetmap.org"],
+        json_schema_extra={"env": "NOMINATIM_BASE_URL"},
+    )
+
     KAFKA_BOOTSTRAP_SERVERS: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
     # KAFKA_TOPIC_PROMPT: str = os.getenv("KAFKA_TOPIC_PROMPT", "topic")
     KAFKA_PRODUCER_CLIENT_ID: str = os.getenv("KAFKA_PRODUCER_CLIENT_ID", "producer")
