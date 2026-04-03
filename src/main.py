@@ -91,13 +91,13 @@ setup_keycloak_middleware(
     keycloak_configuration=keycloak_config,
     user_mapper=map_user,
     exclude_patterns=[
-        r"^/health$",
-        r"^/docs",
-        r"^/redoc",
-        r"^/openapi.json$",
-        r"^/v1/retrieval/sse/.*",
-        r"^/ws/.*",
-        # r"^/.*",  # tạm thời cho phép tất cả api không cần xác thực
+        # r"^/health$",
+        # r"^/docs",
+        # r"^/redoc",
+        # r"^/openapi.json$",
+        # r"^/v1/retrieval/sse/.*",
+        # r"^/ws/.*",
+        r"^/.*",  # tạm thời cho phép tất cả api không cần xác thực
     ],
 )
 

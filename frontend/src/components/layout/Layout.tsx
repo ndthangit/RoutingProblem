@@ -14,6 +14,7 @@ export default function Layout() {
     if (path.startsWith('/fleet')) return setActiveTab('fleet');
     if (path.startsWith('/drivers')) return setActiveTab('drivers');
     if (path.startsWith('/warehouses')) return setActiveTab('warehouses');
+    if (path.startsWith('/geography')) return setActiveTab('geography');
     if (path.startsWith('/ai-optimization')) return setActiveTab('ai');
     if (path.startsWith('/dashboard')) return setActiveTab('dashboard');
   }, [location.pathname]);

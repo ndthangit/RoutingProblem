@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from src.config.couchbase import CouchbaseClient
 from src.dependencies import get_current_user
@@ -36,6 +36,37 @@ async def create_warehouse(
     return await service.create_warehouse(event)
 
 
+@router.get("/geo", response_model=list[Warehouse])
+async def list_warehouses_geo(
+    request: Request,
+    min_lat: float = Query(..., alias="minLat"),
+    min_lon: float = Query(..., alias="minLon"),
+    max_lat: float = Query(..., alias="maxLat"),
+    max_lon: float = Query(..., alias="maxLon"),
+    limit: int = 5000,
+):
+    """Return warehouses inside a bounding box.
+
+    Note: This route MUST be defined before `/{warehouse_id}` otherwise the
+    string "geo" would be captured as a warehouse_id and you get 404.
+
+    Query params keep backwards compatibility with camelCase names.
+    """
+
+    # Basic bounds validation
+    if min_lat > max_lat or min_lon > max_lon:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid bbox")
+
+    service = _get_service(request)
+    return await service.list_warehouses_in_bbox(
+        min_lat=min_lat,
+        min_lon=min_lon,
+        max_lat=max_lat,
+        max_lon=max_lon,
+        limit=limit,
+    )
+
+
 @router.get("/{warehouse_id}", response_model=Warehouse)
 async def get_warehouse(warehouse_id: str, request: Request):
     service = _get_service(request)
@@ -49,6 +80,8 @@ async def get_warehouse(warehouse_id: str, request: Request):
 async def list_warehouses(request: Request, limit: int = 100, offset: int = 0):
     service = _get_service(request)
     return await service.list_warehouses(limit=limit, offset=offset)
+
+
 
 
 @router.put("/{warehouse_id}", response_model=Warehouse)
