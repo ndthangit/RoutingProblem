@@ -185,7 +185,7 @@ export default function Geography() {
               {points.map((p) => (
                 <Marker key={p.id} position={[p.lat, p.lon]}>
                   <Popup>
-                    <div className="min-w-[220px]">
+                    <div className="min-w-55">
                       <div className="font-semibold mb-1">{p.name}</div>
                       <div className="text-xs text-slate-600">{p.address}</div>
                     </div>
