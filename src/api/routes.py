@@ -34,9 +34,7 @@ async def create_route(
         )
 
     # keep owner like other modules if present on EventBase
-    event = payload
-    if hasattr(event, "owner_email"):
-        event = payload.model_copy(update={"owner_email": current_user.email})
+    event = payload.model_copy(update={"owner_email": current_user.email})
 
     return await service.create_route(event)
 
@@ -65,9 +63,7 @@ async def update_route(
 ):
     service = _get_service(request)
 
-    event = payload
-    if hasattr(event, "owner_email"):
-        event = payload.model_copy(update={"owner_email": current_user.email})
+    event = payload.model_copy(update={"owner_email": current_user.email})
 
     updated = await service.update_route(route_id, event)
     if updated is None:
@@ -90,9 +86,7 @@ async def end_route(
             detail=f"Invalid eventType for end: expected {RouteEventType.ROUTE_ENDED}",
         )
 
-    event = payload
-    if hasattr(event, "owner_email"):
-        event = payload.model_copy(update={"owner_email": current_user.email})
+    event = payload.model_copy(update={"owner_email": current_user.email})
 
     ended = await service.end_route(route_id, event)
     if ended is None:
@@ -109,9 +103,7 @@ async def delete_route(
 ):
     service = _get_service(request)
 
-    event = payload
-    if hasattr(event, "owner_email"):
-        event = payload.model_copy(update={"owner_email": current_user.email})
+    event = payload.model_copy(update={"owner_email": current_user.email})
 
     ok = await service.delete_route(route_id, event)
     if not ok:

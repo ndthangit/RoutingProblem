@@ -39,15 +39,16 @@ export default function RoutesPage() {
     () => [
       { field: "id", headerName: "Route ID", width: 240 },
       { field: "vehicleId", headerName: "Vehicle", width: 180, valueGetter: (value) => value || "N/A" },
+      { field: "routeType", headerName: "Type", width: 160, valueGetter: (value) => value || "N/A" },
       { field: "origin", headerName: "Origin", width: 220, valueGetter: (value) => value || "N/A" },
       { field: "destination", headerName: "Destination", width: 220, valueGetter: (value) => value || "N/A" },
       {
         field: "startTime",
         headerName: "Start Time",
         width: 200,
-        valueGetter: (value) => {
-          if (!value) return "N/A";
-          return typeof value === "string" ? value : String(value);
+        valueGetter: (value: unknown) => {
+          if (value === null || value === undefined || value === "") return "N/A";
+          return String(value);
         },
       },
     ],

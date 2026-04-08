@@ -126,4 +126,3 @@ class RouteService:
             return True
         except CouchbaseException:
             return False
-

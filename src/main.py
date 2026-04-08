@@ -23,6 +23,7 @@ from src.api.routes import router as routes_router
 from src.services.ws_hub import WebSocketHub
 from src.models.routing import EtaUpdate, RouteRequest, Coordinate
 from src.services.routing_service import RoutingService
+from src.services.automation_routing_service import AutomationRoutingService
 
 # Configure logging
 logging.basicConfig(
@@ -39,6 +40,19 @@ async def app_lifespan(app: FastAPI):
         # Register infrastructure lifespans
         await stack.enter_async_context(get_couchbase_lifespan(app))
         logger.info("✅ Couchbase lifespans initialized.")
+
+        # Background automation for weekly routes
+        try:
+            cb = getattr(app.state, "couchbase", None)
+            if cb is not None and getattr(settings, "AUTOMATION_ROUTING_ENABLED", True):
+                app.state.automation_routing = AutomationRoutingService(
+                    cb,
+                    interval_seconds=getattr(settings, "AUTOMATION_ROUTING_INTERVAL_S", 30),
+                )
+                app.state.automation_routing.start()
+                logger.info("✅ Automation routing service started")
+        except Exception as e:
+            logger.error(f"❌ Failed to start automation routing service: {e}")
 
         # Kafka producer - connect
         try:
@@ -61,6 +75,13 @@ async def app_lifespan(app: FastAPI):
         yield
 
         logger.info("🛑 Application shutting down...")
+
+        try:
+            automation = getattr(app.state, "automation_routing", None)
+            if automation is not None:
+                await automation.stop()
+        except Exception as e:
+            logger.error(f"❌ Error stopping automation routing service: {e}")
 
         try:
             if settings.KAFKA_CONSUMER_ENABLED:

@@ -2,6 +2,8 @@ export interface Route {
   id: string;
   vehicleId: string;
 
+  routeType?: RouteType;
+
   origin: string;
   origin_coordinate?: { lon: number; lat: number } | null;
 
@@ -10,6 +12,8 @@ export interface Route {
 
   startTime?: string | Date | null;
 }
+
+export type RouteType = "TEMPERATURE" | "ONCE_PER_WEEK";
 
 export type RouteEventType = "ROUTE.STARTED" | "ROUTE.ENDED";
 

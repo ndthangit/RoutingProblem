@@ -65,6 +65,11 @@ class RouteEventType(EventType):
     ROUTE_STARTED = "ROUTE.STARTED"
     ROUTE_ENDED = "ROUTE.ENDED"
 
+class RouteType(str, Enum):
+    TEMPERATURE = "TEMPERATURE"
+    ONCE_PER_WEEK ="ONCE_PER_WEEK"
+
+
 class Route(BaseModel):
     model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
 
@@ -79,6 +84,8 @@ class Route(BaseModel):
     destination: str = Field(..., description="Điểm điểm kết kthúc")
     destination_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ điểm kết thúc (lon/lat)")
     start_time: Optional[datetime] = Field(default=None, alias="startTime")
+
+    route_type: RouteType = Field(default=RouteType.TEMPERATURE, alias="routeType")
 
 
 # ============== 2. CÁC EVENTS ĐẠI DIỆN CHO SỰ DI CHUYỂN ==============

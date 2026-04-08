@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
@@ -18,7 +19,7 @@ import Grid from "@mui/material/Grid";
 import { useKeycloak } from "@react-keycloak/web";
 
 import { request } from "../../api";
-import type { Route, RouteEvent } from "../../types";
+import type { Route, RouteEvent, RouteType } from "../../types";
 
 interface AddRouteModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ type FormData = {
   vehicleId: string;
   origin: string;
   destination: string;
+  routeType: RouteType;
 };
 
 export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteModalProps) {
@@ -41,6 +43,7 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
     vehicleId: "",
     origin: "",
     destination: "",
+    routeType: "TEMPERATURE",
   });
 
   const resetForm = () => {
@@ -49,6 +52,7 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
       vehicleId: "",
       origin: "",
       destination: "",
+      routeType: "TEMPERATURE",
     });
   };
 
@@ -91,6 +95,7 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
         origin: formData.origin,
         destination: formData.destination,
         startTime: nowIso,
+        routeType: formData.routeType,
       };
 
       const payload: RouteEvent = {
@@ -203,6 +208,21 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
                 value={formData.destination}
                 onChange={handleChange}
               />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                select
+                fullWidth
+                required
+                label="Route Type"
+                name="routeType"
+                value={formData.routeType}
+                onChange={handleChange}
+              >
+                <MenuItem value="TEMPERATURE">TEMPERATURE</MenuItem>
+                <MenuItem value="ONCE_PER_WEEK">ONCE_PER_WEEK</MenuItem>
+              </TextField>
             </Grid>
           </Grid>
         </DialogContent>

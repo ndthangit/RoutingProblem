@@ -166,6 +166,22 @@ class Settings(BaseSettings):
     KAFKA_CONSUMER_ENABLED: bool = True
     KAFKA_CONSUMER_GROUP_ID: str = "fastapi-consumer-group"
 
+    # ── Automation routing (weekly schedules) ────────────────────────────────────
+    AUTOMATION_ROUTING_ENABLED: bool = Field(
+        default=True,
+        description="Enable background service that auto-generates weekly routes",
+        examples=[True, False],
+        json_schema_extra={"env": "AUTOMATION_ROUTING_ENABLED"},
+    )
+    AUTOMATION_ROUTING_INTERVAL_S: int = Field(
+        default=30,
+        description="Scheduler tick interval in seconds",
+        ge=1,
+        le=3600,
+        examples=[5, 30, 60],
+        json_schema_extra={"env": "AUTOMATION_ROUTING_INTERVAL_S"},
+    )
+
     # Keycloak settings
     KEYCLOAK_URL: str = Field(
         default="http://localhost:8092",
