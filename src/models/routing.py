@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import uuid
 from enum import Enum
 from typing import Literal, Optional
@@ -74,11 +75,10 @@ class Route(BaseModel):
     vehicle_id: str = Field(..., alias="vehicleId")
     # Điểm đầu và điểm cuối cố định
     origin: str = Field(..., description="Điểm bắt đầu h")
-
     origin_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ điểm bắt đầu (lon/lat)")
     destination: str = Field(..., description="Điểm điểm kết kthúc")
-
     destination_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ điểm kết thúc (lon/lat)")
+    start_time: Optional[datetime] = Field(default=None, alias="startTime")
 
 
 # ============== 2. CÁC EVENTS ĐẠI DIỆN CHO SỰ DI CHUYỂN ==============

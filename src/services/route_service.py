@@ -7,6 +7,7 @@ from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
 from src.models.routing import Route, RouteEvent, RouteEventType
+from src.services.routing_service import RoutingService
 
 ROUTE_COLLECTION = "route"
 ROUTE_EVENT_COLLECTION = "route_event"
@@ -37,11 +38,22 @@ class RouteService:
                 f"Invalid eventType: expected {RouteEventType.ROUTE_STARTED}, got {event.event_type}"
             )
 
-        # timestamps (EventBase already has created_at; ensure it exists)
-        if getattr(event, "created_at", None) is None:
-            event.created_at = datetime.now(timezone.utc)
+        # start time should reflect when the route starts moving
+        if event.route.start_time is None:
+            # EventBase.timestamp is timezone-aware; fall back to now if needed
+            event.route.start_time = getattr(event, "timestamp", None) or datetime.now(timezone.utc)
 
-        await self._cb.upsert_document(_doc_id(event.route.id), event.route.model_dump(by_alias=True), ROUTE_COLLECTION)
+        # Enrich coordinates from addresses if not provided by client
+        if event.route.origin_coordinate is None:
+            event.route.origin_coordinate = await RoutingService().geocode_address(event.route.origin)
+        if event.route.destination_coordinate is None:
+            event.route.destination_coordinate = await RoutingService().geocode_address(event.route.destination)
+
+        await self._cb.upsert_document(
+            _doc_id(event.route.id),
+            event.route.model_dump(mode="json", by_alias=True, exclude_none=True),
+            ROUTE_COLLECTION,
+        )
         await self._persist_event(event)
         return event.route
 
@@ -74,10 +86,21 @@ class RouteService:
         # Force correct id
         event.route.id = route_id
 
-        if getattr(event, "created_at", None) is None:
-            event.created_at = datetime.now(timezone.utc)
+        # Preserve original start_time unless explicitly provided
+        if event.route.start_time is None:
+            event.route.start_time = existing.start_time
 
-        await self._cb.upsert_document(_doc_id(route_id), event.route.model_dump(by_alias=True), ROUTE_COLLECTION)
+        # If coordinates are missing, try to enrich from addresses
+        if event.route.origin_coordinate is None:
+            event.route.origin_coordinate = await RoutingService().geocode_address(event.route.origin)
+        if event.route.destination_coordinate is None:
+            event.route.destination_coordinate = await RoutingService().geocode_address(event.route.destination)
+
+        await self._cb.upsert_document(
+            _doc_id(route_id),
+            event.route.model_dump(mode="json", by_alias=True, exclude_none=True),
+            ROUTE_COLLECTION,
+        )
         await self._persist_event(event)
         return event.route
 
@@ -96,8 +119,6 @@ class RouteService:
 
         # Ensure event targets correct route
         event.route = existing
-        if getattr(event, "created_at", None) is None:
-            event.created_at = datetime.now(timezone.utc)
 
         try:
             await self._cb.remove_document(_doc_id(route_id), ROUTE_COLLECTION)

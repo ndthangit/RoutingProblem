@@ -39,6 +39,7 @@ const typeLabel: Record<WarehouseType, string> = {
   HUB: "Hub",
   DEPOT: "Depot",
   CUSTOMER_LOCATION: "Customer",
+  RECEIVER_LOCATION: "Receiver",
 };
 
 export default function Warehouses() {
