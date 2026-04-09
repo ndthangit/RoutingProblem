@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Truck, Sparkles, Users, Warehouse, MoreVertical, LogOut, CircleUser as UserCircle, Map, Route as RouteIcon } from 'lucide-react';
+import { LayoutDashboard, Package, Truck, Sparkles, Users, Warehouse, MoreVertical, LogOut, CircleUser as UserCircle, Map, Route as RouteIcon, Calendar } from 'lucide-react';
 import { useKeycloak } from '@react-keycloak/web';
 
 interface SidebarProps {
@@ -44,6 +44,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     { id: 'drivers', label: 'Drivers', icon: Users, path: '/drivers' },
     { id: 'warehouses', label: 'Warehouses', icon: Warehouse, path: '/warehouses' },
     { id: 'routes', label: 'Routes', icon: RouteIcon, path: '/routes' },
+    { id: 'schedules', label: 'Schedules', icon: Calendar, path: '/schedules' },
     { id: 'geography', label: 'Bản đồ', icon: Map, path: '/geography' },
     { id: 'ai', label: 'AI Optimization', icon: Sparkles, path: '/ai-optimization' },
   ];

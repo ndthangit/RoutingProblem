@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 import uuid
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 
-from src.models.event import EventBase, EventType
+from src.models.event import EventBase
 
 
 class Coordinate(BaseModel):
@@ -61,13 +61,24 @@ class EtaUpdate(BaseModel):
     duration_s: float = Field(..., alias="durationS")
     geometry: Optional[dict] = None
 
-class RouteEventType(EventType):
+class RouteStatus(str, Enum):
+    PLANNED = "PLANNED"           # Đã lên lịch nhưng chưa chạy
+    IN_PROGRESS = "IN_PROGRESS"   # Đang di chuyển
+    COMPLETED = "COMPLETED"       # Đã hoàn thành
+    CANCELLED = "CANCELLED"       # Bị hủy
+
+class RouteEventType(str, Enum):
     ROUTE_STARTED = "ROUTE.STARTED"
+    WAYPOINT_REACHED = "ROUTE.WAYPOINT_REACHED" # Bổ sung thêm sự kiện tới trạm
     ROUTE_ENDED = "ROUTE.ENDED"
+    STATUS_CHANGED = "ROUTE.STATUS_CHANGED"
+
 
 class RouteType(str, Enum):
-    TEMPERATURE = "TEMPERATURE"
-    ONCE_PER_WEEK ="ONCE_PER_WEEK"
+    """Kiểu route để phân biệt route thường và route được sinh tự động từ Schedule."""
+
+    AD_HOC = "AD_HOC"
+    ONCE_PER_WEEK = "ONCE_PER_WEEK"
 
 
 class Route(BaseModel):
@@ -84,10 +95,20 @@ class Route(BaseModel):
     destination: str = Field(..., description="Điểm điểm kết kthúc")
     destination_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ điểm kết thúc (lon/lat)")
     start_time: Optional[datetime] = Field(default=None, alias="startTime")
+    end_time: Optional[datetime] = Field(default=None, alias="endTime")
 
-    route_type: RouteType = Field(default=RouteType.TEMPERATURE, alias="routeType")
+
+    # New: route type (camelCase on API)
+    route_type: RouteType = Field(default=RouteType.AD_HOC, alias="routeType")
 
 
+    # Prefer camelCase on API; accept legacy `route_status` from older stored documents.
+    route_status: RouteStatus = Field(
+        default=RouteStatus.PLANNED,
+        validation_alias=AliasChoices("routeStatus", "route_status"),
+        serialization_alias="routeStatus",
+    )
+    
 # ============== 2. CÁC EVENTS ĐẠI DIỆN CHO SỰ DI CHUYỂN ==============
 
 class RouteEvent(EventBase):
@@ -101,3 +122,46 @@ class RouteEvent(EventBase):
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json", by_alias=True, exclude_none=True)
+
+class ScheduleType(str, Enum):
+    ONCE_PER_WEEK = "ONCE_PER_WEEK"
+    DAILY = "DAILY"
+    TEMPERATURE_TRIGGER = "TEMPERATURE_TRIGGER"
+
+
+class Schedule(BaseModel):
+    """
+    Kế hoạch mẫu: Dùng cho Cronjob/Worker đọc để tự động sinh ra Route.
+    """
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str = Field(default_factory=lambda: f"template::{uuid.uuid4()}")
+    origin: str = Field(..., description="Tên/Địa chỉ điểm bắt đầu")
+    destination: str = Field(..., description="Tên/Địa chỉ điểm kết thúc")
+
+    # Cấu hình tự động
+    schedule_type: ScheduleType = Field(..., alias="scheduleType")
+    schedule_config: dict[str, Any] = Field(default_factory=dict, description="Lưu cấu hình JSON (vd: day_of_week: 1)")
+    note: Optional[str] = Field(default=None, description="Ghi chú")
+
+    is_active: bool = Field(default=True, alias="isActive")
+    last_generated_at: Optional[datetime] = Field(default=None, alias="lastGeneratedAt")
+    
+class ScheduleEventType(str, Enum):
+    SCHEDULE_CREATED = "SCHEDULE.CREATED"
+    SCHEDULE_UPDATED = "SCHEDULE.UPDATED"
+
+
+class ScheduleEvent(EventBase):
+    """
+    Event ghi nhận mỗi khi đơn hàng được di chuyển, đổi trạng thái, bốc xếp lên xe hoặc nhập kho.
+    Đây chính là lịch sử Tracking của đơn hàng.
+    """
+    event_type: ScheduleEventType = Field(..., alias="eventType")
+    schedule: Schedule
+
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json", by_alias=True, exclude_none=True)
+    
+    
+

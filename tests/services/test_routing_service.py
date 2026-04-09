@@ -3,6 +3,10 @@ import pytest_asyncio
 from src.services.routing_service import RoutingService, OsrmError
 from src.models.routing import Coordinate
 
+
+# Uses external geocoding/OSRM; treat as integration so it can be skipped in CI/offline.
+pytestmark = pytest.mark.integration
+
 def test_routing_service_creation():
     service = RoutingService()
     assert service is not None

@@ -9,6 +9,7 @@ import Orders from "../pages/Orders";
 import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage.tsx";
 import Geography from "../pages/Geography";
 import RoutesPage from "../pages/Routes";
+import Schedules from "../pages/Schedules";
 // import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage";
 
 export function AppRouter() {
@@ -31,6 +32,7 @@ export function AppRouter() {
                                       <Route path="/drivers" element={<Drivers />} />
                                       <Route path="/warehouses" element={<Warehouses />} />
                                       <Route path="/routes" element={<RoutesPage />} />
+                                      <Route path="/schedules" element={<Schedules />} />
                                       <Route path="/geography" element={<Geography />} />
                                        <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />
 

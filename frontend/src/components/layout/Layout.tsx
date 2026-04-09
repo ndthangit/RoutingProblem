@@ -15,6 +15,7 @@ export default function Layout() {
     if (path.startsWith('/drivers')) return setActiveTab('drivers');
     if (path.startsWith('/warehouses')) return setActiveTab('warehouses');
     if (path.startsWith('/routes')) return setActiveTab('routes');
+    if (path.startsWith('/schedules')) return setActiveTab('schedules');
     if (path.startsWith('/geography')) return setActiveTab('geography');
     if (path.startsWith('/ai-optimization')) return setActiveTab('ai');
     if (path.startsWith('/dashboard')) return setActiveTab('dashboard');

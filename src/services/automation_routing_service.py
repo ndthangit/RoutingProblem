@@ -9,20 +9,28 @@ from uuid import uuid4
 from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
-from src.models.routing import Route, RouteEvent, RouteEventType, RouteType
+from src.models.routing import (
+	Route,
+	RouteEvent,
+	RouteEventType,
+	RouteType,
+	Schedule,
+	ScheduleType,
+)
 from src.services.route_service import RouteService
 
 logger = logging.getLogger(__name__)
 
 
 class AutomationRoutingService:
-	"""Background scheduler for automatically generating weekly routes.
+	"""Background scheduler for automatically generating routes from `Schedule`.
 
-	Behavior:
-	- Find all routes with routeType == ONCE_PER_WEEK.
-	- Each such route document acts like a *template*.
-	- We store `lastGeneratedAt` inside that route document (extra field in Couchbase only).
-	- When now - lastGeneratedAt >= 7 days, we create a new Route with a fresh id/startTime.
+	Currently supported:
+	- scheduleType == ONCE_PER_WEEK
+		- Every 7 days (based on schedule.lastGeneratedAt), create a new Route.
+		- Update schedule.lastGeneratedAt to avoid duplicates.
+
+	This is a long-running background task started from the FastAPI app lifecycle.
 	"""
 
 	def __init__(
@@ -74,30 +82,45 @@ class AutomationRoutingService:
 	async def _tick(self) -> None:
 		now = datetime.now(timezone.utc)
 
-		for template in await self._list_weekly_templates(limit=500):
-			template_id = template.get("id")
-			if not template_id:
+		for schedule_doc in await self._list_active_weekly_schedules(limit=500):
+			try:
+				schedule = Schedule.model_validate(schedule_doc)
+			except Exception:
+				logger.warning("Invalid schedule document; skipping. doc=%s", schedule_doc)
 				continue
 
-			# Ensure required fields exist before attempting validation
-			if not template.get("vehicleId") or not template.get("origin") or not template.get("destination"):
-				logger.warning("Weekly route template %s is missing required fields; skipping", template_id)
+			if not schedule.is_active:
 				continue
 
-			last_generated = self._parse_dt(template.get("lastGeneratedAt"))
-			# default: consider template.startTime as the baseline if present, otherwise generate immediately
-			if last_generated is None:
-				last_generated = self._parse_dt(template.get("startTime"))
+			last_generated = schedule.last_generated_at
+			if last_generated and last_generated.tzinfo is None:
+				last_generated = last_generated.replace(tzinfo=timezone.utc)
 
 			if last_generated is not None and (now - last_generated) < self._week:
 				continue
 
 			try:
-				# Create new Route based on template.
-				new_route = Route.model_validate(template)
-				new_route.id = str(uuid4())
-				new_route.start_time = now
-				new_route.route_type = RouteType.ONCE_PER_WEEK
+				vehicle_id = (
+					schedule.schedule_config.get("vehicleId")
+					or schedule.schedule_config.get("vehicle_id")
+					or schedule.schedule_config.get("vehicle")
+				)
+				if not vehicle_id:
+					logger.warning(
+						"Weekly schedule %s missing vehicleId in scheduleConfig; skipping. keys=%s",
+						schedule.id,
+						list((schedule.schedule_config or {}).keys()),
+					)
+					continue
+
+				new_route = Route(
+					id=str(uuid4()),
+					vehicleId=vehicle_id,
+					origin=schedule.origin,
+					destination=schedule.destination,
+					startTime=now,
+					routeType=RouteType.ONCE_PER_WEEK.value,
+				)
 
 				event = RouteEvent(
 					eventType=RouteEventType.ROUTE_STARTED,
@@ -105,34 +128,36 @@ class AutomationRoutingService:
 				)
 				await self._route_service.create_route(event)
 
-				# Mark template's lastGeneratedAt to avoid duplicates
-				await self._mark_last_generated(template_id, now)
-				logger.info("Auto-generated weekly route from template %s -> %s", template_id, new_route.id)
+				await self._mark_schedule_last_generated(schedule.id, now)
+				logger.info("Auto-generated weekly route from schedule %s -> %s", schedule.id, new_route.id)
 			except Exception:
-				logger.exception("Failed to auto-generate weekly route for template %s", template_id)
+				logger.exception("Failed to auto-generate weekly route for schedule %s", schedule.id)
 
-	async def _list_weekly_templates(self, *, limit: int = 200) -> list[dict]:
+	async def _list_active_weekly_schedules(self, *, limit: int = 200) -> list[dict]:
 		scope_name = self._cb.scope.name if self._cb.scope else "default"
 		statement = (
-			f"SELECT r.* FROM `{self._cb.bucket.name}`.`{scope_name}`.route r "
-			"WHERE r.routeType = $routeType "
+			f"SELECT s.* FROM `{self._cb.bucket.name}`.`{scope_name}`.schedule s "
+			"WHERE s.isActive = TRUE AND s.scheduleType = $scheduleType "
 			"LIMIT $limit"
 		)
 		try:
-			result = await self._cb.query(statement, routeType=RouteType.ONCE_PER_WEEK.value, limit=limit)
+			result = await self._cb.query(
+				statement,
+				scheduleType=ScheduleType.ONCE_PER_WEEK.value,
+				limit=limit,
+			)
 			return list(result)
 		except CouchbaseException:
 			return []
 
-	async def _mark_last_generated(self, route_id: str, ts: datetime) -> None:
-		# Update the template document with lastGeneratedAt.
-		# We do a UPSERT merging only the field; simplest approach is to fetch + upsert.
-		doc_id = f"route::{route_id}"
-		existing = await self._cb.get_document(doc_id, "route")
+	async def _mark_schedule_last_generated(self, schedule_id: str, ts: datetime) -> None:
+		"""Update Schedule.lastGeneratedAt after generating a Route."""
+		doc_id = schedule_id if schedule_id.startswith("template::") else f"template::{schedule_id}"
+		existing = await self._cb.get_document(doc_id, "schedule")
 		if not existing:
 			return
 		existing["lastGeneratedAt"] = ts.isoformat()
-		await self._cb.upsert_document(doc_id, existing, "route")
+		await self._cb.upsert_document(doc_id, existing, "schedule")
 
 	@staticmethod
 	def _parse_dt(value) -> Optional[datetime]:
