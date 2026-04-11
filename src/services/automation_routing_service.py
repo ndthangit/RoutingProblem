@@ -38,7 +38,8 @@ class AutomationRoutingService:
 		cb: CouchbaseClient,
 		*,
 		interval_seconds: int = 30,
-		week_seconds: int = 7 * 24 * 60 * 60,
+		# week_seconds: int = 7 * 24 * 60 * 60,
+		week_seconds: int =  60,
 	) -> None:
 		self._cb = cb
 		self._route_service = RouteService(cb)
@@ -119,7 +120,7 @@ class AutomationRoutingService:
 					origin=schedule.origin,
 					destination=schedule.destination,
 					startTime=now,
-					routeType=RouteType.ONCE_PER_WEEK.value,
+					routeType=RouteType.ONCE_PER_WEEK,
 				)
 
 				event = RouteEvent(

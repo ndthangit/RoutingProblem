@@ -7,7 +7,8 @@ import { Plus, Users } from "lucide-react";
 import { request } from "../api";
 import AddDriverModal from "./Driver/AddDriverModal";
 import AssignVehicleModal from "./Driver/AssignVehicleModal";
-import type { Driver, DriverHiredEvent, DriverStatus, Vehicle } from "../types";
+import DriverDetailsModal from "./Driver/DriverDetailsModal";
+import type { Driver, DriverHiredEvent, DriverStatus, Vehicle, LicenseClass } from "../types";
 
 function StatusBadge({ status }: { status: DriverStatus }) {
   const colorMap: Record<DriverStatus, "success" | "default" | "warning" | "error"> = {
@@ -34,26 +35,64 @@ function StatusBadge({ status }: { status: DriverStatus }) {
   );
 }
 
+function LicenseBadge({ license }: { license: LicenseClass }) {
+  // Define colors for different license classes
+  const getLicenseColor = (lic: LicenseClass) => {
+    switch (lic) {
+      case "A1":
+      case "A2":
+      case "A3":
+      case "A4":
+        return { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-200" };
+      case "B1":
+      case "B2":
+        return { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-200" };
+      case "C":
+        return { bg: "bg-indigo-100", text: "text-indigo-700", border: "border-indigo-200" };
+      case "D":
+        return { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-200" };
+      case "E":
+        return { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-200" };
+      case "F":
+        return { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200" };
+      default:
+        return { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" };
+    }
+  };
+
+  const colors = getLicenseColor(license);
+
+  return (
+    <span
+      className={`px-2 py-0.5 text-xs font-semibold rounded border ${colors.bg} ${colors.text} ${colors.border}`}
+    >
+      {license}
+    </span>
+  );
+}
+
 function normalizeDrivers(data: unknown): Driver[] {
   if (!data) return [];
+
+  const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
   if (Array.isArray(data)) {
     if (data.length === 0) return [];
 
-    const first = data[0] as any;
-    if (first && typeof first === "object" && "driver" in first) {
-      return (data as DriverHiredEvent[])
-        .map((e) => e.driver)
-        .filter(Boolean);
+    const first = data[0];
+    if (isRecord(first) && "driver" in first) {
+      return (data as DriverHiredEvent[]).map((e) => e.driver).filter(Boolean);
     }
 
     return data as Driver[];
   }
 
-  const obj = data as any;
-  if (Array.isArray(obj.drivers)) return obj.drivers as Driver[];
-  if (Array.isArray(obj.items)) return obj.items as Driver[];
-  if (obj.driver && typeof obj.driver === "object") return [obj.driver as Driver];
+  if (isRecord(data)) {
+    const obj = data;
+    if (Array.isArray(obj.drivers)) return obj.drivers as Driver[];
+    if (Array.isArray(obj.items)) return obj.items as Driver[];
+    if (obj.driver && isRecord(obj.driver)) return [obj.driver as Driver];
+  }
 
   return [];
 }
@@ -61,7 +100,9 @@ function normalizeDrivers(data: unknown): Driver[] {
 export default function Drivers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [detailDriver, setDetailDriver] = useState<Driver | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,8 +110,8 @@ export default function Drivers() {
 
   const fetchDrivers = async () => {
     try {
-      const res = await request<any>("GET", "/v1/drivers");
-      const normalized = normalizeDrivers(res?.data);
+      const res = await request<unknown>("GET", "/v1/drivers");
+      const normalized = normalizeDrivers(res?.data as unknown);
       setDrivers(normalized);
     } catch (error) {
       console.error("Error fetching drivers:", error);
@@ -113,7 +154,7 @@ export default function Drivers() {
       {
         field: "employeeCode",
         headerName: "Employee Code",
-        width: 180,
+        width: 150,
         valueGetter: (value) => value || "N/A",
       },
       {
@@ -135,31 +176,15 @@ export default function Drivers() {
       {
         field: "status",
         headerName: "Status",
-        width: 140,
+        width: 100,
         renderCell: (params: GridRenderCellParams<Driver, Driver["status"]>) => (
           <StatusBadge status={(params.value as DriverStatus) ?? "ACTIVE"} />
         ),
       },
       {
-        field: "licenseNumber",
-        headerName: "License No.",
-        width: 200,
-        valueGetter: (value) => value || "N/A",
-      },
-      {
-        field: "licenseExpiryDate",
-        headerName: "License Expiry",
-        width: 200,
-        valueGetter: (_value, row: Driver) => {
-          const value = row.licenseExpiryDate;
-          if (!value) return "N/A";
-          return typeof value === "string" ? value.slice(0, 10) : "N/A";
-        },
-      },
-      {
         field: "assignedVehicleId",
-        headerName: "Action",
-        width: 120,
+        headerName: "Vehicle",
+        width: 100,
         sortable: false,
         renderCell: (params: GridRenderCellParams<Driver, Driver["assignedVehicleId"]>) => {
           const driver = params.row;
@@ -187,19 +212,71 @@ export default function Drivers() {
       {
         field: "rating",
         headerName: "Rating",
-        width: 120,
+        width: 100,
         type: "number",
         valueGetter: (value) => (value ?? "N/A"),
       },
       {
-        field: "totalTrips",
-        headerName: "Trips",
-        width: 120,
-        type: "number",
-        valueGetter: (value) => (value ?? "N/A"),
+        field: "licenseClass",
+        headerName: "License Class",
+        width: 150,
+        renderCell: (params: GridRenderCellParams<Driver, Driver["licenseClass"]>) => {
+          const licenses = params.value;
+          if (!licenses || licenses.length === 0) return <span className="text-gray-400 italic">N/A</span>;
+          
+          return (
+            <div className="flex flex-wrap gap-1 items-center h-full">
+              {licenses.map((lic) => (
+                <LicenseBadge key={lic} license={lic as LicenseClass} />
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        width: 220,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Driver>) => {
+          return (
+            <div className="flex gap-2 items-center h-full">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailDriver(params.row);
+                  setIsDetailModalOpen(true);
+                }}
+                className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Detail
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // TODO: Implement edit logic
+                  console.log("Edit driver", params.row.id);
+                }}
+                className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Edit
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // TODO: Implement delete logic
+                  console.log("Delete driver", params.row.id);
+                }}
+                className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Delete
+              </button>
+            </div>
+          );
+        },
       },
     ],
-    [vehicleById]
+    []
   );
 
   return (
@@ -281,6 +358,16 @@ export default function Drivers() {
         driver={selectedDriver}
         vehicles={vehicles}
         vehiclesLoading={vehiclesLoading}
+      />
+
+      <DriverDetailsModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setDetailDriver(null);
+        }}
+        driver={detailDriver}
+        vehicleById={vehicleById}
       />
     </>
   );
