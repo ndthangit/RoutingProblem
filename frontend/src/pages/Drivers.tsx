@@ -91,7 +91,7 @@ function normalizeDrivers(data: unknown): Driver[] {
     const obj = data;
     if (Array.isArray(obj.drivers)) return obj.drivers as Driver[];
     if (Array.isArray(obj.items)) return obj.items as Driver[];
-    if (obj.driver && isRecord(obj.driver)) return [obj.driver as Driver];
+    if (obj.driver && isRecord(obj.driver)) return [obj.driver as unknown as Driver];
   }
 
   return [];
@@ -170,7 +170,7 @@ export default function Drivers() {
       {
         field: "phone",
         headerName: "Phone",
-        width: 140,
+        width: 120,
         valueGetter: (value) => value || "N/A",
       },
       {
@@ -212,14 +212,14 @@ export default function Drivers() {
       {
         field: "rating",
         headerName: "Rating",
-        width: 100,
+        width: 80,
         type: "number",
         valueGetter: (value) => (value ?? "N/A"),
       },
       {
         field: "licenseClass",
         headerName: "License Class",
-        width: 150,
+        width: 120,
         renderCell: (params: GridRenderCellParams<Driver, Driver["licenseClass"]>) => {
           const licenses = params.value;
           if (!licenses || licenses.length === 0) return <span className="text-gray-400 italic">N/A</span>;
