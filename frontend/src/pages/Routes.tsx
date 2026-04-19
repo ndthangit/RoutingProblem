@@ -37,7 +37,7 @@ export default function RoutesPage() {
 
   const columns: GridColDef[] = useMemo(
     () => [
-      { field: "id", headerName: "Route ID", width: 240 },
+      { field: "id", headerName: "Route ID", width: 150 },
       { field: "vehicleId", headerName: "Vehicle", width: 180, valueGetter: (value) => value || "N/A" },
       { field: "routeType", headerName: "Type", width: 160, valueGetter: (value) => value || "N/A" },
       { field: "origin", headerName: "Origin", width: 220, valueGetter: (value) => value || "N/A" },
@@ -45,7 +45,7 @@ export default function RoutesPage() {
       {
         field: "startTime",
         headerName: "Start Time",
-        width: 200,
+        width: 250,
         valueGetter: (value: unknown) => {
           if (value === null || value === undefined || value === "") return "N/A";
           return String(value);

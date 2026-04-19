@@ -11,6 +11,10 @@ import {
   IconButton,
   MenuItem,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  type SelectChangeEvent,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -18,7 +22,7 @@ import Grid from "@mui/material/Grid";
 import { CalendarPlus } from "lucide-react";
 
 import { request } from "../../api";
-import type { Schedule, ScheduleEvent, ScheduleType } from "../../types";
+import type { Schedule, ScheduleEvent, ScheduleType, Vehicle } from "../../types";
 
 interface AddScheduleModalProps {
   isOpen: boolean;
@@ -30,11 +34,15 @@ export function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
+
   type FormData = {
     origin: string;
     destination: string;
     scheduleType: ScheduleType;
     vehicleId: string;
+    departureTime: string; // ISO datetime-local (no timezone)
     note: string;
     isActive: boolean;
   };
@@ -44,6 +52,7 @@ export function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModa
     destination: "",
     scheduleType: "ONCE_PER_WEEK",
     vehicleId: "",
+    departureTime: "",
     note: "",
     isActive: true,
   });
@@ -55,6 +64,7 @@ export function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModa
       destination: "",
       scheduleType: "ONCE_PER_WEEK",
       vehicleId: "",
+      departureTime: "",
       note: "",
       isActive: true,
     });
@@ -71,9 +81,40 @@ export function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModa
     setError(null);
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+
+    (async () => {
+      setVehiclesLoading(true);
+      try {
+        const res = await request<Vehicle[]>("GET", "/v1/vehicles");
+        const items = res && "data" in res ? (res.data as Vehicle[]) : undefined;
+        if (!cancelled) setVehicles(items ?? []);
+      } catch (e) {
+        if (!cancelled) {
+          setVehicles([]);
+          setError(e instanceof Error ? e.message : "Không thể tải danh sách xe");
+        }
+      } finally {
+        if (!cancelled) setVehiclesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleVehicleChange = (e: SelectChangeEvent) => {
+    const value = String(e.target.value);
+    setFormData((prev) => ({ ...prev, vehicleId: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -87,7 +128,7 @@ export function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModa
         return;
       }
       if (!formData.vehicleId) {
-        setError("Vui lòng nhập Vehicle ID (scheduleConfig.vehicleId)");
+        setError("Vui lòng chọn xe theo biển số");
         return;
       }
 
@@ -101,6 +142,8 @@ export function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModa
         scheduleConfig: {
           vehicleId: formData.vehicleId,
         },
+        // Frontend sends camelCase; backend Pydantic uses alias lastGeneratedAt -> last_generated_at
+        lastGeneratedAt: formData.departureTime ? new Date(formData.departureTime).toISOString() : null,
         note: formData.note || null,
         isActive: formData.isActive,
       };
@@ -182,13 +225,47 @@ export function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModa
             </Grid>
 
             <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth required>
+                <InputLabel id="schedule-vehicle-select">Xe (biển số)</InputLabel>
+                <Select
+                  labelId="schedule-vehicle-select"
+                  label="Xe (biển số)"
+                  value={formData.vehicleId}
+                  onChange={handleVehicleChange}
+                  disabled={vehiclesLoading}
+                >
+                  {vehiclesLoading ? (
+                    <MenuItem value="" disabled>
+                      Đang tải…
+                    </MenuItem>
+                  ) : vehicles.length === 0 ? (
+                    <MenuItem value="" disabled>
+                      Không có xe
+                    </MenuItem>
+                  ) : (
+                    vehicles
+                      .slice()
+                      .sort((a, b) => (a.licensePlate || a.id).localeCompare(b.licensePlate || b.id))
+                      .map((v) => (
+                        <MenuItem key={v.id} value={v.id}>
+                          {v.licensePlate || v.id}
+                        </MenuItem>
+                      ))
+                  )}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
-                required
-                label="Vehicle ID"
-                name="vehicleId"
-                value={formData.vehicleId}
+                label="Thời gian xuất phát"
+                name="departureTime"
+                type="datetime-local"
+                value={formData.departureTime}
                 onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
+                helperText="Sẽ gửi lên backend thành lastGeneratedAt (UTC ISO)"
               />
             </Grid>
 

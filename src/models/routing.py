@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 import uuid
 from enum import Enum
-from typing import Literal, Optional, Any
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 
@@ -139,9 +139,15 @@ class Schedule(BaseModel):
     origin: str = Field(..., description="Tên/Địa chỉ điểm bắt đầu")
     destination: str = Field(..., description="Tên/Địa chỉ điểm kết thúc")
 
+
     # Cấu hình tự động
     schedule_type: ScheduleType = Field(..., alias="scheduleType")
-    schedule_config: dict[str, Any] = Field(default_factory=dict, description="Lưu cấu hình JSON (vd: day_of_week: 1)")
+    schedule_config: dict[str, Any] = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("scheduleConfig", "schedule_config"),
+        serialization_alias="scheduleConfig",
+        description="Lưu cấu hình JSON (vd: vehicleId, day_of_week: 1)",
+    )
     note: Optional[str] = Field(default=None, description="Ghi chú")
 
     is_active: bool = Field(default=True, alias="isActive")

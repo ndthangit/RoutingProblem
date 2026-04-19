@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import  timezone
+from datetime import timezone, datetime
 from typing import Optional
 
 from couchbase.exceptions import CouchbaseException
@@ -38,8 +38,10 @@ class ScheduleService:
                 f"Invalid eventType: expected {ScheduleEventType.SCHEDULE_CREATED}, got {event.event_type}"
             )
 
-        # Normalize lastGeneratedAt if caller passes naive datetime
-        if event.schedule.last_generated_at and event.schedule.last_generated_at.tzinfo is None:
+        if event.schedule.last_generated_at is None:
+            event.schedule.last_generated_at = datetime.now(timezone.utc)
+        elif event.schedule.last_generated_at.tzinfo is None:
+            # Nếu là naive datetime (không có timezone), gán UTC
             event.schedule.last_generated_at = event.schedule.last_generated_at.replace(tzinfo=timezone.utc)
 
         await self._cb.upsert_document(
