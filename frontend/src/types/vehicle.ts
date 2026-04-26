@@ -13,6 +13,19 @@ export type VehicleType =
   | 'BUS'
   | 'MOTORCYCLE';
 
+export type VehicleEventType =
+  | "VEHICLE.REGISTERED"
+  | "VEHICLE.UPDATED"
+  | "VEHICLE.DRIVER.ASSIGNED"
+  | "VEHICLE.DRIVER.UNASSIGNED"
+  | "VEHICLE.STATUS.CHANGED"
+  | "VEHICLE.MAINTENANCE.SCHEDULED"
+  | "VEHICLE.MAINTENANCE.COMPLETED"
+  | "VEHICLE.DOCUMENTS.EXPIRED"
+  | "VEHICLE.DOCUMENTS.RENEWED"
+  | "VEHICLE.DELETED"
+  | "VEHICLE.INSPECTION.REQUIRED";
+
 export interface Vehicle {
   id: string;
   licensePlate: string;
@@ -31,4 +44,12 @@ export interface Vehicle {
   // Optional snake_case timestamps if backend returns them without aliases
   created_at?: Date | string;
   updated_at?: Date | string;
+}
+
+export interface VehicleEvent {
+  event_id: string;
+  timestamp: string;
+  ownerEmail?: string;
+  eventType: VehicleEventType;
+  vehicle: Vehicle;
 }

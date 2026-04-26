@@ -4,7 +4,8 @@ import { Chip } from "@mui/material";
 import AddVehicleModal from "./Vehicle/AddVehicleModal.tsx";
 import { Plus, Truck } from "lucide-react";
 import { Box as MuiBox } from "@mui/material";
-import type { Vehicle, VehicleStatus } from "../types";
+import type { Vehicle, VehicleEvent, VehicleStatus } from "../types";
+import VehicleDetailsModal from "./Vehicle/VehicleDetailsModal";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
 import {useKeycloak} from "@react-keycloak/web";
@@ -44,6 +45,9 @@ function StatusBadge({ status }: { status: VehicleStatus }) {
 
 export default function Vehicles() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailVehicle, setDetailVehicle] = useState<Vehicle | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const { keycloak } = useKeycloak();
@@ -135,7 +139,7 @@ export default function Vehicles() {
 
   const displayVehicles = vehicles;
 
-  const columns: GridColDef[] = [
+  const columns: GridColDef[] = useMemo(() => [
     {
       field: 'id',
       headerName: 'Vehicle ID',
@@ -194,12 +198,70 @@ export default function Vehicles() {
       width: 220,
       sortable: false,
       valueGetter: (_value, row: Vehicle & { location?: { latitude: number; longitude: number } | null }) => {
-        const loc = (row as any)?.location;
+        const loc = row.location;
         if (!loc) return 'N/A';
         return `${Number(loc.latitude).toFixed(6)}, ${Number(loc.longitude).toFixed(6)}`;
       },
     },
-  ];
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 220,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Vehicle>) => {
+        const row = params.row;
+        return (
+          <div className="flex gap-2 items-center h-full">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDetailVehicle(row);
+                setIsDetailModalOpen(true);
+              }}
+              className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors text-xs font-medium"
+            >
+              Detail
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingVehicle(row);
+                setIsModalOpen(true);
+              }}
+              className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium"
+            >
+              Edit
+            </button>
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                const ok = window.confirm(`Delete vehicle ${row.licensePlate ?? row.id}?`);
+                if (!ok) return;
+
+                try {
+                  const nowIso = new Date().toISOString();
+                  const payload: VehicleEvent = {
+                    event_id: window.crypto?.randomUUID?.() ?? "",
+                    timestamp: nowIso,
+                    ownerEmail: "unknown",
+                    eventType: "VEHICLE.DELETED",
+                    vehicle: row,
+                  };
+                  await request<VehicleEvent>("DELETE", `/v1/vehicles/${row.id}` , undefined, undefined, payload);
+                  fetchVehicles();
+                } catch (err) {
+                  console.error("Delete vehicle failed:", err);
+                }
+              }}
+              className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors text-xs font-medium"
+            >
+              Delete
+            </button>
+          </div>
+        );
+      },
+    },
+  ], []);
 
   return (
     <>
@@ -266,8 +328,21 @@ export default function Vehicles() {
 
       <AddVehicleModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingVehicle(null);
+        }}
         onSuccess={handleSuccess}
+        initialVehicle={editingVehicle}
+      />
+
+      <VehicleDetailsModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setDetailVehicle(null);
+        }}
+        vehicle={detailVehicle}
       />
     </>
   );

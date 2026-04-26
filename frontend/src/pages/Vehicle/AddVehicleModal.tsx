@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -20,16 +20,17 @@ import CloseIcon from '@mui/icons-material/Close';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import Grid from '@mui/material/Grid';
 import { request } from '../../api';
-import type { Vehicle, VehicleStatus, VehicleType } from '../../types';
+import type { Vehicle, VehicleEvent, VehicleStatus, VehicleType } from '../../types';
 import { useKeycloak } from '@react-keycloak/web';
 
 interface AddVehicleModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialVehicle?: Vehicle | null;
 }
 
-export default function AddVehicleModal({ isOpen, onClose, onSuccess }: AddVehicleModalProps) {
+export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVehicle }: AddVehicleModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { keycloak } = useKeycloak();
@@ -46,6 +47,43 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess }: AddVehic
     color: null,
     driverId: null,
   });
+
+  const resetForm = () => {
+    setError(null);
+    setFormData({
+      licensePlate: '',
+      vehicleType: 'TRUCK' as VehicleType,
+      status: 'ACTIVE' as VehicleStatus,
+      capacity: 1,
+      brand: null,
+      model: null,
+      year: new Date().getFullYear(),
+      color: null,
+      driverId: null,
+    });
+  };
+
+  const hydrateFromInitial = (v: Vehicle) => {
+    setFormData({
+      id: v.id,
+      licensePlate: v.licensePlate,
+      vehicleType: v.vehicleType,
+      status: v.status,
+      capacity: v.capacity,
+      brand: v.brand,
+      model: v.model,
+      year: v.year,
+      color: v.color,
+      driverId: v.driverId,
+    });
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setError(null);
+    if (initialVehicle) hydrateFromInitial(initialVehicle);
+    else resetForm();
+  }, [isOpen, initialVehicle]);
 
   const handleChange = (
     e:
@@ -67,39 +105,33 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess }: AddVehic
     try {
       const vehicle = Object.fromEntries(
         Object.entries(formData).filter(([, v]) => v !== null && v !== undefined && v !== '')
-      );
+      ) as Partial<Vehicle>;
 
-      const payload = {
-        eventType: 'VEHICLE.REGISTERED',
-        ownerEmail: keycloak.tokenParsed?.email || 'unknown',
-        vehicle: vehicle as Partial<Vehicle>,
+      const nowIso = new Date().toISOString();
+      const payload: VehicleEvent = {
+        event_id: window.crypto?.randomUUID?.() ?? '',
+        timestamp: nowIso,
+        ownerEmail: (keycloak.tokenParsed as { email?: string } | undefined)?.email || 'unknown',
+        eventType: initialVehicle ? 'VEHICLE.UPDATED' : 'VEHICLE.REGISTERED',
+        vehicle: {
+          ...(vehicle as Vehicle),
+          id: initialVehicle?.id ?? (vehicle.id as string),
+        } as Vehicle,
       };
       console.log('Submitting payload:', payload);
 
-      await request(
-        'POST',
-        '/v1/vehicles',
-        undefined,
-        undefined,
-        payload
-      );
+      if (initialVehicle?.id) {
+        await request<VehicleEvent>('PUT', `/v1/vehicles/${initialVehicle.id}`, undefined, undefined, payload);
+      } else {
+        await request<VehicleEvent>('POST', '/v1/vehicles', undefined, undefined, payload);
+      }
 
-      setFormData({
-        licensePlate: '',
-        vehicleType: 'TRUCK' as VehicleType,
-        status: 'ACTIVE' as VehicleStatus,
-        capacity: 1,
-        brand: null,
-        model: null,
-        year: new Date().getFullYear(),
-        color: null,
-        driverId: null,
-      });
+      resetForm();
 
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add vehicle');
+      setError(err instanceof Error ? err.message : (initialVehicle ? 'Failed to update vehicle' : 'Failed to add vehicle'));
     } finally {
       setLoading(false);
     }
@@ -141,7 +173,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess }: AddVehic
             <LocalShippingIcon sx={{ color: 'white' }} />
           </Box>
           <Typography variant="h6" component="span">
-            Add New Vehicle
+            {initialVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small">
@@ -302,7 +334,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess }: AddVehic
             size="large"
             startIcon={loading && <CircularProgress size={20} color="inherit" />}
           >
-            {loading ? 'Adding...' : 'Add Vehicle'}
+            {loading ? (initialVehicle ? 'Saving...' : 'Adding...') : (initialVehicle ? 'Save' : 'Add Vehicle')}
           </Button>
         </DialogActions>
       </form>

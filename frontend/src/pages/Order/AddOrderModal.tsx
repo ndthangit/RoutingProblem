@@ -23,9 +23,10 @@ interface AddOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialOrder?: Order | null;
 }
 
-export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderModalProps) {
+export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder }: AddOrderModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +93,24 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
-  }, [isOpen]);
+
+    if (initialOrder) {
+      setFormData({
+        senderName: initialOrder.senderName ?? "",
+        receiverName: initialOrder.receiverName ?? "",
+        note: initialOrder.note ?? "",
+        origin: initialOrder.origin ?? "",
+        destination: initialOrder.destination ?? "",
+        description: initialOrder.package?.description ?? "",
+        weightKg: String(initialOrder.package?.weightKg ?? "1"),
+        declaredValue: String(initialOrder.package?.declaredValue ?? "0"),
+        codAmount: String(initialOrder.codAmount ?? "0"),
+        shippingFee: String(initialOrder.shippingFee ?? "0"),
+      });
+    } else {
+      resetForm();
+    }
+  }, [isOpen, initialOrder]);
 
   const handleChange = (
     e:
@@ -137,7 +155,7 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
       };
 
       const order: Order = {
-        id: window.crypto?.randomUUID?.() ?? "",
+        id: initialOrder?.id ?? (window.crypto?.randomUUID?.() ?? ""),
         origin: formData.origin,
         destination: formData.destination,
         senderName: formData.senderName,
@@ -146,36 +164,40 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
         codAmount: toNumberOrUndefined(formData.codAmount),
         shippingFee: toNumberOrUndefined(formData.shippingFee),
         note: formData.note,
-        createdAt: nowIso,
+        createdAt: initialOrder?.createdAt ?? nowIso,
       };
 
-      const payload: OrderEvent = {
-        event_id: window.crypto?.randomUUID?.() ?? "",
-        timestamp: nowIso,
-        ownerEmail: "unknown",
-        eventType: "ORDER.CREATED",
-        order,
-      };
+      if (initialOrder) {
+        console.log("Updating order:", order);
+        await request<Order>("PUT", `/v1/orders/${initialOrder.id}`, undefined, undefined, order);
+      } else {
+        const payload: OrderEvent = {
+          event_id: window.crypto?.randomUUID?.() ?? "",
+          timestamp: nowIso,
+          ownerEmail: "unknown",
+          eventType: "ORDER.CREATED",
+          order,
+        };
 
-      console.log("Submitting new order event:", payload);
-
-      await request<OrderEvent>("POST", "/v1/orders", undefined, undefined, payload);
+        console.log("Submitting new order event:", payload);
+        await request<OrderEvent>("POST", "/v1/orders", undefined, undefined, payload);
+      }
 
       onSuccess();
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add order");
+      setError(err instanceof Error ? err.message : initialOrder ? "Failed to update order" : "Failed to add order");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onClose={handleClose} maxWidth="md" fullWidth>
+      <Dialog open={isOpen} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <PackageIcon />
-          <Typography variant="h6">Add New Order</Typography>
+            <Typography variant="h6">{initialOrder ? "Edit Order" : "Add New Order"}</Typography>
         </Box>
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
@@ -279,10 +301,10 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess }: AddOrderMo
             {loading ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <CircularProgress size={18} color="inherit" />
-                Creating...
+                {initialOrder ? "Saving..." : "Creating..."}
               </Box>
             ) : (
-              "Create"
+              initialOrder ? "Save" : "Create"
             )}
           </Button>
         </DialogActions>

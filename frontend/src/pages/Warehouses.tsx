@@ -6,7 +6,8 @@ import { Plus, Warehouse as WarehouseIcon } from "lucide-react";
 
 import { request } from "../api";
 import AddWarehouseModal from "./Warehouse/AddWarehouseModal";
-import type { Warehouse, WarehouseStatus, WarehouseType } from "../types";
+import WarehouseDetailsModal from "./Warehouse/WarehouseDetailsModal";
+import type { Warehouse, WarehouseEvent, WarehouseStatus, WarehouseType } from "../types";
 
 function StatusBadge({ status }: { status: WarehouseStatus }) {
   const colorMap: Record<WarehouseStatus, "success" | "default" | "warning" | "error"> = {
@@ -44,6 +45,9 @@ const typeLabel: Record<WarehouseType, string> = {
 
 export default function Warehouses() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailWarehouse, setDetailWarehouse] = useState<Warehouse | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -112,8 +116,67 @@ export default function Warehouses() {
         width: 140,
         valueGetter: (value) => value || "N/A",
       },
+      {
+        field: "actions",
+        headerName: "Actions",
+        width: 220,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Warehouse>) => {
+          const row = params.row;
+          return (
+            <div className="flex gap-2 items-center h-full">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailWarehouse(row);
+                  setIsDetailModalOpen(true);
+                }}
+                className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Detail
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingWarehouse(row);
+                  setIsModalOpen(true);
+                }}
+                className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Edit
+              </button>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const ok = window.confirm(`Delete warehouse ${row.name}?`);
+                  if (!ok) return;
+
+                  try {
+                    const nowIso = new Date().toISOString();
+                    const payload: WarehouseEvent = {
+                      event_id: window.crypto?.randomUUID?.() ?? "",
+                      timestamp: nowIso,
+                      ownerEmail: "unknown",
+                      eventType: "WAREHOUSE.DELETED",
+                      warehouse: row,
+                    };
+
+                    await request<WarehouseEvent>("DELETE", `/v1/warehouses/${row.id}`, undefined, undefined, payload);
+                    handleSuccess();
+                  } catch (err) {
+                    console.error("Delete warehouse failed:", err);
+                  }
+                }}
+                className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Delete
+              </button>
+            </div>
+          );
+        },
+      },
     ],
-    []
+    [handleSuccess]
   );
 
   return (
@@ -181,8 +244,21 @@ export default function Warehouses() {
 
       <AddWarehouseModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingWarehouse(null);
+        }}
         onSuccess={handleSuccess}
+        initialWarehouse={editingWarehouse}
+      />
+
+      <WarehouseDetailsModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setDetailWarehouse(null);
+        }}
+        warehouse={detailWarehouse}
       />
     </>
   );

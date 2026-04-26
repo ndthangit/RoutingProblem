@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -28,6 +28,7 @@ interface AddWarehouseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialWarehouse?: Warehouse | null;
 }
 
 function compactObject<T extends object>(obj: T): Partial<T> {
@@ -37,7 +38,7 @@ function compactObject<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(entries) as Partial<T>;
 }
 
-export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWarehouseModalProps) {
+export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialWarehouse }: AddWarehouseModalProps) {
   const { keycloak } = useKeycloak();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,11 +94,33 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
     });
   };
 
+  const hydrateFromInitial = (w: Warehouse) => {
+    setFormData({
+      name: w.name ?? "",
+      address: w.address ?? "",
+      warehouseType: (w.warehouseType ?? "DEPOT") as WarehouseType,
+      status: (w.status ?? "ACTIVE") as WarehouseStatus,
+      capacity: (w.capacity ?? null) as number | null,
+      managerId: (w.managerId ?? null) as string | null,
+      customerId: (w.customerId ?? null) as string | null,
+      contactPhone: (w.contactPhone ?? null) as string | null,
+    });
+  };
+
   const handleClose = () => {
     if (loading) return;
     resetForm();
     onClose();
   };
+
+  // When opening modal, either reset (create) or hydrate (edit)
+  // Keep this here so edit button can reuse this modal.
+  useEffect(() => {
+    if (!isOpen) return;
+    setError(null);
+    if (initialWarehouse) hydrateFromInitial(initialWarehouse);
+    else resetForm();
+  }, [isOpen, initialWarehouse]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -130,13 +153,20 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
         ownerEmail:
           ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
           "unknown",
-        eventType: "WAREHOUSE.REGISTERED",
-        warehouse: warehouse as Warehouse,
+        eventType: initialWarehouse ? "WAREHOUSE.UPDATED" : "WAREHOUSE.REGISTERED",
+        warehouse: {
+          ...(warehouse as Warehouse),
+          id: initialWarehouse?.id,
+        } as Warehouse,
       };
 
       console.log("Submitting warehouse:", payload);
 
-      await request<WarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
+      if (initialWarehouse?.id) {
+        await request<WarehouseEvent>("PUT", `/v1/warehouses/${initialWarehouse.id}`, undefined, undefined, payload);
+      } else {
+        await request<WarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
+      }
 
       onSuccess();
       handleClose();
@@ -187,7 +217,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
             <WarehouseIcon sx={{ color: "white" }} />
           </Box>
           <Typography variant="h6" component="span">
-            Add New Warehouse
+            {initialWarehouse ? "Edit Warehouse" : "Add New Warehouse"}
           </Typography>
         </Box>
         <IconButton onClick={handleClose} size="small">
@@ -319,10 +349,10 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: AddWar
             {loading ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <CircularProgress size={18} color="inherit" />
-                Creating...
+                {initialWarehouse ? "Saving..." : "Creating..."}
               </Box>
             ) : (
-              "Create"
+              initialWarehouse ? "Save" : "Create"
             )}
           </Button>
         </DialogActions>
