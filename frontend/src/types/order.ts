@@ -24,6 +24,9 @@ export interface Order {
 
   createdAt?: Date | string;
   vehicleId?: string | null;
+
+  // Route currently transporting this order. Null/undefined when not yet assigned.
+  routeId?: string | null;
 }
 
 export type OrderEventType =

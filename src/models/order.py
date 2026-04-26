@@ -14,10 +14,12 @@ from src.models.routing import Coordinate
 class OrderEventType(str, Enum):
     ORDER_CREATED = "ORDER.CREATED"
     ORDER_PICKED_UP = "ORDER.PICKED_UP"
+
     ORDER_ARRIVED_AT_HUB = "ORDER.ARRIVED_AT_HUB"
     ORDER_DISPATCHED = "ORDER.DISPATCHED"
     ORDER_OUT_FOR_DELIVERY = "ORDER.OUT_FOR_DELIVERY"
     ORDER_DELIVERED = "ORDER.DELIVERED"
+
     ORDER_PAYMENT_RECEIVED = "ORDER.PAYMENT_RECEIVED"
     ORDER_FAILED_ATTEMPT = "ORDER.FAILED_ATTEMPT"
     ORDER_CANCELLED = "ORDER.CANCELLED"
@@ -65,6 +67,8 @@ class Order(BaseModel):
     note: Optional[str] = Field(default=None, description="Ghi chú vận chuyển")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
     vehicle_id: Optional[str] = Field(default=None, description="ID của xe đang chở hàng", alias="vehicleId")
+
+    route_id: Optional[str]= Field(default=None, description="ID của Route", alias="routeId")
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json", by_alias=True, exclude_none=True)

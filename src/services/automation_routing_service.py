@@ -38,8 +38,8 @@ class AutomationRoutingService:
 		cb: CouchbaseClient,
 		*,
 		interval_seconds: int = 30,
-		# week_seconds: int = 7 * 24 * 60 * 60,
-		week_seconds: int =  60,
+		week_seconds: int = 7 * 24 * 60 * 60,
+		# week_seconds: int =  60,
 	) -> None:
 		self._cb = cb
 		self._route_service = RouteService(cb)
