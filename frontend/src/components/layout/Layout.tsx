@@ -10,15 +10,19 @@ export default function Layout() {
 
   useEffect(() => {
     const path = location.pathname;
-    if (path.startsWith('/orders')) return setActiveTab('orders');
-    if (path.startsWith('/fleet')) return setActiveTab('fleet');
-    if (path.startsWith('/drivers')) return setActiveTab('drivers');
-    if (path.startsWith('/warehouses')) return setActiveTab('warehouses');
-    if (path.startsWith('/routes')) return setActiveTab('routes');
-    if (path.startsWith('/schedules')) return setActiveTab('schedules');
-    if (path.startsWith('/geography')) return setActiveTab('geography');
-    if (path.startsWith('/ai-optimization')) return setActiveTab('ai');
-    if (path.startsWith('/dashboard')) return setActiveTab('dashboard');
+    let next = 'dashboard';
+    if (path.startsWith('/orders')) next = 'orders';
+    else if (path.startsWith('/fleet')) next = 'fleet';
+    else if (path.startsWith('/drivers')) next = 'drivers';
+    else if (path.startsWith('/warehouses')) next = 'warehouses';
+    else if (path.startsWith('/customer-warehouses')) next = 'customerWarehouses';
+    else if (path.startsWith('/routes')) next = 'routes';
+    else if (path.startsWith('/schedules')) next = 'schedules';
+    else if (path.startsWith('/geography')) next = 'geography';
+    else if (path.startsWith('/ai-optimization')) next = 'ai';
+    else if (path.startsWith('/dashboard')) next = 'dashboard';
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveTab(next);
   }, [location.pathname]);
 
   const handleLogout = () => {

@@ -5,6 +5,7 @@ import Layout from "../components/layout/Layout";
 import Vehicles from "../pages/Vehicles";
 import Drivers from "../pages/Drivers";
 import Warehouses from "../pages/Warehouses";
+import CustomerWarehouses from "../pages/CustomerWarehouses";
 import Orders from "../pages/Orders";
 import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage.tsx";
 import Geography from "../pages/Geography";
@@ -31,6 +32,7 @@ export function AppRouter() {
                                       <Route path="/fleet" element={<Vehicles />} />
                                       <Route path="/drivers" element={<Drivers />} />
                                       <Route path="/warehouses" element={<Warehouses />} />
+                                      <Route path="/customer-warehouses" element={<CustomerWarehouses />} />
                                       <Route path="/routes" element={<RoutesPage />} />
                                       <Route path="/schedules" element={<Schedules />} />
                                       <Route path="/geography" element={<Geography />} />

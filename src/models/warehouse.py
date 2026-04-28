@@ -22,12 +22,6 @@ class WarehouseType(str, Enum):
     # Kho của hãng vận chuyển
     HUB = "HUB"                    # Trung tâm khai thác lớn (phân loại, điều phối liên tỉnh)
     DEPOT = "DEPOT"                # Trạm trung chuyển/Kho vệ tinh (giao nhận tuyến huyện/xã)
-    
-    # Kho của khách hàng
-    CUSTOMER_LOCATION = "CUSTOMER_LOCATION" # Nơi đơn vị vận chuyển đến lấy hàng
-
-    RECEIVER_LOCATION = "RECEIVER_LOCATION"   # Nơi đơn vị vận chuyển cần giao đến
-
 
 class WarehouseBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
@@ -45,7 +39,8 @@ class WarehouseBase(BaseModel):
         alias="warehouseType"
     )
     status: WarehouseStatus = Field(default=WarehouseStatus.ACTIVE, description="Trạng thái kho")
-    
+
+
     # Các trường dành riêng cho kho của hãng vận chuyển
     capacity: Optional[float] = Field(default=None, ge=0, description="Sức chứa tối đa (m2 hoặc tấn)")
     manager_id: Optional[str] = Field(default=None, description="ID của quản lý kho", alias="managerId")

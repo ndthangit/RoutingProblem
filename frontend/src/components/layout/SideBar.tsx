@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Truck, Sparkles, Users, Warehouse, MoreVertical, LogOut, CircleUser as UserCircle, Map, Route as RouteIcon, Calendar } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { useKeycloak } from '@react-keycloak/web';
 
 interface SidebarProps {
@@ -37,16 +37,17 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     return 'AD';
   };
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-    { id: 'orders', label: 'Orders', icon: Package, path: '/orders' },
-    { id: 'fleet', label: 'Fleet', icon: Truck, path: '/fleet' },
-    { id: 'drivers', label: 'Drivers', icon: Users, path: '/drivers' },
-    { id: 'warehouses', label: 'Warehouses', icon: Warehouse, path: '/warehouses' },
-    { id: 'routes', label: 'Routes', icon: RouteIcon, path: '/routes' },
-    { id: 'schedules', label: 'Schedules', icon: Calendar, path: '/schedules' },
-    { id: 'geography', label: 'Bản đồ', icon: Map, path: '/geography' },
-    { id: 'ai', label: 'AI Optimization', icon: Sparkles, path: '/ai-optimization' },
+  const menuItems: Array<{ id: string; label: string; icon: any; path: string }> = [
+    { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard, path: '/dashboard' },
+    { id: 'orders', label: 'Orders', icon: Icons.Package, path: '/orders' },
+    { id: 'fleet', label: 'Fleet', icon: Icons.Truck, path: '/fleet' },
+    { id: 'drivers', label: 'Drivers', icon: Icons.Users, path: '/drivers' },
+    { id: 'warehouses', label: 'Warehouses', icon: Icons.Warehouse, path: '/warehouses' },
+    { id: 'customerWarehouses', label: 'Customer Warehouses', icon: Icons.MapPin, path: '/customer-warehouses' },
+    { id: 'routes', label: 'Routes', icon: Icons.Route, path: '/routes' },
+    { id: 'schedules', label: 'Schedules', icon: Icons.Calendar, path: '/schedules' },
+    { id: 'geography', label: 'Bản đồ', icon: Icons.Map, path: '/geography' },
+    { id: 'ai', label: 'AI Optimization', icon: Icons.Sparkles, path: '/ai-optimization' },
   ];
 
   const handleMenuClick = (item: typeof menuItems[0]) => {
@@ -100,7 +101,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Truck className="w-6 h-6" />
+            <Icons.Truck className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-xl font-bold">GoShip</h1>
@@ -142,7 +143,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="p-1 hover:bg-slate-700 rounded transition-colors flex-shrink-0"
           >
-            <MoreVertical className="w-5 h-5 text-slate-400" />
+            <Icons.MoreVertical className="w-5 h-5 text-slate-400" />
           </button>
         </div>
 
@@ -157,7 +158,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
                 onClick={handleUserProfile}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left"
               >
-                <UserCircle className="w-5 h-5 text-slate-400" />
+                <Icons.CircleUser className="w-5 h-5 text-slate-400" />
                 <span className="text-sm font-medium text-white">Quản lý tài khoản</span>
               </button>
 
@@ -165,7 +166,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
                 onClick={handleWarehouseRegistration}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left"
               >
-                <Warehouse className="w-5 h-5 text-slate-400" />
+                <Icons.Warehouse className="w-5 h-5 text-slate-400" />
                 <span className="text-sm font-medium text-white">Đăng ký kho</span>
               </button>
 
@@ -174,7 +175,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left"
               >
-                <LogOut className="w-5 h-5 text-red-400" />
+                <Icons.LogOut className="w-5 h-5 text-red-400" />
                 <span className="text-sm font-medium text-red-400">Đăng xuất</span>
               </button>
             </div>

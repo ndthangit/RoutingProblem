@@ -17,6 +17,7 @@ from src.models.producer import kafka_producer
 from src.api.vehicles import router as vehicles_router
 from src.api.drivers import router as drivers_router
 from src.api.warehouses import router as warehouses_router
+from src.api.customer_houses import router as customer_houses_router
 from src.api.orders import router as orders_router
 from src.api.routing import router as routing_router
 from src.api.routes import router as routes_router
@@ -184,6 +185,7 @@ async def debug_consumer():
 app.include_router(vehicles_router, prefix=settings.API_V1_PREFIX)
 app.include_router(drivers_router, prefix=settings.API_V1_PREFIX)
 app.include_router(warehouses_router, prefix=settings.API_V1_PREFIX)
+app.include_router(customer_houses_router, prefix=settings.API_V1_PREFIX)
 app.include_router(orders_router, prefix=settings.API_V1_PREFIX)
 app.include_router(routing_router, prefix=settings.API_V1_PREFIX)
 app.include_router(routes_router, prefix=settings.API_V1_PREFIX)
