@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box as MuiBox, Chip } from "@mui/material";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
-import { MapPin, Plus } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 import { request } from "../api";
 import type { CustomerHouse, CustomerHouseEvent, WarehouseStatus } from "../types";
 
-import AddCustomerWarehouseModal from "./CustomerWarehouse/AddCustomerWarehouseModal.tsx";
 import CustomerWarehouseDetailsModal from "./CustomerWarehouse/CustomerWarehouseDetailsModal.tsx";
 
 function StatusBadge({ status }: { status: WarehouseStatus }) {
@@ -30,10 +29,8 @@ function StatusBadge({ status }: { status: WarehouseStatus }) {
 }
 
 export default function CustomerWarehouses() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detail, setDetail] = useState<CustomerHouse | null>(null);
-  const [editing, setEditing] = useState<CustomerHouse | null>(null);
   const [items, setItems] = useState<CustomerHouse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,10 +50,10 @@ export default function CustomerWarehouses() {
     fetchItems();
   }, []);
 
-  const handleSuccess = () => {
+  const handleSuccess = useCallback(() => {
     setLoading(true);
     fetchItems();
-  };
+  }, []);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -111,8 +108,7 @@ export default function CustomerWarehouses() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEditing(row);
-                  setIsModalOpen(true);
+                  // Legacy edit modal removed. Please edit via the unified registration flow if needed.
                 }}
                 className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium"
               >
@@ -166,13 +162,6 @@ export default function CustomerWarehouses() {
             <MapPin className="w-5 h-5 text-slate-600" />
             <h2 className="text-lg font-bold text-slate-900">Customer Warehouses</h2>
             <span className="ml-auto text-sm text-slate-500">{items.length} locations</span>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="ml-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Add
-            </button>
           </div>
         </div>
 
@@ -205,15 +194,6 @@ export default function CustomerWarehouses() {
         </MuiBox>
       </div>
 
-      <AddCustomerWarehouseModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditing(null);
-        }}
-        onSuccess={handleSuccess}
-        initialCustomerHouse={editing}
-      />
 
       <CustomerWarehouseDetailsModal
         isOpen={isDetailModalOpen}

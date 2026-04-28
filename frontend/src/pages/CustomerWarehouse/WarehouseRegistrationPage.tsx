@@ -4,10 +4,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   TextField,
 } from "@mui/material";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
@@ -15,8 +11,8 @@ import Grid from "@mui/material/Grid";
 import { useKeycloak } from "@react-keycloak/web";
 import { useNavigate } from "react-router-dom";
 
-import { request } from "../../api";
-import type { Warehouse, WarehouseEvent, WarehouseStatus, WarehouseType } from "../../types";
+import { request } from "../../api.tsx";
+import type { CustomerHouse, CustomerHouseEvent } from "../../types";
 
 function compactObject<T extends object>(obj: T): Partial<T> {
   const entries = Object.entries(obj as Record<string, unknown>).filter(
@@ -32,15 +28,14 @@ export default function WarehouseRegistrationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<Partial<Warehouse>>({
+  const [formData, setFormData] = useState<Partial<CustomerHouse>>({
     name: "",
     address: "",
-    warehouseType: "CUSTOMER_LOCATION" as WarehouseType,
-    status: "ACTIVE" as WarehouseStatus,
-    capacity: null,
-    managerId: keycloak?.tokenParsed?.sub || null,
-    customerId: null,
-    contactPhone: null,
+    representativeName: keycloak?.tokenParsed?.name || "",
+    contactPhone: "",
+    pendingWeight: 0,
+    totalPendingOrders: 0,
+    status: "ACTIVE",
   });
 
   const handleChange = (
@@ -51,8 +46,8 @@ export default function WarehouseRegistrationPage() {
     const { name, value } = e.target;
 
     setFormData((prev) => {
-      if (["capacity"].includes(name)) {
-        return { ...prev, [name]: value === "" ? null : Number(value) };
+      if (["pendingWeight", "totalPendingOrders"].includes(name)) {
+        return { ...prev, [name]: value === "" ? 0 : Number(value) };
       }
       return { ...prev, [name]: value };
     });
@@ -63,12 +58,11 @@ export default function WarehouseRegistrationPage() {
     setFormData({
       name: "",
       address: "",
-      warehouseType: "CUSTOMER_LOCATION" as WarehouseType,
-      status: "ACTIVE" as WarehouseStatus,
-      capacity: null,
-      managerId: keycloak?.tokenParsed?.sub || null,
-      customerId: null,
-      contactPhone: null,
+      representativeName: keycloak?.tokenParsed?.name || "",
+      contactPhone: "",
+      pendingWeight: 0,
+      totalPendingOrders: 0,
+      status: "ACTIVE",
     });
   };
 
@@ -84,33 +78,33 @@ export default function WarehouseRegistrationPage() {
     setError(null);
 
     try {
-      if (!formData.name || !formData.address) {
-        setError("Vui lòng nhập Name và Address.");
+      if (!formData.name || !formData.address || !formData.representativeName || !formData.contactPhone) {
+        setError("Vui lòng nhập đầy đủ: Name, Address, Representative name, Contact phone.");
         return;
       }
 
       const nowIso = new Date().toISOString();
-      const warehouse: Partial<Warehouse> = compactObject({
+      const customerHouse: Partial<CustomerHouse> = compactObject({
         ...formData,
         // coordinate is intentionally omitted; backend will geocode from address
-      } as Warehouse);
+      } as CustomerHouse);
 
-      const payload: WarehouseEvent = {
+      const payload: CustomerHouseEvent = {
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
         ownerEmail:
           ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
           "unknown",
-        eventType: "WAREHOUSE.REGISTERED",
-        warehouse: warehouse as Warehouse,
+        eventType: "CUSTOMER_LOCATION.REGISTERED",
+        customerHouse: customerHouse as CustomerHouse,
       };
-      console.log("Submitting warehouse registration:", payload);
+      console.log("Submitting customer warehouse registration:", payload);
 
-      await request<WarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
+      await request<CustomerHouseEvent>("POST", "/v1/customer-houses", undefined, undefined, payload);
 
       navigate("/warehouses");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add warehouse");
+      setError(err instanceof Error ? err.message : "Failed to add customer warehouse");
     } finally {
       setLoading(false);
     }
@@ -121,7 +115,7 @@ export default function WarehouseRegistrationPage() {
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <WarehouseIcon fontSize="small" />
-          <h2 className="text-lg font-bold text-slate-900">Đăng ký Warehouse</h2>
+          <h2 className="text-lg font-bold text-slate-900">Đăng ký kho khách hàng</h2>
         </div>
       </div>
 
@@ -140,6 +134,18 @@ export default function WarehouseRegistrationPage() {
                 label="Name"
                 name="name"
                 value={formData.name ?? ""}
+                onChange={handleChange}
+                required
+                variant="outlined"
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                label="Contact phone"
+                name="contactPhone"
+                value={formData.contactPhone ?? ""}
                 onChange={handleChange}
                 required
                 variant="outlined"
@@ -173,56 +179,41 @@ export default function WarehouseRegistrationPage() {
                 variant="outlined"
               />
             </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth required>
-                <InputLabel>Status</InputLabel>
-                <Select name="status" value={formData.status} onChange={handleChange} label="Status">
-                  <MenuItem value="ACTIVE">ACTIVE</MenuItem>
-                  <MenuItem value="INACTIVE">INACTIVE</MenuItem>
-                  <MenuItem value="FULL">FULL</MenuItem>
-                  <MenuItem value="MAINTENANCE">MAINTENANCE</MenuItem>
-                  <MenuItem value="CLOSED">CLOSED</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-{/* 
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
-                label="Capacity"
-                name="capacity"
+                label="Representative name"
+                name="representativeName"
+                value={formData.representativeName ?? ""}
+                onChange={handleChange}
+                required
+                variant="outlined"
+                disabled
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 3 }}>
+              <TextField
+                fullWidth
+                label="Pending weight (kg)"
+                name="pendingWeight"
                 type="number"
-                value={formData.capacity ?? ""}
+                value={formData.pendingWeight ?? 0}
+                onChange={handleChange}
+                slotProps={{ htmlInput: { min: 0, step: 0.1 } }}
+                variant="outlined"
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 3 }}>
+              <TextField
+                fullWidth
+                label="Pending orders"
+                name="totalPendingOrders"
+                type="number"
+                value={formData.totalPendingOrders ?? 0}
                 onChange={handleChange}
                 slotProps={{ htmlInput: { min: 0, step: 1 } }}
-                variant="outlined"
-              />
-            </Grid> */}
-
-           
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Manager name"
-                name="managerId"
-                value={keycloak?.tokenParsed?.name || "N/A"}
-                // onChange={handleChange}
-                disabled  
-                variant="outlined"
-                
-              />
-            </Grid>
-
-           
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Contact Phone (optional)"
-                name="contactPhone"
-                value={formData.contactPhone ?? ""}
-                onChange={handleChange}
                 variant="outlined"
               />
             </Grid>

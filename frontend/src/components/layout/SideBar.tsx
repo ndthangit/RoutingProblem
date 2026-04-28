@@ -47,7 +47,6 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     { id: 'routes', label: 'Routes', icon: Icons.Route, path: '/routes' },
     { id: 'schedules', label: 'Schedules', icon: Icons.Calendar, path: '/schedules' },
     { id: 'geography', label: 'Bản đồ', icon: Icons.Map, path: '/geography' },
-    { id: 'ai', label: 'AI Optimization', icon: Icons.Sparkles, path: '/ai-optimization' },
   ];
 
   const handleMenuClick = (item: typeof menuItems[0]) => {

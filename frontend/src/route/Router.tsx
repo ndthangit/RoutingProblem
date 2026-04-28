@@ -7,7 +7,7 @@ import Drivers from "../pages/Drivers";
 import Warehouses from "../pages/Warehouses";
 import CustomerWarehouses from "../pages/CustomerWarehouses";
 import Orders from "../pages/Orders";
-import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage.tsx";
+import WarehouseRegistrationPage from "../pages/CustomerWarehouse/WarehouseRegistrationPage.tsx";
 import Geography from "../pages/Geography";
 import RoutesPage from "../pages/Routes";
 import Schedules from "../pages/Schedules";
