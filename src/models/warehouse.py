@@ -44,14 +44,9 @@ class WarehouseBase(BaseModel):
     # Các trường dành riêng cho kho của hãng vận chuyển
     capacity: Optional[float] = Field(default=None, ge=0, description="Sức chứa tối đa (m2 hoặc tấn)")
     manager_id: Optional[str] = Field(default=None, description="ID của quản lý kho", alias="managerId")
-    
-    # Các trường dành riêng cho kho của khách hàng
-    customer_id: Optional[str] = Field(default=None, description="ID của khách hàng (nếu là kho khách hàng)", alias="customerId")
-    
+
     # Thông tin liên hệ chung
     contact_phone: Optional[str] = Field(default=None, max_length=20, description="Số điện thoại liên hệ tại kho", alias="contactPhone")
-
-
 
 
 class Warehouse(WarehouseBase):

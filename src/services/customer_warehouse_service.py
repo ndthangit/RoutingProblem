@@ -123,12 +123,14 @@ class CustomerWarehouseService:
         # Default hubResponsible: nearest HUB
         if not event.customer_warehouse.hub_responsible:
             event.customer_warehouse.hub_responsible = await self._resolve_nearest_hub_id(event.customer_warehouse)
+            print(event.customer_warehouse.hub_responsible)
 
-        await self._cb.upsert_document(
-            _doc_id(event.customer_warehouse.id),
-            event.customer_warehouse.to_dict(),
-            CUSTOMER_HOUSE_COLLECTION,
-        )
+        print(event.customer_warehouse.to_dict())
+        # await self._cb.upsert_document(
+        #     _doc_id(event.customer_warehouse.id),
+        #     event.customer_warehouse.to_dict(),
+        #     CUSTOMER_HOUSE_COLLECTION,
+        # )
         await self._persist_event(event)
         return event.customer_warehouse
 

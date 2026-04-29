@@ -50,7 +50,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
     status: WarehouseStatus;
     capacity: number | null;
     managerId: string | null;
-    customerId: string | null;
     contactPhone: string | null;
   };
 
@@ -61,7 +60,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
     status: "ACTIVE",
     capacity: null,
     managerId: null,
-    customerId: null,
     contactPhone: null,
   });
 
@@ -89,7 +87,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
       status: "ACTIVE",
       capacity: null,
       managerId: null,
-      customerId: null,
       contactPhone: null,
     });
   };
@@ -102,7 +99,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
       status: (w.status ?? "ACTIVE") as WarehouseStatus,
       capacity: (w.capacity ?? null) as number | null,
       managerId: (w.managerId ?? null) as string | null,
-      customerId: (w.customerId ?? null) as string | null,
       contactPhone: (w.contactPhone ?? null) as string | null,
     });
   };
@@ -142,7 +138,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
         status: formData.status,
         capacity: formData.capacity,
         managerId: formData.managerId,
-        customerId: formData.customerId,
         contactPhone: formData.contactPhone,
       } as Warehouse);
 
@@ -306,17 +301,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
                 label="Manager ID (optional)"
                 name="managerId"
                 value={formData.managerId ?? ""}
-                onChange={handleChange}
-                variant="outlined"
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Customer ID (optional)"
-                name="customerId"
-                value={formData.customerId ?? ""}
                 onChange={handleChange}
                 variant="outlined"
               />

@@ -87,7 +87,6 @@ export default function WarehouseDetailsModal({ isOpen, onClose, warehouse }: Wa
 			</Typography>
 			<FieldRow label="Capacity" value={warehouse.capacity} />
 			<FieldRow label="Manager ID" value={warehouse.managerId} />
-			<FieldRow label="Customer ID" value={warehouse.customerId} />
 
 			<Divider sx={{ my: 2 }} />
 

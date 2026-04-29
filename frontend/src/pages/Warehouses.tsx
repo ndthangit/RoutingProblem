@@ -105,12 +105,6 @@ export default function Warehouses() {
         valueGetter: (value) => value || "N/A",
       },
       {
-        field: "customerId",
-        headerName: "Customer",
-        width: 160,
-        valueGetter: (value) => value || "N/A",
-      },
-      {
         field: "contactPhone",
         headerName: "Contact",
         width: 140,

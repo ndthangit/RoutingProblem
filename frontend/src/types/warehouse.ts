@@ -33,7 +33,6 @@ export interface Warehouse {
 
   capacity?: number | null;
   managerId?: string | null;
-  customerId?: string | null;
   contactPhone?: string | null;
 
   createdAt?: Date | string;
