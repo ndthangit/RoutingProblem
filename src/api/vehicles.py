@@ -33,10 +33,10 @@ async def create_vehicle(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    return await service.create_vehicle(event)
-
-
-
+    try:
+        return await service.create_vehicle(event)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/{vehicle_id}", response_model=Vehicle)
@@ -77,7 +77,10 @@ async def update_vehicle(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    updated = await service.update_vehicle(event)
+    try:
+        updated = await service.update_vehicle(event)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if updated is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
     return updated

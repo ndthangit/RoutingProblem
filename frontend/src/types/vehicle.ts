@@ -37,6 +37,8 @@ export interface Vehicle {
   vehicleType: VehicleType;
   status: VehicleStatus;
   driverId: string | null;
+  warehouseId?: string | null;
+  coordinate?: { lon: number; lat: number } | null;
   location?: { latitude: number; longitude: number } | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;

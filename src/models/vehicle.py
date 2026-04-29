@@ -39,6 +39,12 @@ class VehicleBase(BaseModel):
     vehicle_type: VehicleType = Field(default=VehicleType.SEDAN, description="Loại xe", alias="vehicleType")
     status: VehicleStatus = Field(default=VehicleStatus.ACTIVE, description="Trạng thái xe")
     driver_id: Optional[str] = Field(default=None, alias="driverId")
+
+    warehouse_id: Optional[str] = Field(
+        default=None,
+        alias="warehouseId",
+        description="ID của kho quản lý vehicle này",
+    )
     # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
     coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
 

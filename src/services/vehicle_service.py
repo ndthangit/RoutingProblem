@@ -7,6 +7,7 @@ from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
 from src.models.vehicle import Vehicle, VehicleEvent, VehicleEventType
+from src.services.warehouse_service import WarehouseService
 
 VEHICLE_COLLECTION = "vehicle"
 VEHICLE_EVENT_COLLECTION = "vehicle_event"
@@ -24,6 +25,21 @@ class VehicleService:
     def __init__(self, cb: CouchbaseClient):
         self._cb = cb
 
+    async def _apply_warehouse_coordinate(self, vehicle: Vehicle) -> None:
+        """If vehicle.warehouse_id is present, enforce vehicle.coordinate = warehouse.coordinate."""
+        if not getattr(vehicle, "warehouse_id", None):
+            return
+
+        warehouse = await WarehouseService(self._cb).get_warehouse(vehicle.warehouse_id)
+        if warehouse is None:
+            raise ValueError(f"Invalid warehouseId: warehouse '{vehicle.warehouse_id}' not found")
+        if warehouse.coordinate is None:
+            raise ValueError(
+                f"Invalid warehouseId: warehouse '{vehicle.warehouse_id}' has no coordinate; cannot set vehicle coordinate"
+            )
+
+        vehicle.coordinate = warehouse.coordinate
+
     async def _persist_event(self, event: VehicleEvent) -> None:
         await self._cb.upsert_document(
             _event_doc_id(event.vehicle.id, event.event_id),
@@ -34,6 +50,9 @@ class VehicleService:
     async def create_vehicle(self, event: VehicleEvent) -> Vehicle:
         if event.event_type !=  VehicleEventType.VEHICLE_REGISTERED:
             raise ValueError(f"Invalid eventType: expected {VehicleEventType.VEHICLE_REGISTERED}, got {event.event_type}")
+
+        # Enforce coordinate from managing warehouse
+        await self._apply_warehouse_coordinate(event.vehicle)
 
         # ensure timestamps
         now = datetime.now(timezone.utc)
@@ -72,9 +91,8 @@ class VehicleService:
         if existing is None:
             return None
 
-        if event.vehicle.id != event.vehicle.id:
-            # If client sent mismatched ids, prefer path param.
-            event.vehicle.id = event.vehicle.id
+        # Enforce coordinate from managing warehouse (if provided)
+        await self._apply_warehouse_coordinate(event.vehicle)
 
         # keep original created_at, always bump updated_at
         event.vehicle.created_at = existing.created_at

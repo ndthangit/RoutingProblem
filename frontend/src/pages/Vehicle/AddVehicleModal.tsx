@@ -20,7 +20,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import Grid from '@mui/material/Grid';
 import { request } from '../../api';
-import type { Vehicle, VehicleEvent, VehicleStatus, VehicleType } from '../../types';
+import type { Vehicle, VehicleEvent, VehicleStatus, VehicleType, Warehouse } from '../../types';
 import { useKeycloak } from '@react-keycloak/web';
 
 interface AddVehicleModalProps {
@@ -35,6 +35,8 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
   const [error, setError] = useState<string | null>(null);
   const { keycloak } = useKeycloak();
 
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+
 
   const [formData, setFormData] = useState<Partial<Vehicle>>({
     licensePlate: '',
@@ -46,6 +48,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
     year: new Date().getFullYear(),
     color: null,
     driverId: null,
+    warehouseId: null,
   });
 
   const resetForm = () => {
@@ -60,6 +63,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
       year: new Date().getFullYear(),
       color: null,
       driverId: null,
+      warehouseId: null,
     });
   };
 
@@ -75,7 +79,18 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
       year: v.year,
       color: v.color,
       driverId: v.driverId,
+      warehouseId: v.warehouseId ?? null,
     });
+  };
+
+  const fetchWarehouses = async () => {
+    try {
+      const res = await request<Warehouse[]>('GET', '/v1/warehouses');
+      setWarehouses(res?.data ?? []);
+    } catch (e) {
+      console.error('Failed to fetch warehouses:', e);
+      setWarehouses([]);
+    }
   };
 
   useEffect(() => {
@@ -83,6 +98,9 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
     setError(null);
     if (initialVehicle) hydrateFromInitial(initialVehicle);
     else resetForm();
+
+    // Load warehouses for dropdown
+    fetchWarehouses();
   }, [isOpen, initialVehicle]);
 
   const handleChange = (
@@ -103,6 +121,11 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
     setError(null);
 
     try {
+      if (!formData.warehouseId) {
+        setError('Vui lòng chọn Warehouse quản lý vehicle.');
+        return;
+      }
+
       const vehicle = Object.fromEntries(
         Object.entries(formData).filter(([, v]) => v !== null && v !== undefined && v !== '')
       ) as Partial<Vehicle>;
@@ -218,6 +241,24 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
                   <MenuItem value="VAN">Van</MenuItem>
                   <MenuItem value="BUS">Bus</MenuItem>
                   <MenuItem value="MOTORCYCLE">Motorcycle</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth required>
+                <InputLabel>Warehouse</InputLabel>
+                <Select
+                  name="warehouseId"
+                  value={formData.warehouseId ?? ''}
+                  onChange={handleChange}
+                  label="Warehouse"
+                >
+                  {warehouses.map((w) => (
+                    <MenuItem key={w.id} value={w.id}>
+                      {w.name} {w.address ? `- ${w.address}` : ''}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
