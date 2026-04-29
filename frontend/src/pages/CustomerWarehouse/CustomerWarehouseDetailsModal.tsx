@@ -10,12 +10,12 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 
-import type { CustomerHouse } from "../../types";
+import type { CustomerWarehouse } from "../../types";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  customerHouse: CustomerHouse | null;
+  customerHouse: CustomerWarehouse | null;
 }
 
 function formatDate(value?: string | number): string {

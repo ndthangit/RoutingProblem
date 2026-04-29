@@ -12,7 +12,7 @@ import { useKeycloak } from "@react-keycloak/web";
 import { useNavigate } from "react-router-dom";
 
 import { request } from "../../api.tsx";
-import type { CustomerHouse, CustomerHouseEvent } from "../../types";
+import type { CustomerWarehouse, CustomerWarehouseEvent } from "../../types";
 
 function compactObject<T extends object>(obj: T): Partial<T> {
   const entries = Object.entries(obj as Record<string, unknown>).filter(
@@ -28,7 +28,7 @@ export default function WarehouseRegistrationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<Partial<CustomerHouse>>({
+  const [formData, setFormData] = useState<Partial<CustomerWarehouse>>({
     name: "",
     address: "",
     representativeName: keycloak?.tokenParsed?.name || "",
@@ -84,23 +84,23 @@ export default function WarehouseRegistrationPage() {
       }
 
       const nowIso = new Date().toISOString();
-      const customerHouse: Partial<CustomerHouse> = compactObject({
+      const customerWarehouse: Partial<CustomerWarehouse> = compactObject({
         ...formData,
         // coordinate is intentionally omitted; backend will geocode from address
-      } as CustomerHouse);
+      } as CustomerWarehouse);
 
-      const payload: CustomerHouseEvent = {
+      const payload: CustomerWarehouseEvent = {
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
         ownerEmail:
           ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
           "unknown",
         eventType: "CUSTOMER_LOCATION.REGISTERED",
-        customerHouse: customerHouse as CustomerHouse,
+        customerWarehouse:  customerWarehouse as CustomerWarehouse,
       };
       console.log("Submitting customer warehouse registration:", payload);
 
-      await request<CustomerHouseEvent>("POST", "/v1/customer-houses", undefined, undefined, payload);
+      await request<CustomerWarehouseEvent>("POST", "/v1/customer-houses", undefined, undefined, payload);
 
       navigate("/warehouses");
     } catch (err) {

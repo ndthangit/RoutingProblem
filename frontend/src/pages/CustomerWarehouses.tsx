@@ -5,7 +5,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { MapPin } from "lucide-react";
 
 import { request } from "../api";
-import type { CustomerHouse, CustomerHouseEvent, WarehouseStatus } from "../types";
+import type { CustomerWarehouse, CustomerWarehouseEvent, WarehouseStatus } from "../types";
 
 import CustomerWarehouseDetailsModal from "./CustomerWarehouse/CustomerWarehouseDetailsModal.tsx";
 
@@ -30,13 +30,13 @@ function StatusBadge({ status }: { status: WarehouseStatus }) {
 
 export default function CustomerWarehouses() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detail, setDetail] = useState<CustomerHouse | null>(null);
-  const [items, setItems] = useState<CustomerHouse[]>([]);
+  const [detail, setDetail] = useState<CustomerWarehouse | null>(null);
+  const [items, setItems] = useState<CustomerWarehouse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchItems = async () => {
     try {
-      const res = await request<CustomerHouse[]>("GET", "/v1/customer-houses");
+      const res = await request<CustomerWarehouse[]>("GET", "/v1/customer-houses");
       setItems(res?.data ?? []);
     } catch (error) {
       console.error("Error fetching customer warehouses:", error);
@@ -82,7 +82,7 @@ export default function CustomerWarehouses() {
         field: "status",
         headerName: "Status",
         width: 130,
-        renderCell: (params: GridRenderCellParams<CustomerHouse, CustomerHouse["status"]>) => (
+        renderCell: (params: GridRenderCellParams<CustomerWarehouse, CustomerWarehouse["status"]>) => (
           <StatusBadge status={(params.value as WarehouseStatus) ?? "ACTIVE"} />
         ),
       },
@@ -91,7 +91,7 @@ export default function CustomerWarehouses() {
         headerName: "Actions",
         width: 220,
         sortable: false,
-        renderCell: (params: GridRenderCellParams<CustomerHouse>) => {
+        renderCell: (params: GridRenderCellParams<CustomerWarehouse>) => {
           const row = params.row;
           return (
             <div className="flex gap-2 items-center h-full">
@@ -122,7 +122,7 @@ export default function CustomerWarehouses() {
 
                   try {
                     const nowIso = new Date().toISOString();
-                    const payload: CustomerHouseEvent = {
+                    const payload: CustomerWarehouseEvent = {
                       event_id: window.crypto?.randomUUID?.() ?? "",
                       timestamp: nowIso,
                       ownerEmail: "unknown",
@@ -130,7 +130,7 @@ export default function CustomerWarehouses() {
                       customerHouse: row,
                     };
 
-                    await request<CustomerHouseEvent>(
+                    await request<CustomerWarehouseEvent>(
                       "DELETE",
                       `/v1/customer-houses/${row.id}`,
                       undefined,

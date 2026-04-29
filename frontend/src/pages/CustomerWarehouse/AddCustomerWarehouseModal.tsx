@@ -16,13 +16,13 @@ import Grid from "@mui/material/Grid";
 import { MapPin } from "lucide-react";
 
 import { request } from "../../api";
-import type { CustomerHouse, CustomerHouseEvent } from "../../types";
+import type { CustomerWarehouse, CustomerWarehouseEvent } from "../../types";
 
 interface AddCustomerWarehouseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialCustomerHouse?: CustomerHouse | null;
+  initialCustomerHouse?: CustomerWarehouse | null;
 }
 
 function compactObject<T extends object>(obj: T): Partial<T> {
@@ -107,7 +107,7 @@ export default function AddCustomerWarehouseModal({
 
     try {
       const nowIso = new Date().toISOString();
-      const base: CustomerHouse = {
+      const base: CustomerWarehouse = {
         ...(initialCustomerHouse?.id ? { id: initialCustomerHouse.id } : {}),
         name: formData.name,
         address: formData.address,
@@ -118,16 +118,16 @@ export default function AddCustomerWarehouseModal({
         status: initialCustomerHouse?.status ?? "ACTIVE",
       };
 
-      const payload: CustomerHouseEvent = {
+      const payload: CustomerWarehouseEvent = {
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
         ownerEmail: "unknown",
         eventType: initialCustomerHouse?.id ? "CUSTOMER_LOCATION.UPDATED" : "CUSTOMER_LOCATION.REGISTERED",
-        customerHouse: compactObject(base) as CustomerHouse,
+        customerHouse: compactObject(base) as CustomerWarehouse,
       };
 
       if (initialCustomerHouse?.id) {
-        await request<CustomerHouseEvent>(
+        await request<CustomerWarehouseEvent>(
           "PUT",
           `/v1/customer-houses/${initialCustomerHouse.id}`,
           undefined,
@@ -135,7 +135,7 @@ export default function AddCustomerWarehouseModal({
           payload
         );
       } else {
-        await request<CustomerHouseEvent>("POST", "/v1/customer-houses", undefined, undefined, payload);
+        await request<CustomerWarehouseEvent>("POST", "/v1/customer-houses", undefined, undefined, payload);
       }
 
       onSuccess();

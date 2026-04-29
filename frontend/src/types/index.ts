@@ -4,4 +4,4 @@ export * from './warehouse';
 export * from './order';
 export * from './route';
 export * from './schedule';
-export type { CustomerHouse, CustomerHouseEvent, CustomerHouseEventType, Coordinate } from './customerWarehouse';
+export type { CustomerWarehouse, CustomerWarehouseEvent, CustomerWarehouseEventType, Coordinate } from './customerWarehouse';

@@ -5,7 +5,7 @@ export interface Coordinate {
   lat: number;
 }
 
-export interface CustomerHouse {
+export interface CustomerWarehouse {
   id?: string;
 
   name: string;
@@ -26,20 +26,20 @@ export interface CustomerHouse {
   updatedAt?: Date | string;
 }
 
-export type CustomerHouseEventType =
+export type CustomerWarehouseEventType =
   | "CUSTOMER_LOCATION.REGISTERED"
   | "CUSTOMER_LOCATION.LOAD_UPDATED"
   | "CUSTOMER_LOCATION.REPRESENTATIVE_UPDATED"
   | "CUSTOMER_LOCATION.UPDATED"
   | "CUSTOMER_LOCATION.DELETED";
 
-export interface CustomerHouseEvent {
+export interface CustomerWarehouseEvent {
   event_id: string;
   timestamp: string;
   ownerEmail?: string;
 
-  eventType: CustomerHouseEventType;
-  customerHouse: CustomerHouse;
+  eventType: CustomerWarehouseEventType;
+  customerWarehouse: CustomerWarehouse;
 }
 
 
