@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
@@ -18,6 +19,7 @@ import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
 import type { Order, OrderEvent, PackageDetails } from "../../types";
+import type { CustomerWarehouse } from "../../types/customerWarehouse";
 
 interface AddOrderModalProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ interface AddOrderModalProps {
 export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder }: AddOrderModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customerWarehouses, setCustomerWarehouses] = useState<CustomerWarehouse[]>([]);
 
   type FormData = {
     senderName: string;
@@ -93,6 +96,29 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
+
+    // Load customer warehouses for Origin dropdown when creating a new order
+    (async () => {
+      try {
+        const resp = await request<unknown>("GET", "/v1/customer-houses");
+
+        // request() in this codebase may return the payload directly OR wrap it in { data: ... }
+        const maybeList =
+          Array.isArray(resp)
+            ? resp
+            : typeof resp === "object" && resp !== null && "data" in resp
+              ? (resp as { data: unknown }).data
+              : resp;
+
+        const list: CustomerWarehouse[] = Array.isArray(maybeList) ? (maybeList as CustomerWarehouse[]) : [];
+        setCustomerWarehouses(list);
+        console.log("Fetched customer warehouses (raw resp):", resp);
+        console.log("Fetched customer warehouses (list):", list);
+      } catch {
+        // non-blocking; keep empty list
+        setCustomerWarehouses([]);
+      }
+    })();
 
     if (initialOrder) {
       setFormData({
@@ -248,14 +274,39 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
             </Grid>
 
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                required
-                label="Origin (Pickup address)"
-                name="origin"
-                value={formData.origin}
-                onChange={handleChange}
-              />
+              {initialOrder ? (
+                <TextField
+                  fullWidth
+                  label="Origin (Pickup address)"
+                  name="origin"
+                  value={formData.origin}
+                  onChange={handleChange}
+                  helperText="Order đã tạo sẽ lưu Origin là địa chỉ (readonly theo kho khách hàng)"
+                  disabled
+                />
+              ) : (
+                <TextField
+                  fullWidth
+                  required
+                  select
+                  label="Origin (Customer warehouse)"
+                  name="origin"
+                  value={formData.origin}
+                  onChange={handleChange}
+                  helperText="Chọn kho khách hàng để lấy địa chỉ & tọa độ"
+                >
+                  <MenuItem value="" disabled>
+                    {customerWarehouses.length ? "Chọn kho khách hàng" : "Chưa có kho khách hàng"}
+                  </MenuItem>
+                  {customerWarehouses
+                    .filter((cw) => typeof cw.id === "string" && cw.id)
+                    .map((cw) => (
+                      <MenuItem key={cw.id as string} value={cw.id as string}>
+                        {(cw.name ?? "Customer warehouse") + (cw.address ? ` - ${cw.address}` : "")}
+                      </MenuItem>
+                    ))}
+                </TextField>
+              )}
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField

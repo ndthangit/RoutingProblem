@@ -6,7 +6,9 @@ from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
 from src.models.order import Order, OrderEvent
+from src.models.customer_warehouse import CustomerWarehouseEvent, CustomerWarehouseEventType
 from src.services.routing_service import RoutingService
+from src.services.customer_warehouse_service import CustomerWarehouseService
 
 ORDER_COLLECTION = "order"
 ORDER_EVENT_COLLECTION = "order_event"
@@ -37,14 +39,42 @@ class OrderService:
         if event.event_type != event.event_type.ORDER_CREATED:
             raise ValueError(f"Invalid eventType for create: {event.event_type}")
 
+        # ORIGIN: for order creation, client sends order.origin as a customer_warehouse id.
+        # We denormalize origin address + coordinate onto the order.
+        cw_service = CustomerWarehouseService(self._cb)
+        customer_warehouse = await cw_service.get_customer_warehouse(event.order.origin)
+        if customer_warehouse is None:
+            raise ValueError(f"Invalid origin: customer warehouse '{event.order.origin}' not found")
+        if customer_warehouse.coordinate is None:
+            raise ValueError(
+                f"Invalid origin: customer warehouse '{customer_warehouse.id}' has no coordinate"
+            )
 
-        event.order.destination_coordinate = await RoutingService().geocode_address(event.order.destination)
-        event.order.origin_coordinate = await RoutingService().geocode_address(event.order.destination)
+        # Denormalize for routing
+        event.order.origin = customer_warehouse.address
+        event.order.origin_coordinate = customer_warehouse.coordinate
 
+        # DESTINATION: if client did not pass coordinate, geocode
+        if event.order.destination_coordinate is None:
+            event.order.destination_coordinate = await RoutingService().geocode_address(event.order.destination)
 
         order = event.order
+
+        # Persist order + order event
         await self._cb.upsert_document(_doc_id(order.id), order.to_dict(), ORDER_COLLECTION)
         await self._persist_event(event)
+
+        # Emit and apply CustomerWarehouse LOAD update (pendingWeight + pending orders)
+        updated_cw = customer_warehouse.model_copy(deep=True)
+        updated_cw.pending_weight = (updated_cw.pending_weight or 0.0) + order.package.weight_kg
+        updated_cw.total_pending_orders = (updated_cw.total_pending_orders or 0) + 1
+        cw_event = CustomerWarehouseEvent(
+            eventType=CustomerWarehouseEventType.LOAD_VOLUME_UPDATED,
+            customerWarehouse=updated_cw,
+            ownerEmail=event.owner_email,
+        )
+        await cw_service.update_customer_warehouse(cw_event)
+
         return order
 
     async def get_order(self, order_id: str) -> Optional[Order]:
