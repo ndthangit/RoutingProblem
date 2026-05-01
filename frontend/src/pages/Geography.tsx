@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Popup, useMap, Marker } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { request } from "../api";
-import type { Warehouse } from "../types";
+import type { BrandWarehouse } from "../types";
 
 // Fix default marker icon paths for bundlers (Vite)
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -96,7 +96,7 @@ export default function Geography() {
         const url = `v1/warehouses/geo?minLat=${bbox.minLat}&minLon=${bbox.minLon}&maxLat=${bbox.maxLat}&maxLon=${bbox.maxLon}&limit=${limit}`;
 
         try {
-          const res = await request<Warehouse[]>("GET", url);
+          const res = await request<BrandWarehouse[]>("GET", url);
           const warehouses = res?.data ?? [];
 
           const next = warehouses
@@ -115,7 +115,7 @@ export default function Geography() {
           console.error(e);
           // Fallback to old list endpoint if bbox endpoint isn't implemented yet
           try {
-            const res2 = await request<Warehouse[]>("GET", `/warehouses?limit=${limit}&offset=0`);
+            const res2 = await request<BrandWarehouse[]>("GET", `/warehouses?limit=${limit}&offset=0`);
             const warehouses = res2?.data ?? [];
             const next = warehouses
               .filter((w) => typeof w.id === "string" && w.id.length > 0)

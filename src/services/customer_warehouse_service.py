@@ -14,7 +14,7 @@ from src.models.customer_warehouse import (
     CustomerWarehouseEventType,
 )
 
-from src.models.warehouse import WarehouseType
+from src.models.brand_warehouse import BrandWarehouseType
 
 from src.services.routing_service import RoutingService
 
@@ -47,7 +47,7 @@ class CustomerWarehouseService:
             "WHERE w.warehouseType = $warehouse_type AND w.coordinate IS NOT NULL"
         )
         try:
-            result = await self._cb.query(statement, warehouse_type=WarehouseType.HUB.value)
+            result = await self._cb.query(statement, warehouse_type=BrandWarehouseType.HUB.value)
             return list(result)
         except CouchbaseException as e:
             print(f"Couchbase query failed while listing hubs: {e}")

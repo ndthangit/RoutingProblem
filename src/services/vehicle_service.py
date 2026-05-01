@@ -7,7 +7,10 @@ from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
 from src.models.vehicle import Vehicle, VehicleEvent, VehicleEventType
-from src.services.warehouse_service import WarehouseService
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.brand_warehouse_service import BrandWarehouseService
 
 VEHICLE_COLLECTION = "vehicle"
 VEHICLE_EVENT_COLLECTION = "vehicle_event"
@@ -30,7 +33,9 @@ class VehicleService:
         if not getattr(vehicle, "warehouse_id", None):
             return
 
-        warehouse = await WarehouseService(self._cb).get_warehouse(vehicle.warehouse_id)
+        from src.services.brand_warehouse_service import BrandWarehouseService as _BrandWarehouseService
+
+        warehouse = await _BrandWarehouseService(self._cb).get_warehouse(vehicle.warehouse_id)
         if warehouse is None:
             raise ValueError(f"Invalid warehouseId: warehouse '{vehicle.warehouse_id}' not found")
         if warehouse.coordinate is None:

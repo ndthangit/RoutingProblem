@@ -12,12 +12,12 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 
-import type { Warehouse } from "../../types";
+import type { BrandWarehouse } from "../../types";
 
 interface WarehouseDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  warehouse: Warehouse | null;
+  warehouse: BrandWarehouse | null;
 }
 
 function formatDate(value?: string | number): string {

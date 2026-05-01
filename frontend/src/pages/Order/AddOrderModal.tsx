@@ -19,7 +19,7 @@ import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
 import type { Order, OrderEvent, PackageDetails } from "../../types";
-import type { CustomerWarehouse } from "../../types/customerWarehouse";
+import type { CustomerWarehouse } from "../../types";
 
 interface AddOrderModalProps {
   isOpen: boolean;

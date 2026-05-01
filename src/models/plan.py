@@ -1,0 +1,60 @@
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, Field, ConfigDict, AliasChoices
+
+from src.models import Point
+from src.models.event import EventBase
+from src.models.routing import Coordinate, Route
+
+
+class PlanStatus(str, Enum):
+	PLANNED = "PLANNED"
+	IN_PROGRESS = "IN_PROGRESS"
+	COMPLETED = "COMPLETED"
+	CANCELLED = "CANCELLED"
+
+class Plan(BaseModel):
+	"""Movement plan for a vehicle: origin -> (stops)* -> destination.
+
+	- `stops`: where the vehicle will pause.
+	- `routes`: each segment between consecutive stops.
+	"""
+
+	model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+	id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+	vehicle_id: str = Field(..., alias="vehicleId")
+
+	# Prefer camelCase on API; accept legacy snake_case if a stored doc exists.
+	status: PlanStatus = Field(
+		default=PlanStatus.PLANNED,
+		validation_alias=AliasChoices("status", "planStatus", "plan_status"),
+		serialization_alias="status",
+	)
+
+	origin: str = Field(..., description="Điểm bắt đầu")
+	origin_coordinate: Optional[Coordinate] = Field(default=None, alias="originCoordinate")
+
+	destination: str = Field(..., description="Điểm kết thúc")
+	destination_coordinate: Optional[Coordinate] = Field(default=None, alias="destinationCoordinate")
+
+	start_time: Optional[datetime] = Field(default=None, alias="startTime")
+	end_time: Optional[datetime] = Field(default=None, alias="endTime")
+
+	stops: list[Point] = Field(default_factory=list, description="Danh sách điểm dừng", alias="stops")
+	routes: list[Route] = Field(default_factory=list, description="Các đoạn route giữa các point", alias="routes")
+
+	note: Optional[str] = Field(default=None)
+
+	created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
+	updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
+
+	def to_dict(self) -> dict:
+		return self.model_dump(mode="json", by_alias=True, exclude_none=True)

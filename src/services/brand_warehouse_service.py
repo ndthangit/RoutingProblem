@@ -8,10 +8,10 @@ from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
 from src.services.routing_service import RoutingService
-from src.models.warehouse import Warehouse, WarehouseEvent, WarehouseEventType
+from src.models.brand_warehouse import BrandWarehouse, WarehouseEvent, BrandWarehouseEventType
 
-WAREHOUSE_COLLECTION = "warehouse"
-WAREHOUSE_EVENT_COLLECTION = "warehouse_event"
+BRAND_WAREHOUSE_COLLECTION = "brand_warehouse"
+BRAND_WAREHOUSE_EVENT_COLLECTION = "brand_warehouse_event"
 
 
 def _doc_id(warehouse_id: str) -> str:
@@ -22,7 +22,7 @@ def _event_doc_id(warehouse_id: str, event_id: str) -> str:
     return f"warehouse_event::{warehouse_id}::{event_id}"
 
 
-class WarehouseService:
+class BrandWarehouseService:
     def __init__(self, cb: CouchbaseClient):
         self._cb = cb
 
@@ -30,14 +30,14 @@ class WarehouseService:
         await self._cb.upsert_document(
             _event_doc_id(event.warehouse.id, event.event_id),
             event.to_dict(),
-            WAREHOUSE_EVENT_COLLECTION,
+            BRAND_WAREHOUSE_EVENT_COLLECTION,
         )
 
 
-    async def create_warehouse(self, event: WarehouseEvent) -> Warehouse:
-        if event.event_type != WarehouseEventType.WAREHOUSE_REGISTERED:
+    async def create_warehouse(self, event: WarehouseEvent) -> BrandWarehouse:
+        if event.event_type != BrandWarehouseEventType.WAREHOUSE_REGISTERED:
             raise ValueError(
-                f"Invalid eventType: expected {WarehouseEventType.WAREHOUSE_REGISTERED}, got {event.event_type}"
+                f"Invalid eventType: expected {BrandWarehouseEventType.WAREHOUSE_REGISTERED}, got {event.event_type}"
             )
 
         # Frontend may send only address/name and omit id. Generate it here.
@@ -59,22 +59,22 @@ class WarehouseService:
         await self._cb.upsert_document(
             _doc_id(event.warehouse.id),
             event.warehouse.to_dict(),
-            WAREHOUSE_COLLECTION,
+            BRAND_WAREHOUSE_COLLECTION,
         )
         await self._persist_event(event)
-        
+
         return event.warehouse
 
-    async def get_warehouse(self, warehouse_id: str) -> Optional[Warehouse]:
-        doc = await self._cb.get_document(_doc_id(warehouse_id), WAREHOUSE_COLLECTION)
+    async def get_warehouse(self, warehouse_id: str) -> Optional[BrandWarehouse]:
+        doc = await self._cb.get_document(_doc_id(warehouse_id), BRAND_WAREHOUSE_COLLECTION)
         if not doc:
             return None
-        return Warehouse.model_validate(doc)
+        return BrandWarehouse.model_validate(doc)
 
-    async def list_warehouses(self, *, limit: int = 100, offset: int = 0) -> list[Warehouse]:
+    async def list_warehouses(self, *, limit: int = 100, offset: int = 0) -> list[BrandWarehouse]:
         scope_name = self._cb.scope.name if self._cb.scope else "default"
         statement = (
-            f"SELECT w.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{WAREHOUSE_COLLECTION} w "
+            f"SELECT w.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{BRAND_WAREHOUSE_COLLECTION} w "
             "ORDER BY w.updatedAt DESC "
             "LIMIT $limit OFFSET $offset"
         )
@@ -82,7 +82,7 @@ class WarehouseService:
         try:
             result = await self._cb.query(statement, limit=limit, offset=offset)
             rows = list(result)
-            return [Warehouse.model_validate(row) for row in rows]
+            return [BrandWarehouse.model_validate(row) for row in rows]
         except CouchbaseException as e:
             print(f"Couchbase query failed: {e}")
             return []
@@ -95,7 +95,7 @@ class WarehouseService:
         max_lat: float,
         max_lon: float,
         limit: int = 5000,
-    ) -> list[Warehouse]:
+    ) -> list[BrandWarehouse]:
         """List warehouses inside a bounding box.
 
         Designed for map viewport queries (scale-friendly);
@@ -103,7 +103,7 @@ class WarehouseService:
         """
         scope_name = self._cb.scope.name if self._cb.scope else "default"
         statement = (
-            f"SELECT w.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{WAREHOUSE_COLLECTION} w "
+            f"SELECT w.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{BRAND_WAREHOUSE_COLLECTION} w "
             "WHERE w.coordinate IS NOT NULL "
             "AND w.coordinate.lat BETWEEN $min_lat AND $max_lat "
             "AND w.coordinate.lon BETWEEN $min_lon AND $max_lon "
@@ -121,12 +121,12 @@ class WarehouseService:
                 limit=limit,
             )
             rows = list(result)
-            return [Warehouse.model_validate(row) for row in rows]
+            return [BrandWarehouse.model_validate(row) for row in rows]
         except CouchbaseException as e:
             print(f"Couchbase query failed: {e}")
             return []
 
-    async def update_warehouse(self, event: WarehouseEvent) -> Optional[Warehouse]:
+    async def update_warehouse(self, event: WarehouseEvent) -> Optional[BrandWarehouse]:
         existing = await self.get_warehouse(event.warehouse.id)
         if existing is None:
             return None
@@ -137,7 +137,7 @@ class WarehouseService:
         await self._cb.upsert_document(
             _doc_id(event.warehouse.id),
             event.warehouse.to_dict(),
-            WAREHOUSE_COLLECTION,
+            BRAND_WAREHOUSE_COLLECTION,
         )
         await self._persist_event(event)
         return event.warehouse
@@ -152,18 +152,18 @@ class WarehouseService:
         event.warehouse.updated_at = datetime.now(timezone.utc)
 
         try:
-            await self._cb.remove_document(_doc_id(warehouse_id), WAREHOUSE_COLLECTION)
+            await self._cb.remove_document(_doc_id(warehouse_id), BRAND_WAREHOUSE_COLLECTION)
             await self._persist_event(event)
             return True
         except CouchbaseException:
             return False
 
     @staticmethod
-    def validate_event_type_for_operation(operation: str, event_type: WarehouseEventType) -> None:
+    def validate_event_type_for_operation(operation: str, event_type: BrandWarehouseEventType) -> None:
         mapping = {
-            "create": WarehouseEventType.WAREHOUSE_REGISTERED,
-            "update": WarehouseEventType.WAREHOUSE_UPDATED,
-            "delete": WarehouseEventType.WAREHOUSE_DELETED,
+            "create": BrandWarehouseEventType.WAREHOUSE_REGISTERED,
+            "update": BrandWarehouseEventType.WAREHOUSE_UPDATED,
+            "delete": BrandWarehouseEventType.WAREHOUSE_DELETED,
         }
         expected = mapping.get(operation)
         if expected is not None and event_type != expected:

@@ -5,20 +5,20 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from src.config.couchbase import CouchbaseClient
 from src.dependencies import get_current_user
 from src.models.user import User
-from src.models.warehouse import Warehouse, WarehouseEvent
-from src.services.warehouse_service import WarehouseService
+from src.models.brand_warehouse import BrandWarehouse, WarehouseEvent
+from src.services.brand_warehouse_service import BrandWarehouseService
 
 router = APIRouter(prefix="/warehouses", tags=["warehouses"])
 
 
-def _get_service(request: Request) -> WarehouseService:
+def _get_service(request: Request) -> BrandWarehouseService:
     cb: CouchbaseClient = getattr(request.app.state, "couchbase", None)
     if cb is None:
         raise RuntimeError("Couchbase client not available on app.state")
-    return WarehouseService(cb)
+    return BrandWarehouseService(cb)
 
 
-@router.post("", response_model=Warehouse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BrandWarehouse, status_code=status.HTTP_201_CREATED)
 async def create_warehouse(
     payload: WarehouseEvent,
     request: Request,
@@ -36,7 +36,7 @@ async def create_warehouse(
     return await service.create_warehouse(event)
 
 
-@router.get("/geo", response_model=list[Warehouse])
+@router.get("/geo", response_model=list[BrandWarehouse])
 async def list_warehouses_geo(
     request: Request,
     min_lat: float = Query(..., alias="minLat"),
@@ -67,7 +67,7 @@ async def list_warehouses_geo(
     )
 
 
-@router.get("/{warehouse_id}", response_model=Warehouse)
+@router.get("/{warehouse_id}", response_model=BrandWarehouse)
 async def get_warehouse(warehouse_id: str, request: Request):
     service = _get_service(request)
     warehouse = await service.get_warehouse(warehouse_id)
@@ -76,7 +76,7 @@ async def get_warehouse(warehouse_id: str, request: Request):
     return warehouse
 
 
-@router.get("", response_model=list[Warehouse])
+@router.get("", response_model=list[BrandWarehouse])
 async def list_warehouses(request: Request, limit: int = 100, offset: int = 0):
     service = _get_service(request)
     return await service.list_warehouses(limit=limit, offset=offset)
@@ -84,7 +84,7 @@ async def list_warehouses(request: Request, limit: int = 100, offset: int = 0):
 
 
 
-@router.put("/{warehouse_id}", response_model=Warehouse)
+@router.put("/{warehouse_id}", response_model=BrandWarehouse)
 async def update_warehouse(
     warehouse_id: str,
     payload: WarehouseEvent,

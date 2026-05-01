@@ -5,12 +5,12 @@ import { DataGrid } from "@mui/x-data-grid";
 import { MapPin } from "lucide-react";
 
 import { request } from "../api";
-import type { CustomerWarehouse, CustomerWarehouseEvent, WarehouseStatus } from "../types";
+import type { CustomerWarehouse, CustomerWarehouseEvent, BrandWarehouseStatus } from "../types";
 
 import CustomerWarehouseDetailsModal from "./CustomerWarehouse/CustomerWarehouseDetailsModal.tsx";
 
-function StatusBadge({ status }: { status: WarehouseStatus }) {
-  const colorMap: Record<WarehouseStatus, "success" | "default" | "warning" | "error"> = {
+function StatusBadge({ status }: { status: BrandWarehouseStatus }) {
+  const colorMap: Record<BrandWarehouseStatus, "success" | "default" | "warning" | "error"> = {
     ACTIVE: "success",
     INACTIVE: "error",
     FULL: "warning",
@@ -83,7 +83,7 @@ export default function CustomerWarehouses() {
         headerName: "Status",
         width: 130,
         renderCell: (params: GridRenderCellParams<CustomerWarehouse, CustomerWarehouse["status"]>) => (
-          <StatusBadge status={(params.value as WarehouseStatus) ?? "ACTIVE"} />
+          <StatusBadge status={(params.value as BrandWarehouseStatus) ?? "ACTIVE"} />
         ),
       },
       {

@@ -3,20 +3,20 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 from src.models.event import EventBase
-from src.models.routing import Coordinate
-from src.models.warehouse import WarehouseStatus
+
+from src.models.routing import Point
+
+class CustomerWarehouseStatus(str, Enum):
+    ACTIVE = "ACTIVE"              # Đang hoạt động
+    INACTIVE = "INACTIVE"          # Tạm ngưng hoạt động
+    FULL = "FULL"                  # Quá tải/Đầy công suất (Thường dùng cho kho của hãng)
+    MAINTENANCE = "MAINTENANCE"    # Đang bảo trì/sửa chữa
+    CLOSED = "CLOSED"              # Đã đóng cửa vĩnh viễn
 
 
-class CustomerWarehouseBase(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
-    name: str = Field(..., description="Tên kho khách hàng (VD: Kho tổng kho sỉ)")
-
-    # Địa điểm & Liên hệ
-    address: str = Field(...)
-    coordinate: Optional[Coordinate] = Field(default=None)
-
+class CustomerWarehouse(Point):
     # --- THÔNG TIN NGƯỜI ĐẠI DIỆN ---
     representative_name: str = Field(..., description="Tên người đại diện tại kho", alias="representativeName")
     contact_phone: str = Field(..., alias="contactPhone")
@@ -28,16 +28,13 @@ class CustomerWarehouseBase(BaseModel):
     total_pending_orders: int = Field(default=0, ge=0, description="Số lượng đơn hàng cần lấy",
                                       alias="totalPendingOrders")
 
-    status: WarehouseStatus = Field(default=WarehouseStatus.ACTIVE)
+    status: CustomerWarehouseStatus = Field(default=CustomerWarehouseStatus.ACTIVE)
 
     hub_responsible: Optional[str] = Field(
         default=None,
         alias="hubResponsible",
         description="ID của HUB phụ trách lấy hàng tại kho khách hàng (mặc định: HUB gần nhất)",
     )
-
-class CustomerWarehouse(CustomerWarehouseBase):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
 

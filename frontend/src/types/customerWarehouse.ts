@@ -1,4 +1,4 @@
-import type { WarehouseStatus } from "./warehouse";
+import type { BrandWarehouseStatus } from "./brandWarehouse.ts";
 
 export interface Coordinate {
   lon: number;
@@ -18,7 +18,7 @@ export interface CustomerWarehouse {
   pendingWeight?: number;
   totalPendingOrders?: number;
 
-  status?: WarehouseStatus;
+  status?: BrandWarehouseStatus;
 
   hubResponsible?: string | null;
 

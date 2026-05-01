@@ -1,17 +1,17 @@
-export type WarehouseStatus =
+export type BrandWarehouseStatus =
   | "ACTIVE"
   | "INACTIVE"
   | "FULL"
   | "MAINTENANCE"
   | "CLOSED";
 
-export type WarehouseType =
+export type BrandWarehouseType =
   | "HUB"
   | "DEPOT"
   | "CUSTOMER_LOCATION"
   | "RECEIVER_LOCATION";
 
-export type WarehouseEventType =
+export type BrandWarehouseEventType =
   | "WAREHOUSE.REGISTERED"
   | "WAREHOUSE.UPDATED"
   | "WAREHOUSE.STATUS.CHANGED"
@@ -19,7 +19,7 @@ export type WarehouseEventType =
   | "WAREHOUSE.MANAGER.ASSIGNED"
   | "WAREHOUSE.DELETED";
 
-export interface Warehouse {
+export interface BrandWarehouse {
   id?: string;
 
   name: string;
@@ -28,8 +28,8 @@ export interface Warehouse {
   // OSRM-style coordinate (lon/lat). Backend will also keep latitude/longitude for compatibility.
   coordinate?: { lon: number; lat: number } | null;
 
-  warehouseType?: WarehouseType;
-  status?: WarehouseStatus;
+  warehouseType?: BrandWarehouseType;
+  status?: BrandWarehouseStatus;
 
   capacity?: number | null;
   managerId?: string | null;
@@ -39,10 +39,11 @@ export interface Warehouse {
   updatedAt?: Date | string;
 }
 
-export interface WarehouseEvent {
+export interface BrandWarehouseEvent {
   event_id: string;
   timestamp: string;
   ownerEmail?: string;
-  eventType: WarehouseEventType;
-  warehouse: Warehouse;
+  eventType: BrandWarehouseEventType;
+  brand_warehouse: BrandWarehouse;
 }
+

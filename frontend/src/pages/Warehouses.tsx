@@ -7,10 +7,10 @@ import { Plus, Warehouse as WarehouseIcon } from "lucide-react";
 import { request } from "../api";
 import AddWarehouseModal from "./Warehouse/AddWarehouseModal";
 import WarehouseDetailsModal from "./Warehouse/WarehouseDetailsModal";
-import type { Warehouse, WarehouseEvent, WarehouseStatus, WarehouseType } from "../types";
+import type { BrandWarehouse, BrandWarehouseEvent, BrandWarehouseStatus, BrandWarehouseType } from "../types";
 
-function StatusBadge({ status }: { status: WarehouseStatus }) {
-  const colorMap: Record<WarehouseStatus, "success" | "default" | "warning" | "error"> = {
+function StatusBadge({ status }: { status: BrandWarehouseStatus }) {
+  const colorMap: Record<BrandWarehouseStatus, "success" | "default" | "warning" | "error"> = {
     ACTIVE: "success",
     INACTIVE: "error",
     FULL: "warning",
@@ -18,7 +18,7 @@ function StatusBadge({ status }: { status: WarehouseStatus }) {
     CLOSED: "error",
   };
 
-  const labelMap: Record<WarehouseStatus, string> = {
+  const labelMap: Record<BrandWarehouseStatus, string> = {
     ACTIVE: "Active",
     INACTIVE: "Inactive",
     FULL: "Full",
@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status: WarehouseStatus }) {
   );
 }
 
-const typeLabel: Record<WarehouseType, string> = {
+const typeLabel: Record<BrandWarehouseType, string> = {
   HUB: "Hub",
   DEPOT: "Depot",
   CUSTOMER_LOCATION: "Customer",
@@ -46,14 +46,14 @@ const typeLabel: Record<WarehouseType, string> = {
 export default function Warehouses() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detailWarehouse, setDetailWarehouse] = useState<Warehouse | null>(null);
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [detailWarehouse, setDetailWarehouse] = useState<BrandWarehouse | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<BrandWarehouse | null>(null);
+  const [warehouses, setWarehouses] = useState<BrandWarehouse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchWarehouses = async () => {
     try {
-      const res = await request<Warehouse[]>("GET", "/v1/warehouses");
+      const res = await request<BrandWarehouse[]>("GET", "/v1/warehouses");
       if (res?.data) setWarehouses(res.data);
       else setWarehouses([]);
     } catch (error) {
@@ -82,14 +82,14 @@ export default function Warehouses() {
         field: "warehouseType",
         headerName: "Type",
         width: 140,
-        valueGetter: (value) => (value ? typeLabel[value as WarehouseType] ?? value : "N/A"),
+        valueGetter: (value) => (value ? typeLabel[value as BrandWarehouseType] ?? value : "N/A"),
       },
       {
         field: "status",
         headerName: "Status",
         width: 160,
-        renderCell: (params: GridRenderCellParams<Warehouse, Warehouse["status"]>) => (
-          <StatusBadge status={(params.value as WarehouseStatus) ?? "ACTIVE"} />
+        renderCell: (params: GridRenderCellParams<BrandWarehouse, BrandWarehouse["status"]>) => (
+          <StatusBadge status={(params.value as BrandWarehouseStatus) ?? "ACTIVE"} />
         ),
       },
       {
@@ -115,7 +115,7 @@ export default function Warehouses() {
         headerName: "Actions",
         width: 220,
         sortable: false,
-        renderCell: (params: GridRenderCellParams<Warehouse>) => {
+        renderCell: (params: GridRenderCellParams<BrandWarehouse>) => {
           const row = params.row;
           return (
             <div className="flex gap-2 items-center h-full">
@@ -147,15 +147,15 @@ export default function Warehouses() {
 
                   try {
                     const nowIso = new Date().toISOString();
-                    const payload: WarehouseEvent = {
+                    const payload: BrandWarehouseEvent = {
                       event_id: window.crypto?.randomUUID?.() ?? "",
                       timestamp: nowIso,
                       ownerEmail: "unknown",
                       eventType: "WAREHOUSE.DELETED",
-                      warehouse: row,
+                      brand_warehouse: row,
                     };
 
-                    await request<WarehouseEvent>("DELETE", `/v1/warehouses/${row.id}`, undefined, undefined, payload);
+                    await request<BrandWarehouseEvent>("DELETE", `/v1/warehouses/${row.id}`, undefined, undefined, payload);
                     handleSuccess();
                   } catch (err) {
                     console.error("Delete warehouse failed:", err);

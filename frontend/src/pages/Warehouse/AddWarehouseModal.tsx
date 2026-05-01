@@ -22,13 +22,13 @@ import Grid from "@mui/material/Grid";
 import { useKeycloak } from "@react-keycloak/web";
 
 import { request } from "../../api";
-import type { Warehouse, WarehouseEvent, WarehouseStatus, WarehouseType } from "../../types";
+import type { BrandWarehouse, BrandWarehouseEvent, BrandWarehouseStatus, BrandWarehouseType } from "../../types";
 
 interface AddWarehouseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialWarehouse?: Warehouse | null;
+  initialWarehouse?: BrandWarehouse | null;
 }
 
 function compactObject<T extends object>(obj: T): Partial<T> {
@@ -46,8 +46,8 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
   type FormData = {
     name: string;
     address: string;
-    warehouseType: WarehouseType;
-    status: WarehouseStatus;
+    warehouseType: BrandWarehouseType;
+    status: BrandWarehouseStatus;
     capacity: number | null;
     managerId: string | null;
     contactPhone: string | null;
@@ -91,12 +91,12 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
     });
   };
 
-  const hydrateFromInitial = (w: Warehouse) => {
+  const hydrateFromInitial = (w: BrandWarehouse) => {
     setFormData({
       name: w.name ?? "",
       address: w.address ?? "",
-      warehouseType: (w.warehouseType ?? "DEPOT") as WarehouseType,
-      status: (w.status ?? "ACTIVE") as WarehouseStatus,
+      warehouseType: (w.warehouseType ?? "DEPOT") as BrandWarehouseType,
+      status: (w.status ?? "ACTIVE") as BrandWarehouseStatus,
       capacity: (w.capacity ?? null) as number | null,
       managerId: (w.managerId ?? null) as string | null,
       contactPhone: (w.contactPhone ?? null) as string | null,
@@ -130,7 +130,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
       }
 
       const nowIso = new Date().toISOString();
-      const warehouse: Partial<Warehouse> = compactObject({
+      const warehouse: Partial<BrandWarehouse> = compactObject({
         name: formData.name,
         address: formData.address,
         // coordinate is intentionally omitted; backend will geocode from address
@@ -139,9 +139,9 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
         capacity: formData.capacity,
         managerId: formData.managerId,
         contactPhone: formData.contactPhone,
-      } as Warehouse);
+      } as BrandWarehouse);
 
-      const payload: WarehouseEvent = {
+      const payload: BrandWarehouseEvent = {
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
         // backend overrides ownerEmail based on auth token, but keep for compatibility
@@ -149,18 +149,18 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
           ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
           "unknown",
         eventType: initialWarehouse ? "WAREHOUSE.UPDATED" : "WAREHOUSE.REGISTERED",
-        warehouse: {
-          ...(warehouse as Warehouse),
+        brand_warehouse: {
+          ...(warehouse as BrandWarehouse),
           id: initialWarehouse?.id,
-        } as Warehouse,
+        } as BrandWarehouse,
       };
 
       console.log("Submitting warehouse:", payload);
 
       if (initialWarehouse?.id) {
-        await request<WarehouseEvent>("PUT", `/v1/warehouses/${initialWarehouse.id}`, undefined, undefined, payload);
+        await request<BrandWarehouseEvent>("PUT", `/v1/warehouses/${initialWarehouse.id}`, undefined, undefined, payload);
       } else {
-        await request<WarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
+        await request<BrandWarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
       }
 
       onSuccess();

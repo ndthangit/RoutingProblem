@@ -61,6 +61,20 @@ class EtaUpdate(BaseModel):
     duration_s: float = Field(..., alias="durationS")
     geometry: Optional[dict] = None
 
+
+class Point(BaseModel):
+    """Shared base for models that represent a physical location."""
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    id : str = Field(default_factory=lambda: str(uuid.uuid4()), description="ID điểm")
+
+    name: str = Field(default=None, description="Tên điểm")
+    address: str = Field(..., description="Địa chỉ")
+
+    # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
+    coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
+
 class RouteStatus(str, Enum):
     PLANNED = "PLANNED"           # Đã lên lịch nhưng chưa chạy
     IN_PROGRESS = "IN_PROGRESS"   # Đang di chuyển
@@ -90,14 +104,11 @@ class Route(BaseModel):
     # Using a non-standard alias breaks parsing and can lead to 422/404 confusion.
     vehicle_id: str = Field(..., alias="vehicleId")
     # Điểm đầu và điểm cuối cố định
-    origin: str = Field(..., description="Điểm bắt đầu h")
-    origin_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ điểm bắt đầu (lon/lat)")
-    destination: str = Field(..., description="Điểm điểm kết kthúc")
-    destination_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ điểm kết thúc (lon/lat)")
+    origin: Point = Field(..., description="Điểm bắt đầu")
+    destination: Point = Field(..., description="Điểm kết kthúc")
+
     start_time: Optional[datetime] = Field(default=None, alias="startTime")
     end_time: Optional[datetime] = Field(default=None, alias="endTime")
-
-
     # New: route type (camelCase on API)
     route_type: RouteType = Field(default=RouteType.AD_HOC, alias="routeType")
 

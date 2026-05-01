@@ -1,6 +1,6 @@
 export * from './vehicle';
 export * from './driver';
-export * from './warehouse';
+export * from './brandWarehouse.ts';
 export * from './order';
 export * from './route';
 export * from './schedule';

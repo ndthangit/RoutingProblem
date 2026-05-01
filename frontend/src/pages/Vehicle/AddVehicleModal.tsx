@@ -20,7 +20,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import Grid from '@mui/material/Grid';
 import { request } from '../../api';
-import type { Vehicle, VehicleEvent, VehicleStatus, VehicleType, Warehouse } from '../../types';
+import type { Vehicle, VehicleEvent, VehicleStatus, VehicleType, BrandWarehouse } from '../../types';
 import { useKeycloak } from '@react-keycloak/web';
 
 interface AddVehicleModalProps {
@@ -35,7 +35,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
   const [error, setError] = useState<string | null>(null);
   const { keycloak } = useKeycloak();
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouses, setWarehouses] = useState<BrandWarehouse[]>([]);
 
 
   const [formData, setFormData] = useState<Partial<Vehicle>>({
@@ -85,7 +85,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
 
   const fetchWarehouses = async () => {
     try {
-      const res = await request<Warehouse[]>('GET', '/v1/warehouses');
+      const res = await request<BrandWarehouse[]>('GET', '/v1/warehouses');
       setWarehouses(res?.data ?? []);
     } catch (e) {
       console.error('Failed to fetch warehouses:', e);
