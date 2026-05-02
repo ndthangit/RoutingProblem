@@ -5,3 +5,4 @@ export * from './order';
 export * from './route';
 export * from './schedule';
 export type { CustomerWarehouse, CustomerWarehouseEvent, CustomerWarehouseEventType, Coordinate } from './customerWarehouse';
+export type { PickupPlanRequest, Plan } from './plan';

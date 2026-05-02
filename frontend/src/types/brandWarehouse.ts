@@ -7,9 +7,7 @@ export type BrandWarehouseStatus =
 
 export type BrandWarehouseType =
   | "HUB"
-  | "DEPOT"
-  | "CUSTOMER_LOCATION"
-  | "RECEIVER_LOCATION";
+  | "DEPOT";
 
 export type BrandWarehouseEventType =
   | "WAREHOUSE.REGISTERED"
@@ -44,6 +42,6 @@ export interface BrandWarehouseEvent {
   timestamp: string;
   ownerEmail?: string;
   eventType: BrandWarehouseEventType;
-  brand_warehouse: BrandWarehouse;
+  warehouse: BrandWarehouse;
 }
 

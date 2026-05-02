@@ -8,7 +8,7 @@ from src.models.user import User
 from src.models.brand_warehouse import BrandWarehouse, WarehouseEvent
 from src.services.brand_warehouse_service import BrandWarehouseService
 
-router = APIRouter(prefix="/warehouses", tags=["warehouses"])
+router = APIRouter(prefix="/brand-warehouses", tags=["brand-warehouses"])
 
 
 def _get_service(request: Request) -> BrandWarehouseService:

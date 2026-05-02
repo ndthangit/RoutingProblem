@@ -11,6 +11,7 @@ from couchbase.exceptions import CouchbaseException
 from src.config.couchbase import CouchbaseClient
 from src.models.routing import (
 	Route,
+	Point,
 	RouteEvent,
 	RouteEventType,
 	RouteType,
@@ -101,24 +102,25 @@ class AutomationRoutingService:
 				continue
 
 			try:
-				vehicle_id = (
-					schedule.schedule_config.get("vehicleId")
-					or schedule.schedule_config.get("vehicle_id")
-					or schedule.schedule_config.get("vehicle")
-				)
+				cfg = schedule.schedule_config or {}
+				vehicle_id = cfg.get("vehicleId") or cfg.get("vehicle_id") or cfg.get("vehicle")
 				if not vehicle_id:
 					logger.warning(
 						"Weekly schedule %s missing vehicleId in scheduleConfig; skipping. keys=%s",
 						schedule.id,
-						list((schedule.schedule_config or {}).keys()),
+						list(cfg.keys()),
 					)
 					continue
 
+				# New Route model expects origin/destination as Point objects.
+				origin_point = Point(name="Origin", address=schedule.origin)
+				destination_point = Point(name="Destination", address=schedule.destination)
+
 				new_route = Route(
 					id=str(uuid4()),
-					vehicleId=vehicle_id,
-					origin=schedule.origin,
-					destination=schedule.destination,
+					vehicleId=str(vehicle_id),
+					origin=origin_point,
+					destination=destination_point,
 					startTime=now,
 					routeType=RouteType.ONCE_PER_WEEK,
 				)

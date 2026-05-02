@@ -22,6 +22,8 @@ from src.api.orders import router as orders_router
 from src.api.routing import router as routing_router
 from src.api.routes import router as routes_router
 from src.api.schedules import router as schedules_router
+from src.api.plans import router as plans_router
+from src.api.pickup_plans import router as pickup_plans_router
 from src.services.ws_hub import WebSocketHub
 from src.models.routing import EtaUpdate, RouteRequest, Coordinate
 from src.services.routing_service import RoutingService
@@ -134,8 +136,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-
-
 )
 
 @app.get("/health")
@@ -190,6 +190,8 @@ app.include_router(orders_router, prefix=settings.API_V1_PREFIX)
 app.include_router(routing_router, prefix=settings.API_V1_PREFIX)
 app.include_router(routes_router, prefix=settings.API_V1_PREFIX)
 app.include_router(schedules_router, prefix=settings.API_V1_PREFIX)
+app.include_router(plans_router, prefix=settings.API_V1_PREFIX)
+app.include_router(pickup_plans_router, prefix=settings.API_V1_PREFIX)
 
 
 # ---------------------------

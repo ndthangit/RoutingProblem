@@ -36,7 +36,7 @@ export default function CustomerWarehouses() {
 
   const fetchItems = async () => {
     try {
-      const res = await request<CustomerWarehouse[]>("GET", "/v1/customer-houses");
+      const res = await request<CustomerWarehouse[]>("GET", "/v1/customer-warehouses");
       setItems(res?.data ?? []);
     } catch (error) {
       console.error("Error fetching customer warehouses:", error);
@@ -127,7 +127,7 @@ export default function CustomerWarehouses() {
                       timestamp: nowIso,
                       ownerEmail: "unknown",
                       eventType: "CUSTOMER_LOCATION.DELETED",
-                      customerHouse: row,
+                      customerWarehouse: row,
                     };
 
                     await request<CustomerWarehouseEvent>(

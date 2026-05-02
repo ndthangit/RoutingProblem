@@ -9,52 +9,72 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 
 from src.models import Point
-from src.models.event import EventBase
+from src.models.event import EventBase, EventType
 from src.models.routing import Coordinate, Route
 
 
 class PlanStatus(str, Enum):
-	PLANNED = "PLANNED"
-	IN_PROGRESS = "IN_PROGRESS"
-	COMPLETED = "COMPLETED"
-	CANCELLED = "CANCELLED"
+    PLANNED = "PLANNED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 class Plan(BaseModel):
-	"""Movement plan for a vehicle: origin -> (stops)* -> destination.
+    """Movement plan for a vehicle: origin -> (stops)* -> destination.
 
-	- `stops`: where the vehicle will pause.
-	- `routes`: each segment between consecutive stops.
-	"""
+    - `stops`: where the vehicle will pause.
+    - `routes`: each segment between consecutive stops.
+    """
 
-	model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
 
-	id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
-	vehicle_id: str = Field(..., alias="vehicleId")
+    vehicle_id: str = Field(..., alias="vehicleId")
 
-	# Prefer camelCase on API; accept legacy snake_case if a stored doc exists.
-	status: PlanStatus = Field(
-		default=PlanStatus.PLANNED,
-		validation_alias=AliasChoices("status", "planStatus", "plan_status"),
-		serialization_alias="status",
-	)
+    # Prefer camelCase on API; accept legacy snake_case if a stored doc exists.
+    status: PlanStatus = Field(
+        default=PlanStatus.PLANNED,
+        validation_alias=AliasChoices("status", "planStatus", "plan_status"),
+        serialization_alias="status",
+    )
 
-	origin: str = Field(..., description="Điểm bắt đầu")
-	origin_coordinate: Optional[Coordinate] = Field(default=None, alias="originCoordinate")
+    origin: str = Field(..., description="Điểm bắt đầu")
+    origin_coordinate: Optional[Coordinate] = Field(default=None, alias="originCoordinate")
 
-	destination: str = Field(..., description="Điểm kết thúc")
-	destination_coordinate: Optional[Coordinate] = Field(default=None, alias="destinationCoordinate")
+    destination: str = Field(..., description="Điểm kết thúc")
+    destination_coordinate: Optional[Coordinate] = Field(default=None, alias="destinationCoordinate")
 
-	start_time: Optional[datetime] = Field(default=None, alias="startTime")
-	end_time: Optional[datetime] = Field(default=None, alias="endTime")
+    start_time: Optional[datetime] = Field(default=None, alias="startTime")
+    end_time: Optional[datetime] = Field(default=None, alias="endTime")
 
-	stops: list[Point] = Field(default_factory=list, description="Danh sách điểm dừng", alias="stops")
-	routes: list[Route] = Field(default_factory=list, description="Các đoạn route giữa các point", alias="routes")
+    stops: list[Point] = Field(default_factory=list, description="Danh sách điểm dừng", alias="stops")
+    routes: list[Route] = Field(default_factory=list, description="Các đoạn route giữa các point", alias="routes")
 
-	note: Optional[str] = Field(default=None)
+    note: Optional[str] = Field(default=None)
 
-	created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
-	updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
 
-	def to_dict(self) -> dict:
-		return self.model_dump(mode="json", by_alias=True, exclude_none=True)
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json", by_alias=True, exclude_none=True)
+
+
+# ============== EVENT TYPES ==============
+class PlanEventType(EventType):
+    """Các loại event cho pln"""
+    PLAN_CREATED = "PLAN.CREATED"
+    PLAN_UPDATED = "PLAN.UPDATED"
+    PLAN_STATUS_CHANGED = "PLAN.STATUS.CHANGED"
+    PLAN_DELETED = "PLAN.DELETED"
+
+
+# ============== EVENT ==============
+class PlanEvent(EventBase):
+    """Base class cho tất cả vehicle events"""
+    event_type: PlanEventType = Field(..., alias="eventType")
+    plan: Plan
+
+
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json", by_alias=True, exclude_none=True)

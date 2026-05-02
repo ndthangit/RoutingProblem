@@ -39,8 +39,6 @@ function StatusBadge({ status }: { status: BrandWarehouseStatus }) {
 const typeLabel: Record<BrandWarehouseType, string> = {
   HUB: "Hub",
   DEPOT: "Depot",
-  CUSTOMER_LOCATION: "Customer",
-  RECEIVER_LOCATION: "Receiver",
 };
 
 export default function Warehouses() {
@@ -152,7 +150,7 @@ export default function Warehouses() {
                       timestamp: nowIso,
                       ownerEmail: "unknown",
                       eventType: "WAREHOUSE.DELETED",
-                      brand_warehouse: row,
+                      warehouse: row,
                     };
 
                     await request<BrandWarehouseEvent>("DELETE", `/v1/warehouses/${row.id}`, undefined, undefined, payload);

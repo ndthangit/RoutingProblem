@@ -43,11 +43,12 @@ class RouteService:
             # EventBase.timestamp is timezone-aware; fall back to now if needed
             event.route.start_time = getattr(event, "timestamp", None) or datetime.now(timezone.utc)
 
-        # Enrich coordinates from addresses if not provided by client
-        if event.route.origin_coordinate is None:
-            event.route.origin_coordinate = await RoutingService().geocode_address(event.route.origin)
-        if event.route.destination_coordinate is None:
-            event.route.destination_coordinate = await RoutingService().geocode_address(event.route.destination)
+        # Enrich coordinates from addresses if not provided by client.
+        # Route.origin / Route.destination are Point models (with `.address` + optional `.coordinate`).
+        if getattr(event.route.origin, "coordinate", None) is None:
+            event.route.origin.coordinate = await RoutingService().geocode_address(event.route.origin.address)
+        if getattr(event.route.destination, "coordinate", None) is None:
+            event.route.destination.coordinate = await RoutingService().geocode_address(event.route.destination.address)
 
         await self._cb.upsert_document(
             _doc_id(event.route.id),
@@ -91,10 +92,10 @@ class RouteService:
             event.route.start_time = existing.start_time
 
         # If coordinates are missing, try to enrich from addresses
-        if event.route.origin_coordinate is None:
-            event.route.origin_coordinate = await RoutingService().geocode_address(event.route.origin)
-        if event.route.destination_coordinate is None:
-            event.route.destination_coordinate = await RoutingService().geocode_address(event.route.destination)
+        if getattr(event.route.origin, "coordinate", None) is None:
+            event.route.origin.coordinate = await RoutingService().geocode_address(event.route.origin.address)
+        if getattr(event.route.destination, "coordinate", None) is None:
+            event.route.destination.coordinate = await RoutingService().geocode_address(event.route.destination.address)
 
         await self._cb.upsert_document(
             _doc_id(route_id),

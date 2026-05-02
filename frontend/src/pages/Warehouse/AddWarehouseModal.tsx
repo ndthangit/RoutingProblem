@@ -149,7 +149,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
           ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
           "unknown",
         eventType: initialWarehouse ? "WAREHOUSE.UPDATED" : "WAREHOUSE.REGISTERED",
-        brand_warehouse: {
+        warehouse: {
           ...(warehouse as BrandWarehouse),
           id: initialWarehouse?.id,
         } as BrandWarehouse,
@@ -252,7 +252,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
                 >
                   <MenuItem value="HUB">HUB</MenuItem>
                   <MenuItem value="DEPOT">DEPOT</MenuItem>
-                  <MenuItem value="CUSTOMER_LOCATION">CUSTOMER_LOCATION</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
