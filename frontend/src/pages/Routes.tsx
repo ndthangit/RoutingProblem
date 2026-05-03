@@ -8,10 +8,12 @@ import { request } from "../api";
 import type { Route } from "../types";
 import AddRouteModal from "./Route/AddRouteModal";
 import AddPickupPlanModal from "./Route/AddPickupPlanModal";
+import AddMovingPlanModal from "./Route/AddMovingPlanModal";
 
 export default function RoutesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPickupPlanOpen, setIsPickupPlanOpen] = useState(false);
+  const [isMovingPlanOpen, setIsMovingPlanOpen] = useState(false);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -79,6 +81,14 @@ export default function RoutesPage() {
             <Plus className="w-4 h-4" />
             Pickup Plan
           </button>
+
+          <button
+            onClick={() => setIsMovingPlanOpen(true)}
+            className="ml-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors flex items-center gap-2 text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Moving Plan
+          </button>
         </div>
       </div>
 
@@ -137,6 +147,15 @@ export default function RoutesPage() {
         onClose={() => setIsPickupPlanOpen(false)}
         onSuccess={() => {
           // Currently we don't render plans on this page; keep UX consistent by refreshing routes.
+          fetchRoutes();
+        }}
+      />
+
+      <AddMovingPlanModal
+        isOpen={isMovingPlanOpen}
+        onClose={() => setIsMovingPlanOpen(false)}
+        onSuccess={() => {
+          // Moving plan creation also creates routes; refresh.
           fetchRoutes();
         }}
       />

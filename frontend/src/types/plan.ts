@@ -4,6 +4,13 @@ export interface PickupPlanRequest {
   customer_warehouse_ids: string[];
 }
 
+export interface MovingPlanRequest {
+  depot_id: string;
+  vehicle_ids: string[];
+  brand_warehouse_ids: string[];
+  note?: string | null;
+}
+
 // Minimal shape for response from POST /v1/pickup-plans (backend returns list[Plan]).
 // Extend later if you display plans in UI.
 export interface Plan {

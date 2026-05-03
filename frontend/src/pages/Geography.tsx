@@ -93,7 +93,7 @@ export default function Geography() {
 
         // Preferred: bbox endpoint (if available)
         const bbox = boundsToParams(map.getBounds());
-        const url = `v1/warehouses/geo?minLat=${bbox.minLat}&minLon=${bbox.minLon}&maxLat=${bbox.maxLat}&maxLon=${bbox.maxLon}&limit=${limit}`;
+        const url = `/v1/brand-warehouses/geo?minLat=${bbox.minLat}&minLon=${bbox.minLon}&maxLat=${bbox.maxLat}&maxLon=${bbox.maxLon}&limit=${limit}`;
 
         try {
           const res = await request<BrandWarehouse[]>("GET", url);
