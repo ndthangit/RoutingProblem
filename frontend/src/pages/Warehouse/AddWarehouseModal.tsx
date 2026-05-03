@@ -158,9 +158,9 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess, initialW
       console.log("Submitting warehouse:", payload);
 
       if (initialWarehouse?.id) {
-        await request<BrandWarehouseEvent>("PUT", `/v1/warehouses/${initialWarehouse.id}`, undefined, undefined, payload);
+        await request<BrandWarehouseEvent>("PUT", `/v1/brand-warehouses/${initialWarehouse.id}`, undefined, undefined, payload);
       } else {
-        await request<BrandWarehouseEvent>("POST", "/v1/warehouses", undefined, undefined, payload);
+        await request<BrandWarehouseEvent>("POST", "/v1/brand-warehouses", undefined, undefined, payload);
       }
 
       onSuccess();

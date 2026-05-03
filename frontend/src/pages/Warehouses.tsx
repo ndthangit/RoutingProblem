@@ -51,7 +51,7 @@ export default function Warehouses() {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await request<BrandWarehouse[]>("GET", "/v1/warehouses");
+      const res = await request<BrandWarehouse[]>("GET", "/v1/brand-warehouses");
       if (res?.data) setWarehouses(res.data);
       else setWarehouses([]);
     } catch (error) {

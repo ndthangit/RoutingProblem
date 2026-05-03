@@ -20,10 +20,10 @@ class PlanStatus(str, Enum):
     CANCELLED = "CANCELLED"
 
 class Plan(BaseModel):
-    """Movement plan for a vehicle: origin -> (stops)* -> destination.
+    """Movement plan for a vehicle: origin -> (points)* -> destination.
 
-    - `stops`: where the vehicle will pause.
-    - `routes`: each segment between consecutive stops.
+    - `points`: where the vehicle will pause.
+    - `routes`: each segment between consecutive points.
     """
 
     model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
@@ -48,7 +48,7 @@ class Plan(BaseModel):
     start_time: Optional[datetime] = Field(default=None, alias="startTime")
     end_time: Optional[datetime] = Field(default=None, alias="endTime")
 
-    stops: list[Point] = Field(default_factory=list, description="Danh sách điểm dừng", alias="stops")
+    points: list[Point] = Field(default_factory=list, description="Danh sách điểm dừng", alias="points")
     routes: list[Route] = Field(default_factory=list, description="Các đoạn route giữa các point", alias="routes")
 
     note: Optional[str] = Field(default=None)
