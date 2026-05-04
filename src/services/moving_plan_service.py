@@ -145,6 +145,7 @@ class MovingPlanService:
                 await self._route_service.create_route(route_event)
 
             plans.append(created_plan)
-
+        #     plans.append(plan)
+        # print(plans)
         return plans
 

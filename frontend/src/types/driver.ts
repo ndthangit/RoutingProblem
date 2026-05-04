@@ -4,6 +4,8 @@ export type DriverStatus =
   | "SUSPENDED"
   | "ON_LEAVE";
 
+export type DriverType = "TRUCK_DRIVER" | "SEASONAL";
+
 export type LicenseClass =
   | "A1"
   | "A2"
@@ -27,6 +29,7 @@ export interface Driver {
   employeeCode?: string;
   hireDate?: string;
   status?: DriverStatus;
+  driverType?: DriverType;
 
   // License
   licenseNumber?: string;

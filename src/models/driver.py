@@ -5,11 +5,15 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from src.models.event import EventBase, EventType
 from src.models.user import User
 
+class DriverType(str, Enum):
+    """Loại hình tài xế"""
+    TRUCK_DRIVER = "TRUCK_DRIVER"   # Tài xế xe tải nội bộ (Full-time)
+    SEASONAL = "SEASONAL"           # Shipper thời vụ / Freelancer
 
 class DriverStatus(str, Enum):
     """Trạng thái của tài xế"""
@@ -36,12 +40,12 @@ class DriverLicenseClass(str, Enum):
 
 class DriverBase(BaseModel):
     """Base model cho Driver với các thông tin đặc thù"""
-
     # Thông tin tuyển dụng
     employee_code: str = Field(..., min_length=1, max_length=50, description="Mã nhân viên", alias="employeeCode")
     hire_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Ngày tuyển dụng",
                                 alias="hireDate")
     status: DriverStatus = Field(default=DriverStatus.ACTIVE, description="Trạng thái tài xế")
+    driver_type: DriverType = Field(default=DriverType.TRUCK_DRIVER, description="Loại hình tài xế", alias="driverType")
 
     # Thông tin bằng lái
     license_number: str = Field(..., min_length=8, max_length=20, description="Số bằng lái", alias="licenseNumber")
@@ -161,6 +165,7 @@ class DriverEventType(EventType):
 # ============== EVENT ==============
 class DriverEvent(EventBase):
     """Base class cho tất cả driver events"""
+    model_config = ConfigDict(populate_by_name=True)
     event_type: DriverEventType = Field(..., alias="eventType")
     driver: Driver
 

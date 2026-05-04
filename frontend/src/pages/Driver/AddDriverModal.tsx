@@ -28,7 +28,7 @@ import Grid from "@mui/material/Grid";
 
 import { useKeycloak } from "@react-keycloak/web";
 import { request } from "../../api";
-import type { Driver, DriverHiredEvent, DriverStatus, LicenseClass } from "../../types";
+import type { Driver, DriverHiredEvent, DriverStatus, DriverType, LicenseClass } from "../../types";
 
 interface AddDriverModalProps {
   isOpen: boolean;
@@ -68,10 +68,19 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
     []
   );
 
+  const driverTypes: { value: DriverType; label: string }[] = useMemo(
+    () => [
+      { value: "TRUCK_DRIVER", label: "Tài xế nội bộ (Full-time)" },
+      { value: "SEASONAL", label: "Shipper thời vụ / Freelancer" },
+    ],
+    []
+  );
+
   const [formData, setFormData] = useState<Partial<Driver>>({
     employeeCode: "",
     status: "ACTIVE" as DriverStatus,
     hireDate: "",
+    driverType: "TRUCK_DRIVER" as DriverType,
 
     firstName: "",
     lastName: "",
@@ -111,6 +120,7 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
       employeeCode: "",
       status: "ACTIVE" as DriverStatus,
       hireDate: "",
+      driverType: "TRUCK_DRIVER" as DriverType,
 
       firstName: "",
       lastName: "",
@@ -358,6 +368,24 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
                   <MenuItem value="INACTIVE">Inactive</MenuItem>
                   <MenuItem value="SUSPENDED">Suspended</MenuItem>
                   <MenuItem value="ON_LEAVE">On leave</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Driver type</InputLabel>
+                <Select
+                  name="driverType"
+                  value={(formData.driverType as DriverType) ?? "TRUCK_DRIVER"}
+                  onChange={handleChange}
+                  label="Driver type"
+                >
+                  {driverTypes.map((t) => (
+                    <MenuItem key={t.value} value={t.value}>
+                      {t.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>

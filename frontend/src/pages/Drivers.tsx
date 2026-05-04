@@ -8,7 +8,31 @@ import { request } from "../api";
 import AddDriverModal from "./Driver/AddDriverModal";
 import AssignVehicleModal from "./Driver/AssignVehicleModal";
 import DriverDetailsModal from "./Driver/DriverDetailsModal";
-import type { Driver, DriverHiredEvent, DriverStatus, Vehicle, LicenseClass } from "../types";
+import type { Driver, DriverHiredEvent, DriverStatus, DriverType, Vehicle, LicenseClass } from "../types";
+
+function DriverTypeBadge({ driverType }: { driverType?: DriverType }) {
+  const labelMap: Record<DriverType, string> = {
+    TRUCK_DRIVER: "Internal",
+    SEASONAL: "Seasonal",
+  };
+
+  if (!driverType) return <span className="text-slate-500">N/A</span>;
+
+  const label = labelMap[driverType] ?? driverType;
+  const isInternal = driverType === "TRUCK_DRIVER";
+
+  return (
+    <span
+      className={`px-2 py-0.5 text-xs font-semibold rounded border ${
+        isInternal
+          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+          : "bg-amber-100 text-amber-800 border-amber-200"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
 
 function StatusBadge({ status }: { status: DriverStatus }) {
   const colorMap: Record<DriverStatus, "success" | "default" | "warning" | "error"> = {
@@ -179,6 +203,15 @@ export default function Drivers() {
         width: 100,
         renderCell: (params: GridRenderCellParams<Driver, Driver["status"]>) => (
           <StatusBadge status={(params.value as DriverStatus) ?? "ACTIVE"} />
+        ),
+      },
+      {
+        field: "driverType",
+        headerName: "Type",
+        width: 110,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Driver, Driver["driverType"]>) => (
+          <DriverTypeBadge driverType={params.value as DriverType | undefined} />
         ),
       },
       {

@@ -96,6 +96,16 @@ export default function DriverDetailsModal({ isOpen, onClose, driver, vehicleByI
               Employment & Performance
             </Typography>
             <FieldRow label="Status" value={driver.status} />
+            <FieldRow
+              label="Driver type"
+              value={
+                driver.driverType === "TRUCK_DRIVER"
+                  ? "Tài xế nội bộ (Full-time)"
+                  : driver.driverType === "SEASONAL"
+                    ? "Shipper thời vụ / Freelancer"
+                    : driver.driverType
+              }
+            />
             <FieldRow label="Hire date" value={formatDate(driver.hireDate)} />
             <FieldRow label="Years of experience" value={driver.yearsOfExperience} />
             <FieldRow label="Total trips" value={driver.totalTrips} />
