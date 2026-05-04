@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field, ConfigDict
 
 # Giả định import từ các module của bạn
 from src.models.event import EventBase
-from src.models.routing import Coordinate
+from src.models.routing import Coordinate, Point
+
 
 class OrderEventType(str, Enum):
     ORDER_CREATED = "ORDER.CREATED"
@@ -51,13 +52,9 @@ class Order(BaseModel):
     receiver_name: str = Field(..., description="Tên người nhận", alias="receiverName")
 
     # Điểm đầu và điểm cuối cố định
-    origin: str = Field(..., description="Điểm lấy hàng ban đầu")
+    origin: Point = Field(..., description="Điểm lấy hàng ban đầu")
+    destination: Point = Field(..., description="Điểm giao hàng đích")
 
-    origin_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ lấy hàng (lon/lat)")
-    destination: str = Field(..., description="Điểm giao hàng đích")
-
-    destination_coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ nhận hàng (lon/lat)")
-    
     package: PackageDetails = Field(..., description="Thông tin kiện hàng")
     
     # Thông tin tài chính thỏa thuận ban đầu

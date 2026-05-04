@@ -18,7 +18,7 @@ import PackageIcon from "@mui/icons-material/LocalShipping";
 import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
-import type { Order, OrderEvent, PackageDetails } from "../../types";
+import type { Order, OrderEvent, PackageDetails, Point } from "../../types";
 import type { CustomerWarehouse } from "../../types";
 
 interface AddOrderModalProps {
@@ -100,7 +100,7 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
     // Load customer warehouses for Origin dropdown when creating a new order
     (async () => {
       try {
-        const resp = await request<unknown>("GET", "/v1/customer-houses");
+        const resp = await request<unknown>("GET", "/v1/customer-warehouses");
 
         // request() in this codebase may return the payload directly OR wrap it in { data: ... }
         const maybeList =
@@ -125,8 +125,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
         senderName: initialOrder.senderName ?? "",
         receiverName: initialOrder.receiverName ?? "",
         note: initialOrder.note ?? "",
-        origin: initialOrder.origin ?? "",
-        destination: initialOrder.destination ?? "",
+        origin: initialOrder.origin?.address ?? "",
+        destination: initialOrder.destination?.address ?? "",
         description: initialOrder.package?.description ?? "",
         weightKg: String(initialOrder.package?.weightKg ?? "1"),
         declaredValue: String(initialOrder.package?.declaredValue ?? "0"),
@@ -180,10 +180,30 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
         declaredValue: toNumberOrUndefined(formData.declaredValue),
       };
 
+      const originPoint: Point = initialOrder
+        ? {
+            ...(initialOrder.origin ?? ({ address: formData.origin } as Point)),
+            address: formData.origin,
+          }
+        : {
+            // When creating, user selects a customer warehouse id; backend resolves and denormalizes.
+            id: formData.origin,
+            address: "",
+          };
+
+      const destinationPoint: Point = initialOrder
+        ? {
+            ...(initialOrder.destination ?? ({ address: formData.destination } as Point)),
+            address: formData.destination,
+          }
+        : {
+            address: formData.destination,
+          };
+
       const order: Order = {
         id: initialOrder?.id ?? (window.crypto?.randomUUID?.() ?? ""),
-        origin: formData.origin,
-        destination: formData.destination,
+        origin: originPoint,
+        destination: destinationPoint,
         senderName: formData.senderName,
         receiverName: formData.receiverName,
         package: pkg,

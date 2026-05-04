@@ -82,21 +82,21 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Trip
             </Typography>
-            <FieldRow label="Origin" value={order.origin} />
-            <FieldRow label="Destination" value={order.destination} />
+            <FieldRow label="Origin" value={order.origin?.address} />
+            <FieldRow label="Destination" value={order.destination?.address} />
             <FieldRow
               label="Origin coordinate"
               value={
-                order.origin_coordinate
-                  ? `${order.origin_coordinate.lat}, ${order.origin_coordinate.lon}`
+                order.origin?.coordinate
+                  ? `${order.origin.coordinate.lat}, ${order.origin.coordinate.lon}`
                   : "N/A"
               }
             />
             <FieldRow
               label="Destination coordinate"
               value={
-                order.destination_coordinate
-                  ? `${order.destination_coordinate.lat}, ${order.destination_coordinate.lon}`
+                order.destination?.coordinate
+                  ? `${order.destination.coordinate.lat}, ${order.destination.coordinate.lon}`
                   : "N/A"
               }
             />

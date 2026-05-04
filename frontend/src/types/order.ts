@@ -4,17 +4,24 @@ export interface PackageDetails {
   declaredValue?: number;
 }
 
+export type Coordinate = { lon: number; lat: number };
+
+// Mirrors backend src.models.routing.Point
+export interface Point {
+  id?: string;
+  name?: string | null;
+  address: string;
+  coordinate?: Coordinate | null;
+}
+
 export interface Order {
   id: string;
 
   senderName: string;
   receiverName: string;
 
-  origin: string;
-  origin_coordinate?: { lon: number; lat: number } | null;
-
-  destination: string;
-  destination_coordinate?: { lon: number; lat: number } | null;
+  origin: Point;
+  destination: Point;
 
   package: PackageDetails;
 
