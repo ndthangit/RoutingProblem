@@ -69,11 +69,16 @@ class Point(BaseModel):
 
     id : str = Field(default_factory=lambda: str(uuid.uuid4()), description="ID điểm")
 
-    name: str = Field(default=None, description="Tên điểm")
+    # name is optional; clients may send null.
+    name: Optional[str] = Field(default=None, description="Tên điểm")
     address: str = Field(..., description="Địa chỉ")
 
     # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
     coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
+
+    def to_dict(self) -> dict:
+        return self.model_dump(mode="json", by_alias=True, exclude_none=True)
+
 
 class RouteStatus(str, Enum):
     PLANNED = "PLANNED"           # Đã lên lịch nhưng chưa chạy

@@ -4,6 +4,18 @@ export interface PickupPlanRequest {
   customer_warehouse_ids: string[];
 }
 
+export interface DeliveryPlanRequest {
+  depot_id: string;
+  vehicle_ids: string[];
+  delivery_points: {
+    id?: string;
+    name?: string | null;
+    address: string;
+    coordinate?: { lon: number; lat: number } | null;
+  }[];
+  note?: string | null;
+}
+
 export interface MovingPlanRequest {
   depot_id: string;
   vehicle_ids: string[];
