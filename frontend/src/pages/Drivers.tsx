@@ -8,6 +8,7 @@ import { request } from "../api";
 import AddDriverModal from "./Driver/AddDriverModal";
 import AssignVehicleModal from "./Driver/AssignVehicleModal";
 import DriverDetailsModal from "./Driver/DriverDetailsModal";
+import EditDriverModal from "./Driver/EditDriverModal";
 import type { Driver, DriverHiredEvent, DriverStatus, DriverType, Vehicle, LicenseClass } from "../types";
 
 function DriverTypeBadge({ driverType }: { driverType?: DriverType }) {
@@ -125,8 +126,10 @@ export default function Drivers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [detailDriver, setDetailDriver] = useState<Driver | null>(null);
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -287,8 +290,8 @@ export default function Drivers() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // TODO: Implement edit logic
-                  console.log("Edit driver", params.row.id);
+                  setEditingDriver(params.row);
+                  setIsEditModalOpen(true);
                 }}
                 className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium"
               >
@@ -401,6 +404,16 @@ export default function Drivers() {
         }}
         driver={detailDriver}
         vehicleById={vehicleById}
+      />
+
+      <EditDriverModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingDriver(null);
+        }}
+        onSuccess={handleSuccess}
+        driver={editingDriver}
       />
     </>
   );

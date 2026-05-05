@@ -85,7 +85,7 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
 
   const fetchWarehouses = async () => {
     try {
-      const res = await request<BrandWarehouse[]>('GET', '/v1/warehouses');
+      const res = await request<BrandWarehouse[]>('GET', '/v1/brand-warehouses');
       setWarehouses(res?.data ?? []);
     } catch (e) {
       console.error('Failed to fetch warehouses:', e);

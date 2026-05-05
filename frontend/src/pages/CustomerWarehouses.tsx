@@ -173,6 +173,7 @@ export default function CustomerWarehouses() {
             getRowId={(row) => row.id}
             initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
             pageSizeOptions={[5, 10, 25, 50]}
+            checkboxSelection
             disableRowSelectionOnClick
             autoHeight
             sx={{

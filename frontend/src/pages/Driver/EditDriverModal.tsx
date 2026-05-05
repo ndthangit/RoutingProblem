@@ -11,6 +11,7 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -20,10 +21,9 @@ import {
   Switch,
   TextField,
   Typography,
-  IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import BadgeIcon from "@mui/icons-material/Badge";
+import EditIcon from "@mui/icons-material/Edit";
 import Grid from "@mui/material/Grid";
 
 import { useKeycloak } from "@react-keycloak/web";
@@ -31,16 +31,16 @@ import { request } from "../../api";
 import type {
   BrandWarehouse,
   Driver,
-  DriverHiredEvent,
   DriverStatus,
   DriverType,
   LicenseClass,
 } from "../../types";
 
-interface AddDriverModalProps {
+interface EditDriverModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  driver: Driver | null;
 }
 
 const steps = [
@@ -64,7 +64,7 @@ function compactObject<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(entries) as Partial<T>;
 }
 
-export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriverModalProps) {
+export default function EditDriverModal({ isOpen, onClose, onSuccess, driver }: EditDriverModalProps) {
   const { keycloak } = useKeycloak();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -86,86 +86,58 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
     []
   );
 
-  const [formData, setFormData] = useState<Partial<Driver>>({
-    employeeCode: "",
-    status: "ACTIVE" as DriverStatus,
-    hireDate: "",
-    driverType: "TRUCK_DRIVER" as DriverType,
+  const [formData, setFormData] = useState<Partial<Driver>>({});
 
-    firstName: "",
-    lastName: "",
-    email: "",
-    username: "",
-    phone: "",
-    enabled: true,
-    emailVerified: false,
+  // Prefill form when opening / switching driver
+  useEffect(() => {
+    if (!isOpen || !driver) return;
 
-    licenseNumber: "",
-    licenseClass: ["A1"],
-    licenseIssueDate: "",
-    licenseExpiryDate: "",
-
-    yearsOfExperience: 0,
-    rating: 5,
-    totalTrips: 0,
-    assignedVehicleId: "",
-    warehouseId: "",
-
-    contractNumber: "",
-    contractStartDate: "",
-    contractEndDate: "",
-
-    emergencyContactName: "",
-    emergencyContactPhone: "",
-    emergencyContactRelation: "",
-
-    healthCheckDate: "",
-    healthCheckExpiry: "",
-    medicalConditions: "",
-  });
-
-  const resetForm = () => {
     setActiveStep(0);
     setError(null);
+
     setFormData({
-      employeeCode: "",
-      status: "ACTIVE" as DriverStatus,
-      hireDate: "",
-      driverType: "TRUCK_DRIVER" as DriverType,
+      // Keep id in payload snapshot for update
+      id: driver.id,
 
-      firstName: "",
-      lastName: "",
-      email: "",
-      username: "",
-      phone: "",
-      enabled: true,
-      emailVerified: false,
+      employeeCode: driver.employeeCode ?? "",
+      status: (driver.status ?? "ACTIVE") as DriverStatus,
+      hireDate: driver.hireDate ?? "",
+      driverType: (driver.driverType ?? "TRUCK_DRIVER") as DriverType,
 
-      licenseNumber: "",
-      licenseClass: ["A1"],
-      licenseIssueDate: "",
-      licenseExpiryDate: "",
+      firstName: driver.firstName ?? "",
+      lastName: driver.lastName ?? "",
+      email: driver.email ?? "",
+      username: driver.username ?? "",
+      phone: driver.phone ?? "",
+      enabled: Boolean(driver.enabled),
+      emailVerified: Boolean(driver.emailVerified),
 
-      yearsOfExperience: 0,
-      rating: 5,
-      totalTrips: 0,
-      assignedVehicleId: "",
-      warehouseId: "",
+      licenseNumber: driver.licenseNumber ?? "",
+      licenseClass: (driver.licenseClass && driver.licenseClass.length ? driver.licenseClass : ["A1"]) as LicenseClass[],
+      licenseIssueDate: driver.licenseIssueDate ?? "",
+      licenseExpiryDate: driver.licenseExpiryDate ?? "",
 
-      contractNumber: "",
-      contractStartDate: "",
-      contractEndDate: "",
+      yearsOfExperience: driver.yearsOfExperience ?? 0,
+      rating: driver.rating ?? 5,
+      totalTrips: driver.totalTrips ?? 0,
+      assignedVehicleId: driver.assignedVehicleId ?? "",
+      warehouseId: driver.warehouseId ?? "",
 
-      emergencyContactName: "",
-      emergencyContactPhone: "",
-      emergencyContactRelation: "",
+      contractNumber: driver.contractNumber ?? "",
+      contractStartDate: driver.contractStartDate ?? "",
+      contractEndDate: driver.contractEndDate ?? "",
 
-      healthCheckDate: "",
-      healthCheckExpiry: "",
-      medicalConditions: "",
+      emergencyContactName: driver.emergencyContactName ?? "",
+      emergencyContactPhone: driver.emergencyContactPhone ?? "",
+      emergencyContactRelation: driver.emergencyContactRelation ?? "",
+
+      healthCheckDate: driver.healthCheckDate ?? "",
+      healthCheckExpiry: driver.healthCheckExpiry ?? "",
+      medicalConditions: driver.medicalConditions ?? "",
     });
-  };
+  }, [isOpen, driver]);
 
+  // Load warehouses when modal opens
   useEffect(() => {
     if (!isOpen) return;
 
@@ -178,7 +150,6 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
         setWarehouses(res?.data ?? []);
       } catch (e) {
         if (cancelled) return;
-        // Non-blocking: allow creating driver without warehouse if backend allows.
         setWarehouses([]);
         console.error("Failed to fetch brand warehouses", e);
       } finally {
@@ -192,10 +163,9 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
   }, [isOpen]);
 
   const handleClose = () => {
-    if (!loading) {
-      resetForm();
-      onClose();
-    }
+    if (loading) return;
+    setError(null);
+    onClose();
   };
 
   const handleChange = (
@@ -214,6 +184,8 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
   };
 
   const validateStep = (): string | null => {
+    if (!driver) return "Chưa chọn tài xế.";
+
     if (activeStep === 0) {
       if (!formData.firstName || !formData.lastName) return "Vui lòng nhập họ và tên.";
       if (!formData.phone) return "Vui lòng nhập số điện thoại.";
@@ -228,7 +200,6 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
     }
 
     if (activeStep === 2) {
-      // Warehouse assignment is required for routing/dispatching purposes.
       if (!formData.warehouseId) return "Vui lòng chọn Warehouse (BrandWarehouse).";
       return null;
     }
@@ -252,11 +223,22 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
   };
 
   const handleSubmit = async () => {
+    if (!driver) return;
+
+    // Validate last step submit as well
+    const message = validateStep();
+    if (message) {
+      setError(message);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const driver: Partial<Driver> = compactObject({
+      const snapshot: Partial<Driver> = compactObject({
+        // keep immutable fields we still want to preserve
+        ...driver,
         ...formData,
         hireDate: toIsoDateTime(formData.hireDate),
         licenseIssueDate: toIsoDateTime(formData.licenseIssueDate),
@@ -267,20 +249,20 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
         healthCheckExpiry: toIsoDateTime(formData.healthCheckExpiry),
       } as Driver);
 
-      const payload: DriverHiredEvent = {
+      const payload = {
         event_id: window.crypto?.randomUUID?.() ?? undefined,
         timestamp: new Date().toISOString(),
         ownerEmail: (keycloak?.tokenParsed as any)?.email || "unknown",
-        eventType: "DRIVER.HIRED",
-        driver: driver as Driver,
+        eventType: "DRIVER.UPDATED",
+        driver: snapshot as Driver,
       };
 
-      await request("POST", "/v1/drivers", undefined, undefined, payload as any);
+      await request("PUT", `/v1/drivers/${driver.id}`, undefined, undefined, payload as any);
 
       onSuccess();
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add driver");
+      setError(err instanceof Error ? err.message : "Failed to update driver");
     } finally {
       setLoading(false);
     }
@@ -500,9 +482,9 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
           <Grid container spacing={3}>
             <Grid size={{ xs: 12 }}>
               <FormControl fullWidth required disabled={warehousesLoading}>
-                <InputLabel id="warehouseId-label">Warehouse</InputLabel>
+                <InputLabel id="warehouseId-edit-label">Warehouse</InputLabel>
                 <Select
-                  labelId="warehouseId-label"
+                  labelId="warehouseId-edit-label"
                   name="warehouseId"
                   value={formData.warehouseId ?? ""}
                   onChange={handleChange}
@@ -716,10 +698,10 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
               justifyContent: "center",
             }}
           >
-            <BadgeIcon sx={{ color: "white" }} />
+            <EditIcon sx={{ color: "white" }} />
           </Box>
           <Typography variant="h6" component="span">
-            Đăng ký tài xế mới
+            Sửa thông tin tài xế
           </Typography>
         </Box>
         <IconButton onClick={handleClose} size="small" disabled={loading}>
@@ -728,21 +710,27 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
       </DialogTitle>
 
       <DialogContent sx={{ pt: 3 }}>
-        <Stepper activeStep={activeStep} alternativeLabel>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+        {!driver ? (
+          <Alert severity="warning">Chưa chọn tài xế.</Alert>
+        ) : (
+          <>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
 
-        {error && (
-          <Alert severity="error" sx={{ mt: 3 }}>
-            {error}
-          </Alert>
+            {error && (
+              <Alert severity="error" sx={{ mt: 3 }}>
+                {error}
+              </Alert>
+            )}
+
+            <Box sx={{ mt: 3 }}>{renderStepContent()}</Box>
+          </>
         )}
-
-        <Box sx={{ mt: 3 }}>{renderStepContent()}</Box>
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 0, gap: 2 }}>
@@ -752,7 +740,7 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
         <Box sx={{ flex: 1 }} />
         <Button
           onClick={handleBack}
-          disabled={loading || activeStep === 0}
+          disabled={loading || activeStep === 0 || !driver}
           variant="outlined"
           size="large"
         >
@@ -760,21 +748,22 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
         </Button>
 
         {activeStep < steps.length - 1 ? (
-          <Button onClick={handleNext} disabled={loading} variant="contained" size="large">
+          <Button onClick={handleNext} disabled={loading || !driver} variant="contained" size="large">
             Next
           </Button>
         ) : (
           <Button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !driver}
             variant="contained"
             size="large"
             startIcon={loading && <CircularProgress size={20} color="inherit" />}
           >
-            {loading ? "Submitting..." : "Submit"}
+            {loading ? "Submitting..." : "Save"}
           </Button>
         )}
       </DialogActions>
     </Dialog>
   );
 }
+

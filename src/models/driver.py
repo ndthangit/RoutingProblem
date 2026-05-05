@@ -70,6 +70,13 @@ class DriverBase(BaseModel):
     assigned_vehicle_id: Optional[str] = Field(default=None, description="ID xe đang phụ trách",
                                                alias="assignedVehicleId")
 
+    # Kho phụ trách (BrandWarehouse)
+    warehouse_id: Optional[str] = Field(
+        default=None,
+        description="ID kho (BrandWarehouse) mà tài xế thuộc về / phụ trách",
+        alias="warehouseId",
+    )
+
     # Hợp đồng
     contract_number: Optional[str] = Field(default=None, max_length=50, description="Số hợp đồng lao động",
                                            alias="contractNumber")

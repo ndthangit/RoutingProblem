@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { request } from "../api";
 import { Chip } from "@mui/material";
 import AddVehicleModal from "./Vehicle/AddVehicleModal.tsx";
 import { Plus, Truck } from "lucide-react";
 import { Box as MuiBox } from "@mui/material";
-import type { Vehicle, VehicleEvent, VehicleStatus } from "../types";
+import type { Driver, Vehicle, VehicleEvent, VehicleStatus } from "../types";
 import VehicleDetailsModal from "./Vehicle/VehicleDetailsModal";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
-import {useKeycloak} from "@react-keycloak/web";
-import { connectVehicleLocationSocket, type VehicleLocationUpdate } from "../ws/vehicleLocationClient";
 
 
 
@@ -49,9 +47,8 @@ export default function Vehicles() {
   const [detailVehicle, setDetailVehicle] = useState<Vehicle | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-  const { keycloak } = useKeycloak();
-  const wsConnRef = useRef<{ subscribe: (msg: { action: "subscribe"; vehicleIds?: string[] }) => void; close: () => void } | null>(null);
 
 
   const fetchVehicles = async () => {
@@ -70,68 +67,40 @@ export default function Vehicles() {
     }
   };
 
+  const fetchDrivers = async () => {
+    try {
+      const res = await request<unknown>("GET", "/v1/drivers");
+      const data = res?.data as any;
+
+      // /v1/drivers sometimes returns Driver[] or event[] with {driver}
+      let list: Driver[] = [];
+      if (Array.isArray(data)) {
+        if (data.length > 0 && data[0] && typeof data[0] === "object" && "driver" in data[0]) {
+          list = data.map((e: any) => e?.driver).filter(Boolean);
+        } else {
+          list = data as Driver[];
+        }
+      } else if (data && typeof data === "object") {
+        if (Array.isArray((data as any).drivers)) list = (data as any).drivers;
+        else if (Array.isArray((data as any).items)) list = (data as any).items;
+      }
+
+      setDrivers(list);
+    } catch (e) {
+      console.error("Error fetching drivers:", e);
+      setDrivers([]);
+    }
+  };
+
   useEffect(() => {
     fetchVehicles();
-      console.log("User info:", keycloak?.tokenParsed);
+
+  }, []);
+  useEffect(() => {
+    fetchDrivers();
   }, []);
 
-  // Real-time vehicle locations from backend WebSocket
-  useEffect(() => {
-    let cancelled = false;
 
-    (async () => {
-      try {
-        const conn = await connectVehicleLocationSocket({
-          onUpdate: (update: VehicleLocationUpdate) => {
-            // merge location into existing vehicle rows
-            setVehicles((prev) =>
-              prev.map((v) =>
-                v.id === update.vehicleId
-                  ? {
-                      ...v,
-                      location: {
-                        latitude: update.location.latitude,
-                        longitude: update.location.longitude,
-                      },
-                    }
-                  : v
-              )
-            );
-          },
-          onError: (e) => console.error("Vehicle location socket error:", e),
-          onOpen: () => {
-            // subscribe current list right after socket opens
-            const ids = vehicles.map((v) => v.id).filter(Boolean);
-            conn.subscribe({ action: "subscribe", vehicleIds: ids.length ? ids : undefined });
-          },
-        });
-
-        if (cancelled) {
-          conn.close();
-          return;
-        }
-
-        wsConnRef.current = conn;
-      } catch (e) {
-        console.error("Failed to connect vehicle location socket:", e);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      wsConnRef.current?.close();
-      wsConnRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const vehicleIds = useMemo(() => vehicles.map((v) => v.id).filter(Boolean), [vehicles]);
-
-  // When vehicle list changes (after fetch/add), re-subscribe with current ids
-  useEffect(() => {
-    if (!wsConnRef.current) return;
-    wsConnRef.current.subscribe({ action: "subscribe", vehicleIds: vehicleIds.length ? vehicleIds : undefined });
-  }, [vehicleIds]);
 
   const handleSuccess = () => {
     fetchVehicles();
@@ -139,11 +108,23 @@ export default function Vehicles() {
 
   const displayVehicles = vehicles;
 
+
+  const driverByVehicleId = useMemo(() => {
+    // Some backends keep assignment on Driver (assignedVehicleId) instead of on Vehicle (driverId)
+    const m = new Map<string, Driver>();
+    for (const d of drivers) {
+      const vid = (d as any).assignedVehicleId as string | undefined;
+      if (vid) m.set(vid, d);
+    }
+    return m;
+  }, [drivers]);
+
   const columns: GridColDef[] = useMemo(() => [
     {
-      field: 'id',
-      headerName: 'Vehicle ID',
-      width: 200,
+      field: 'licensePlate',
+      headerName: 'License Plate',
+      width: 120,
+      valueGetter: (value) => value || 'N/A',
     },
     {
       field: 'vehicleType',
@@ -151,12 +132,7 @@ export default function Vehicles() {
       width: 80,
       valueGetter: (value) => value || 'N/A',
     },
-    {
-      field: 'licensePlate',
-      headerName: 'License Plate',
-      width: 120,
-      valueGetter: (value) => value || 'N/A',
-    },
+
     {
       field: 'brandModel',
       headerName: 'Brand/Model',
@@ -168,20 +144,20 @@ export default function Vehicles() {
     {
       field: 'year',
       headerName: 'Year',
-      width: 90,
+      width: 60,
       type: 'number',
       valueGetter: (value) => value ?? 'N/A',
     },
     {
       field: 'capacity',
       headerName: 'Capacity',
-      width: 120,
+      width: 100,
       valueFormatter: (value) => value != null ? `${value} kg` : 'N/A',
     },
     {
       field: 'status',
       headerName: 'Status',
-      width: 160,
+      width: 100,
       renderCell: (params: GridRenderCellParams<Vehicle, Vehicle['status']>) => (
         <StatusBadge status={params.value as VehicleStatus} />
       ),
@@ -190,19 +166,16 @@ export default function Vehicles() {
       field: 'driverId',
       headerName: 'Driver',
       width: 170,
-      valueGetter: (value) => value || 'Unassigned',
-    },
-    {
-      field: 'location',
-      headerName: 'Location',
-      width: 220,
-      sortable: false,
-      valueGetter: (_value, row: Vehicle & { location?: { latitude: number; longitude: number } | null }) => {
-        const loc = row.location;
-        if (!loc) return 'N/A';
-        return `${Number(loc.latitude).toFixed(6)}, ${Number(loc.longitude).toFixed(6)}`;
+      valueGetter: (_value, row: Vehicle) => {
+
+
+        const assignedDriver = driverByVehicleId.get(row.id);
+        if (assignedDriver) return assignedDriver.employeeCode || assignedDriver.id;
+
+        return "Unassigned";
       },
     },
+
     {
       field: 'actions',
       headerName: 'Actions',

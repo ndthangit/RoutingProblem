@@ -49,6 +49,7 @@ export interface Driver {
 
   // Assignment
   assignedVehicleId?: string;
+  warehouseId?: string;
 
   // Contract
   contractNumber?: string;
