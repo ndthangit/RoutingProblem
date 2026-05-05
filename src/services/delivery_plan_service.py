@@ -133,16 +133,16 @@ class DeliveryPlanService:
                 note=note or "DELIVERY_PLAN",
             )
 
-            # event = PlanEvent(eventType=PlanEventType.PLAN_CREATED, plan=plan)
-            # created_plan = await self._plan_service.create_plan(event)
+            event = PlanEvent(eventType=PlanEventType.PLAN_CREATED, plan=plan)
+            created_plan = await self._plan_service.create_plan(event)
 
-            # for route in created_plan.routes:
-            #     route_event = RouteEvent(eventType=RouteEventType.ROUTE_STARTED, route=route)
-            #     await self._route_service.create_route(route_event)
-            #
-            # plans.append(created_plan)
-            plans.append(plan)
+            for route in created_plan.routes:
+                route_event = RouteEvent(eventType=RouteEventType.ROUTE_STARTED, route=route)
+                await self._route_service.create_route(route_event)
 
-        print(plans)
+            plans.append(created_plan)
+        #     plans.append(plan)
+        #
+        # print(plans)
         return plans
 
