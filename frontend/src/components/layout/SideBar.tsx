@@ -44,7 +44,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     { id: 'drivers', label: 'Drivers', icon: Icons.Users, path: '/drivers' },
     { id: 'warehouses', label: 'Warehouses', icon: Icons.Warehouse, path: '/warehouses' },
     { id: 'customerWarehouses', label: 'Customer', icon: Icons.MapPin, path: '/customer-warehouses' },
-    { id: 'routes', label: 'Routes', icon: Icons.Route, path: '/routes' },
+    { id: 'routes', label: 'Plans', icon: Icons.ClipboardList, path: '/routes' },
     { id: 'schedules', label: 'Schedules', icon: Icons.Calendar, path: '/schedules' },
     { id: 'geography', label: 'Bản đồ', icon: Icons.Map, path: '/geography' },
   ];

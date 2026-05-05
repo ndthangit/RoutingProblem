@@ -2,50 +2,78 @@ import { useEffect, useMemo, useState } from "react";
 import { Box as MuiBox } from "@mui/material";
 import type { GridColDef } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
-import { Plus, Route as RouteIcon } from "lucide-react";
+import { Plus, ClipboardList } from "lucide-react";
 
 import { request } from "../api";
-import type { Route } from "../types";
-import AddRouteModal from "./Route/AddRouteModal";
+import type { Plan } from "../types";
 import AddPickupPlanModal from "./Route/AddPickupPlanModal";
 import AddMovingPlanModal from "./Route/AddMovingPlanModal";
 import AddDeliveryPlanModal from "./Route/AddDeliveryPlanModal";
+import PlanDetailsModal from "./Plan/PlanDetailsModal";
 
 export default function RoutesPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPickupPlanOpen, setIsPickupPlanOpen] = useState(false);
   const [isMovingPlanOpen, setIsMovingPlanOpen] = useState(false);
   const [isDeliveryPlanOpen, setIsDeliveryPlanOpen] = useState(false);
-  const [routes, setRoutes] = useState<Route[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showOnlyScheduled, setShowOnlyScheduled] = useState(true);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailPlan, setDetailPlan] = useState<Plan | null>(null);
 
-  const fetchRoutes = async () => {
+  const fetchPlans = async () => {
     setLoading(true);
     try {
-      const res = await request<Route[]>("GET", "/v1/routes");
-      if (res?.data) setRoutes(res.data);
-      else setRoutes([]);
+      const res = await request<Plan[]>("GET", "/v1/plans");
+      if (res?.data) setPlans(res.data);
+      else setPlans([]);
     } catch (error) {
-      console.error("Error fetching routes:", error);
-      setRoutes([]);
+      console.error("Error fetching plans:", error);
+      setPlans([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRoutes();
+    fetchPlans();
   }, []);
 
-  const handleSuccess = () => {
-    fetchRoutes();
+  const handleDelete = async (plan: Plan) => {
+    const ok = window.confirm(`Delete plan ${plan.id}?`);
+    if (!ok) return;
+
+    try {
+      const nowIso = new Date().toISOString();
+      const payload = {
+        event_id: window.crypto?.randomUUID?.() ?? "",
+        timestamp: nowIso,
+        ownerEmail: "unknown",
+        eventType: "PLAN.DELETED",
+        plan,
+      };
+      await request("DELETE", `/v1/plans/${encodeURIComponent(plan.id)}`, undefined, undefined, payload as any);
+      fetchPlans();
+    } catch (e) {
+      console.error("Delete plan failed:", e);
+    }
   };
+
+  const visiblePlans = useMemo(() => {
+    if (!showOnlyScheduled) return plans;
+    return plans.filter((p) => {
+      // “Đã được lập lịch”: hiện plan có startTime hoặc đã ở trạng thái PLANNED/IN_PROGRESS/COMPLETED.
+      const hasStart = p.startTime !== null && p.startTime !== undefined && String(p.startTime).trim() !== "";
+      const hasStatus = p.status === "PLANNED" || p.status === "IN_PROGRESS" || p.status === "COMPLETED";
+      return hasStart || hasStatus;
+    });
+  }, [plans, showOnlyScheduled]);
 
   const columns: GridColDef[] = useMemo(
     () => [
-      { field: "id", headerName: "Route ID", width: 150 },
+      { field: "id", headerName: "Plan ID", width: 160 },
       { field: "vehicleId", headerName: "Vehicle", width: 180, valueGetter: (value) => value || "N/A" },
-      { field: "routeType", headerName: "Type", width: 160, valueGetter: (value) => value || "N/A" },
+      { field: "status", headerName: "Status", width: 140, valueGetter: (value) => value || "N/A" },
       { field: "origin", headerName: "Origin", width: 220, valueGetter: (value) => value || "N/A" },
       { field: "destination", headerName: "Destination", width: 220, valueGetter: (value) => value || "N/A" },
       {
@@ -57,24 +85,81 @@ export default function RoutesPage() {
           return String(value);
         },
       },
+      {
+        field: "endTime",
+        headerName: "End Time",
+        width: 250,
+        valueGetter: (value: unknown) => {
+          if (value === null || value === undefined || value === "") return "N/A";
+          return String(value);
+        },
+      },
+      {
+        field: "stops",
+        headerName: "Stops",
+        width: 110,
+        valueGetter: (_value: unknown, row: Plan) => (Array.isArray(row.points) ? row.points.length : 0),
+      },
+      {
+        field: "note",
+        headerName: "Note",
+        width: 160,
+        valueGetter: (value: unknown) => (value === null || value === undefined || value === "" ? "N/A" : String(value)),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        width: 220,
+        sortable: false,
+        filterable: false,
+        renderCell: (params) => {
+          const row = params.row as Plan;
+          return (
+            <div className="flex gap-2 items-center h-full">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailPlan(row);
+                  setIsDetailModalOpen(true);
+                }}
+                className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Detail
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleDelete(row);
+                }}
+                className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors text-xs font-medium"
+              >
+                Delete
+              </button>
+            </div>
+          );
+        },
+      },
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plans]
   );
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <RouteIcon className="w-5 h-5 text-slate-600" />
-          <h2 className="text-lg font-bold text-slate-900">Routes</h2>
-          <span className="ml-auto text-sm text-slate-500">{routes.length} routes</span>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="ml-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Add Route
-          </button>
+          <ClipboardList className="w-5 h-5 text-slate-600" />
+          <h2 className="text-lg font-bold text-slate-900">Plans</h2>
+          <span className="ml-auto text-sm text-slate-500">{visiblePlans.length} plans</span>
+
+          <label className="ml-4 flex items-center gap-2 text-sm text-slate-600 select-none">
+            <input
+              type="checkbox"
+              checked={showOnlyScheduled}
+              onChange={(e) => setShowOnlyScheduled(e.target.checked)}
+            />
+            Chỉ hiển thị plan đã lập lịch
+          </label>
 
           <button
             onClick={() => setIsPickupPlanOpen(true)}
@@ -104,7 +189,7 @@ export default function RoutesPage() {
 
       <MuiBox sx={{ width: "100%" }}>
         <DataGrid
-          rows={routes}
+          rows={visiblePlans}
           columns={columns}
           loading={loading}
           getRowId={(row) => row.id}
@@ -146,18 +231,11 @@ export default function RoutesPage() {
         />
       </MuiBox>
 
-      <AddRouteModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={handleSuccess}
-      />
-
       <AddPickupPlanModal
         isOpen={isPickupPlanOpen}
         onClose={() => setIsPickupPlanOpen(false)}
         onSuccess={() => {
-          // Currently we don't render plans on this page; keep UX consistent by refreshing routes.
-          fetchRoutes();
+          fetchPlans();
         }}
       />
 
@@ -165,8 +243,7 @@ export default function RoutesPage() {
         isOpen={isMovingPlanOpen}
         onClose={() => setIsMovingPlanOpen(false)}
         onSuccess={() => {
-          // Moving plan creation also creates routes; refresh.
-          fetchRoutes();
+          fetchPlans();
         }}
       />
 
@@ -174,9 +251,17 @@ export default function RoutesPage() {
         isOpen={isDeliveryPlanOpen}
         onClose={() => setIsDeliveryPlanOpen(false)}
         onSuccess={() => {
-          // Delivery plan creation also creates routes; refresh.
-          fetchRoutes();
+          fetchPlans();
         }}
+      />
+
+      <PlanDetailsModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setDetailPlan(null);
+        }}
+        plan={detailPlan}
       />
     </div>
   );

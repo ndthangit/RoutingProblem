@@ -23,13 +23,44 @@ export interface MovingPlanRequest {
   note?: string | null;
 }
 
-// Minimal shape for response from POST /v1/pickup-plans (backend returns list[Plan]).
-// Extend later if you display plans in UI.
-export interface Plan {
+export type PlanStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface Coordinate {
+  lon: number;
+  lat: number;
+}
+
+export interface PlanPoint {
   id?: string;
-  ownerEmail?: string;
+  name?: string | null;
+  address?: string | null;
+  coordinate?: Coordinate | null;
+  // tolerate backend extensions
+  [key: string]: unknown;
+}
+
+// Shape aligned with backend `src/models/plan.py` (serialized with camelCase aliases).
+export interface Plan {
+  id: string;
+  vehicleId: string;
+  status: PlanStatus;
+
+  origin: string;
+  originCoordinate?: Coordinate | null;
+
+  destination: string;
+  destinationCoordinate?: Coordinate | null;
+
+  startTime?: string | null;
+  endTime?: string | null;
+
+  points?: PlanPoint[];
+  routes?: unknown[];
+
+  note?: string | null;
   createdAt?: string;
   updatedAt?: string;
+
   // allow other backend fields without breaking compile
   [key: string]: unknown;
 }
