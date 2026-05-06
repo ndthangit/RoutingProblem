@@ -126,6 +126,8 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
         return;
       }
 
+      const selectedWarehouse = warehouses.find((w) => w.id === formData.warehouseId) ?? null;
+
       const vehicle = Object.fromEntries(
         Object.entries(formData).filter(([, v]) => v !== null && v !== undefined && v !== '')
       ) as Partial<Vehicle>;
@@ -139,6 +141,8 @@ export default function AddVehicleModal({ isOpen, onClose, onSuccess, initialVeh
         vehicle: {
           ...(vehicle as Vehicle),
           id: initialVehicle?.id ?? (vehicle.id as string),
+          warehouseAddress: selectedWarehouse?.address ?? null,
+
         } as Vehicle,
       };
       console.log('Submitting payload:', payload);

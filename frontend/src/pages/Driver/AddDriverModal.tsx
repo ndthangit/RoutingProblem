@@ -256,8 +256,12 @@ export default function AddDriverModal({ isOpen, onClose, onSuccess }: AddDriver
     setError(null);
 
     try {
+      const selectedWarehouse =
+        warehouses.find((w) => String(w.id) === String(formData.warehouseId ?? "")) ?? null;
+
       const driver: Partial<Driver> = compactObject({
         ...formData,
+        warehouseAddress: selectedWarehouse?.address ?? undefined,
         hireDate: toIsoDateTime(formData.hireDate),
         licenseIssueDate: toIsoDateTime(formData.licenseIssueDate),
         licenseExpiryDate: toIsoDateTime(formData.licenseExpiryDate),

@@ -38,13 +38,18 @@ class VehicleBase(BaseModel):
     capacity: Optional[int] = Field(default=None, ge=1, description="Trọng tải xe(kg)")
     vehicle_type: VehicleType = Field(default=VehicleType.SEDAN, description="Loại xe", alias="vehicleType")
     status: VehicleStatus = Field(default=VehicleStatus.ACTIVE, description="Trạng thái xe")
+
     driver_id: Optional[str] = Field(default=None, alias="driverId")
+    employee_code: Optional[str] = Field(default=None, min_length=1, max_length=50, description="Mã nhân viên phụ trách xe", alias="employeeCode")
 
     warehouse_id: Optional[str] = Field(
         default=None,
         alias="warehouseId",
         description="ID của kho quản lý vehicle này",
     )
+
+    warehouse_address: Optional[str] = Field(default=None, description="Địa chỉ kho phụ trách", alias="warehouseAddress")
+
     # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
     coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
 

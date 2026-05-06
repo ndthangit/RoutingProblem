@@ -49,7 +49,9 @@ export interface Driver {
 
   // Assignment
   assignedVehicleId?: string;
+  licensePlate?: string | null;
   warehouseId?: string;
+  warehouseAddress?: string | null;
 
   // Contract
   contractNumber?: string;

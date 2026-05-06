@@ -236,10 +236,14 @@ export default function EditDriverModal({ isOpen, onClose, onSuccess, driver }: 
     setError(null);
 
     try {
+      const selectedWarehouse =
+        warehouses.find((w) => String(w.id) === String(formData.warehouseId ?? "")) ?? null;
+
       const snapshot: Partial<Driver> = compactObject({
         // keep immutable fields we still want to preserve
         ...driver,
         ...formData,
+        warehouseAddress: selectedWarehouse?.address ?? undefined,
         hireDate: toIsoDateTime(formData.hireDate),
         licenseIssueDate: toIsoDateTime(formData.licenseIssueDate),
         licenseExpiryDate: toIsoDateTime(formData.licenseExpiryDate),

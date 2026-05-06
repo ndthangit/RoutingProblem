@@ -104,7 +104,7 @@ export default function AssignVehicleModal({
               eventType: "VEHICLE.UPDATED",
               ownerEmail,
               timestamp: new Date().toISOString(),
-              vehicle: { ...prevVehicle, driverId: null },
+              vehicle: { ...prevVehicle, driverId: null, employeeCode: null },
             } as any
           )
         );
@@ -122,7 +122,7 @@ export default function AssignVehicleModal({
               eventType: "VEHICLE.UPDATED",
               ownerEmail,
               timestamp: new Date().toISOString(),
-              vehicle: { ...nextVehicle, driverId: driver.id },
+              vehicle: { ...nextVehicle, driverId: driver.id, employeeCode: driver.employeeCode ?? null },
             } as any
           )
         );
@@ -132,10 +132,11 @@ export default function AssignVehicleModal({
         await Promise.all(vehicleUpdates);
       }
 
-      const nextDriver: Driver = {
+      const nextDriver = {
         ...driver,
         assignedVehicleId: selectedVehicleId,
-      };
+        licensePlate: nextVehicle?.licensePlate ?? null,
+      } as Driver;
 
       const driverPayload = {
         eventType: "DRIVER.UPDATED",
