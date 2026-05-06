@@ -9,7 +9,7 @@ import AddDriverModal from "./Driver/AddDriverModal";
 import AssignVehicleModal from "./Driver/AssignVehicleModal";
 import DriverDetailsModal from "./Driver/DriverDetailsModal";
 import EditDriverModal from "./Driver/EditDriverModal";
-import type { Driver, DriverHiredEvent, DriverStatus, DriverType, Vehicle, LicenseClass } from "../types";
+import type { Driver, DriverHiredEvent, DriverStatus, DriverType, LicenseClass } from "../types";
 
 function DriverTypeBadge({ driverType }: { driverType?: DriverType }) {
   const labelMap: Record<DriverType, string> = {
@@ -131,9 +131,7 @@ export default function Drivers() {
   const [detailDriver, setDetailDriver] = useState<Driver | null>(null);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
   const fetchDrivers = async () => {
     try {
@@ -148,33 +146,14 @@ export default function Drivers() {
     }
   };
 
-  const fetchVehicles = async () => {
-    setVehiclesLoading(true);
-    try {
-      const res = await request<Vehicle[]>("GET", "/v1/vehicles");
-      setVehicles(res?.data ?? []);
-    } catch (error) {
-      console.error("Error fetching vehicles:", error);
-      setVehicles([]);
-    } finally {
-      setVehiclesLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchDrivers();
-    fetchVehicles();
   }, []);
 
   const handleSuccess = () => {
     setLoading(true);
     fetchDrivers();
-    fetchVehicles();
   };
-
-  const vehicleById = useMemo(() => {
-    return new Map(vehicles.map((v) => [v.id, v] as const));
-  }, [vehicles]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -392,8 +371,8 @@ export default function Drivers() {
         }}
         onSuccess={handleSuccess}
         driver={selectedDriver}
-        vehicles={vehicles}
-        vehiclesLoading={vehiclesLoading}
+        vehicles={[]}
+        vehiclesLoading={false}
       />
 
       <DriverDetailsModal
@@ -403,7 +382,6 @@ export default function Drivers() {
           setDetailDriver(null);
         }}
         driver={detailDriver}
-        vehicleById={vehicleById}
       />
 
       <EditDriverModal

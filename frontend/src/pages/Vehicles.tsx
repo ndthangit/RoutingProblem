@@ -4,7 +4,7 @@ import { Chip } from "@mui/material";
 import AddVehicleModal from "./Vehicle/AddVehicleModal.tsx";
 import { Plus, Truck } from "lucide-react";
 import { Box as MuiBox } from "@mui/material";
-import type { Driver, Vehicle, VehicleEvent, VehicleStatus } from "../types";
+import type { Vehicle, VehicleEvent, VehicleStatus } from "../types";
 import VehicleDetailsModal from "./Vehicle/VehicleDetailsModal";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
@@ -47,7 +47,6 @@ export default function Vehicles() {
   const [detailVehicle, setDetailVehicle] = useState<Vehicle | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
 
 
@@ -67,37 +66,9 @@ export default function Vehicles() {
     }
   };
 
-  const fetchDrivers = async () => {
-    try {
-      const res = await request<unknown>("GET", "/v1/drivers");
-      const data = res?.data as any;
-
-      // /v1/drivers sometimes returns Driver[] or event[] with {driver}
-      let list: Driver[] = [];
-      if (Array.isArray(data)) {
-        if (data.length > 0 && data[0] && typeof data[0] === "object" && "driver" in data[0]) {
-          list = data.map((e: any) => e?.driver).filter(Boolean);
-        } else {
-          list = data as Driver[];
-        }
-      } else if (data && typeof data === "object") {
-        if (Array.isArray((data as any).drivers)) list = (data as any).drivers;
-        else if (Array.isArray((data as any).items)) list = (data as any).items;
-      }
-
-      setDrivers(list);
-    } catch (e) {
-      console.error("Error fetching drivers:", e);
-      setDrivers([]);
-    }
-  };
-
   useEffect(() => {
     fetchVehicles();
 
-  }, []);
-  useEffect(() => {
-    fetchDrivers();
   }, []);
 
 
@@ -107,18 +78,6 @@ export default function Vehicles() {
   };
 
   const displayVehicles = vehicles;
-
-
-  const driverByVehicleId = useMemo(() => {
-    // Some backends keep assignment on Driver (assignedVehicleId) instead of on Vehicle (driverId)
-    const m = new Map<string, Driver>();
-    for (const d of drivers) {
-      const vid = (d as any).assignedVehicleId as string | undefined;
-      if (vid) m.set(vid, d);
-    }
-    return m;
-  }, [drivers]);
-
   const columns: GridColDef[] = useMemo(() => [
     {
       field: 'licensePlate',
@@ -167,11 +126,9 @@ export default function Vehicles() {
       headerName: 'Driver',
       width: 170,
       valueGetter: (_value, row: Vehicle) => {
-
-
-        const assignedDriver = driverByVehicleId.get(row.id);
-        if (assignedDriver) return assignedDriver.employeeCode || assignedDriver.id;
-
+        // Prefer denormalized employeeCode persisted on vehicle when assigning
+        if (row.employeeCode) return row.employeeCode;
+        if (row.driverId) return row.driverId;
         return "Unassigned";
       },
     },

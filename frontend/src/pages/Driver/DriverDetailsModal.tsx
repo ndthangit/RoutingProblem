@@ -12,13 +12,12 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import BadgeIcon from "@mui/icons-material/Badge";
 
-import type { Driver, Vehicle } from "../../types";
+import type { Driver } from "../../types";
 
 interface DriverDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   driver: Driver | null;
-  vehicleById?: Map<string, Vehicle>;
 }
 
 function formatDate(value?: string | number): string {
@@ -47,10 +46,7 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
   );
 }
 
-export default function DriverDetailsModal({ isOpen, onClose, driver, vehicleById }: DriverDetailsModalProps) {
-  const assignedVehicle =
-    driver?.assignedVehicleId && vehicleById ? vehicleById.get(driver.assignedVehicleId) : undefined;
-
+export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDetailsModalProps) {
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -132,8 +128,8 @@ export default function DriverDetailsModal({ isOpen, onClose, driver, vehicleByI
             <FieldRow
               label="Assigned vehicle"
               value={
-                assignedVehicle
-                  ? `${assignedVehicle.licensePlate ?? assignedVehicle.id} (id: ${assignedVehicle.id})`
+                driver.licensePlate
+                  ? `${driver.licensePlate}${driver.assignedVehicleId ? ` (id: ${driver.assignedVehicleId})` : ""}`
                   : driver.assignedVehicleId
                     ? `ID: ${driver.assignedVehicleId}`
                     : "Unassigned"
