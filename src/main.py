@@ -26,6 +26,9 @@ from src.api.plans import router as plans_router
 from src.api.pickup_plans import router as pickup_plans_router
 from src.api.moving_plans import router as moving_plans_router
 from src.api.delivery_plans import router as delivery_plans_router
+from src.api.driver_vehicle import router as driver_vehicle_router
+
+
 from src.services.ws_hub import WebSocketHub
 from src.models.routing import EtaUpdate, RouteRequest, Coordinate
 from src.services.routing_service import RoutingService
@@ -196,6 +199,8 @@ app.include_router(plans_router, prefix=settings.API_V1_PREFIX)
 app.include_router(pickup_plans_router, prefix=settings.API_V1_PREFIX)
 app.include_router(moving_plans_router, prefix=settings.API_V1_PREFIX)
 app.include_router(delivery_plans_router, prefix=settings.API_V1_PREFIX)
+
+app.include_router(driver_vehicle_router, prefix=settings.API_V1_PREFIX)
 
 
 # ---------------------------

@@ -53,16 +53,18 @@ export default function AssignVehicleModal({
 
   const eligibleVehicles = useMemo(() => {
     if (!driver) return [];
-    return vehicles.filter((v) => !v.driverId || v.driverId === driver.id);
+    // Only allow assigning vehicles that are currently unassigned.
+    return vehicles.filter((v) => !v.driverId);
   }, [vehicles, driver]);
 
   const currentVehicleId = driver?.assignedVehicleId ?? "";
+  const isDriverAlreadyAssigned = Boolean(currentVehicleId);
 
   // Pre-fill selection when opening modal / switching driver
   useEffect(() => {
     if (!isOpen || !driver) return;
     if (selectedVehicleId) return;
-    const defaultId = currentVehicleId || eligibleVehicles[0]?.id || "";
+    const defaultId = eligibleVehicles[0]?.id || "";
     setSelectedVehicleId(defaultId);
   }, [isOpen, driver, currentVehicleId, eligibleVehicles, selectedVehicleId]);
 
@@ -75,6 +77,12 @@ export default function AssignVehicleModal({
 
   const handleSubmit = async () => {
     if (!driver) return;
+
+    if (driver.assignedVehicleId) {
+      setError("Tài xế đã được phân công xe. Vui lòng thu hồi xe trước khi phân công xe khác.");
+      return;
+    }
+
     if (!selectedVehicleId) {
       setError("Vui lòng chọn xe để phân công.");
       return;
@@ -86,66 +94,32 @@ export default function AssignVehicleModal({
     try {
       const ownerEmail = (keycloak?.tokenParsed as any)?.email || "unknown";
 
-      const prevVehicleId = driver.assignedVehicleId;
       const nextVehicle = vehicles.find((v) => v.id === selectedVehicleId) || null;
-      const prevVehicle = prevVehicleId ? vehicles.find((v) => v.id === prevVehicleId) || null : null;
-
-      const vehicleUpdates: Array<Promise<unknown>> = [];
-
-      // Unassign old vehicle if driver switched vehicles
-      if (prevVehicle && prevVehicle.id !== selectedVehicleId && prevVehicle.driverId === driver.id) {
-        vehicleUpdates.push(
-          request(
-            "PUT",
-            `/v1/vehicles/${prevVehicle.id}`,
-            undefined,
-            undefined,
-            {
-              eventType: "VEHICLE.UPDATED",
-              ownerEmail,
-              timestamp: new Date().toISOString(),
-              vehicle: { ...prevVehicle, driverId: null, employeeCode: null },
-            } as any
-          )
-        );
+      if (!nextVehicle) {
+        throw new Error("Không tìm thấy xe được chọn.");
       }
 
-      // Assign new vehicle's driverId
-      if (nextVehicle && nextVehicle.driverId !== driver.id) {
-        vehicleUpdates.push(
-          request(
-            "PUT",
-            `/v1/vehicles/${nextVehicle.id}`,
-            undefined,
-            undefined,
-            {
-              eventType: "VEHICLE.UPDATED",
-              ownerEmail,
-              timestamp: new Date().toISOString(),
-              vehicle: { ...nextVehicle, driverId: driver.id, employeeCode: driver.employeeCode ?? null },
-            } as any
-          )
-        );
+      if (nextVehicle.driverId) {
+        setError("Xe này đã được phân công. Vui lòng chọn xe khác.");
+        return;
       }
 
-      if (vehicleUpdates.length) {
-        await Promise.all(vehicleUpdates);
-      }
-
-      const nextDriver = {
-        ...driver,
-        assignedVehicleId: selectedVehicleId,
-        licensePlate: nextVehicle?.licensePlate ?? null,
-      } as Driver;
-
-      const driverPayload = {
-        eventType: "DRIVER.UPDATED",
-        ownerEmail,
-        timestamp: new Date().toISOString(),
-        driver: nextDriver,
-      };
-
-      await request("PUT", `/v1/drivers/${driver.id}`, undefined, undefined, driverPayload as any);
+      // Use domain event to assign vehicle to driver (backend will update both Driver & Vehicle).
+      await request(
+        "POST",
+        `/v1/driver-vehicle`,
+        undefined,
+        undefined,
+        {
+          eventType: "DRIVER.VEHICLE.ASSIGNED",
+          ownerEmail,
+          timestamp: new Date().toISOString(),
+          driver: {
+            ...driver,
+            assignedVehicleId: selectedVehicleId,
+          },
+        } as any
+      );
 
       onSuccess();
       handleClose();
@@ -212,6 +186,10 @@ export default function AssignVehicleModal({
 
         {!driver ? (
           <Alert severity="warning">Chưa chọn tài xế.</Alert>
+        ) : isDriverAlreadyAssigned ? (
+          <Alert severity="info">
+            Tài xế đã có xe (<b>{currentVehicleId}</b>). Vui lòng thu hồi xe trước khi phân công.
+          </Alert>
         ) : vehiclesLoading ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <CircularProgress size={20} />
@@ -260,7 +238,7 @@ export default function AssignVehicleModal({
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={submitting || !driver || vehiclesLoading || !selectedVehicleId}
+          disabled={submitting || !driver || vehiclesLoading || !selectedVehicleId || isDriverAlreadyAssigned}
           variant="contained"
         >
           {submitting ? <CircularProgress size={18} sx={{ color: "white" }} /> : "Phân công"}

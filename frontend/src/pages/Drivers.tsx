@@ -7,9 +7,10 @@ import { Plus, Users } from "lucide-react";
 import { request } from "../api";
 import AddDriverModal from "./Driver/AddDriverModal";
 import AssignVehicleModal from "./Driver/AssignVehicleModal";
+import AssignedVehicleCell from "./Driver/AssignedVehicleCell";
 import DriverDetailsModal from "./Driver/DriverDetailsModal";
 import EditDriverModal from "./Driver/EditDriverModal";
-import type { Driver, DriverHiredEvent, DriverStatus, DriverType, LicenseClass } from "../types";
+import type { Driver, DriverHiredEvent, DriverStatus, DriverType, LicenseClass, Vehicle } from "../types";
 
 function DriverTypeBadge({ driverType }: { driverType?: DriverType }) {
   const labelMap: Record<DriverType, string> = {
@@ -133,6 +134,10 @@ export default function Drivers() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
+  const [vehiclesError, setVehiclesError] = useState<string | null>(null);
+
   const fetchDrivers = async () => {
     try {
       const res = await request<unknown>("GET", "/v1/drivers");
@@ -150,9 +155,85 @@ export default function Drivers() {
     fetchDrivers();
   }, []);
 
+  const fetchVehicles = async () => {
+    setVehiclesLoading(true);
+    setVehiclesError(null);
+    try {
+      const res = await request<unknown>("GET", "/v1/vehicles");
+      // backend responses may vary; prefer res.data when array
+      const data = (res as any)?.data;
+      if (Array.isArray(data)) {
+        setVehicles(data as Vehicle[]);
+      } else if (data && typeof data === "object" && Array.isArray((data as any).vehicles)) {
+        setVehicles((data as any).vehicles as Vehicle[]);
+      } else if (data && typeof data === "object" && Array.isArray((data as any).items)) {
+        setVehicles((data as any).items as Vehicle[]);
+      } else {
+        setVehicles([]);
+      }
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+      setVehicles([]);
+      setVehiclesError(error instanceof Error ? error.message : "Không thể tải danh sách xe");
+    } finally {
+      setVehiclesLoading(false);
+    }
+  };
+
+  // Load vehicles when opening the assign modal.
+  useEffect(() => {
+    if (!isAssignModalOpen) return;
+    // Avoid re-loading if we already have data loaded.
+    if (vehicles.length > 0 || vehiclesLoading) return;
+    fetchVehicles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAssignModalOpen]);
+
   const handleSuccess = () => {
     setLoading(true);
     fetchDrivers();
+  };
+
+  const handleOpenAssignVehicle = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setIsAssignModalOpen(true);
+
+    // Ensure vehicles are available for assignment.
+    if (vehicles.length === 0 && !vehiclesLoading) {
+      fetchVehicles();
+    }
+  };
+
+  const handleUnassignVehicle = async (driver: Driver) => {
+    if (!driver.assignedVehicleId) return;
+
+    try {
+      // Only send domain event; backend will revoke vehicle assignment and clear driver fields.
+      const nextDriver = {
+          ...driver,
+          assignedVehicleId: null,
+          licensePlate: null,
+      } as unknown as Driver;
+
+      await request(
+        "POST",
+        `/v1/driver-vehicle`,
+        undefined,
+        undefined,
+        {
+          eventType: "DRIVER.VEHICLE.UNASSIGNED",
+          ownerEmail: "unknown",
+          timestamp: new Date().toISOString(),
+          driver: nextDriver,
+        } as any
+      );
+
+      handleSuccess();
+      fetchVehicles();
+    } catch (err) {
+      console.error("Unassign vehicle failed:", err);
+      setVehiclesError(err instanceof Error ? err.message : "Thu hồi xe thất bại");
+    }
   };
 
   const columns: GridColDef[] = useMemo(
@@ -202,25 +283,19 @@ export default function Drivers() {
         width: 100,
         sortable: false,
         renderCell: (params: GridRenderCellParams<Driver, Driver["assignedVehicleId"]>) => {
-          const driver = params.row;
-          const assignedId = driver.assignedVehicleId;
-          const isUnassigned = !assignedId;
-
           return (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedDriver(driver);
-                setIsAssignModalOpen(true);
+            <AssignedVehicleCell
+              driver={params.row}
+              onOpenAssign={(driver) => {
+                // If currently assigned => treat button as Unassign
+                if (driver.assignedVehicleId) {
+                  handleUnassignVehicle(driver);
+                } else {
+                  handleOpenAssignVehicle(driver);
+                }
               }}
-              className={`px-3 py-1 rounded-lg transition-colors text-xs font-medium ${
-                isUnassigned
-                  ? "bg-blue-500 text-white hover:bg-blue-600"
-                  : "bg-red-500 text-white hover:bg-red-600"
-              }`}
-            >
-              {isUnassigned ? "Assign" : "Unassign"}
-            </button>
+              disabled={vehiclesLoading}
+            />
           );
         },
       },
@@ -369,11 +444,20 @@ export default function Drivers() {
           setIsAssignModalOpen(false);
           setSelectedDriver(null);
         }}
-        onSuccess={handleSuccess}
+        onSuccess={() => {
+          handleSuccess();
+          // Refresh vehicles too so driverId mapping stays accurate.
+          fetchVehicles();
+        }}
         driver={selectedDriver}
-        vehicles={[]}
-        vehiclesLoading={false}
+        vehicles={vehicles}
+        vehiclesLoading={vehiclesLoading}
       />
+
+      {/* Optional: surface vehicle-loading error while modal is open */}
+      {isAssignModalOpen && vehiclesError ? (
+        <div className="mt-3 text-sm text-red-600">{vehiclesError}</div>
+      ) : null}
 
       <DriverDetailsModal
         isOpen={isDetailModalOpen}
