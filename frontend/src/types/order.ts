@@ -17,6 +17,9 @@ export interface Point {
 export interface Order {
   id: string;
 
+  // Current order status (mirrors backend OrderStatus values)
+  status?: OrderStatus;
+
   senderName: string;
   receiverName: string;
 
@@ -35,6 +38,14 @@ export interface Order {
   // Route currently transporting this order. Null/undefined when not yet assigned.
   routeId?: string | null;
 }
+
+export type OrderStatus =
+  | "ORDER.CREATED"
+  | "ORDER.PICKED_UP"
+  | "ORDER.DELIVERED"
+  | "ORDER.PAYMENT_RECEIVED"
+  | "ORDER.FAILED_ATTEMPT"
+  | "ORDER.CANCELLED";
 
 export type OrderEventType =
   | "ORDER.CREATED"

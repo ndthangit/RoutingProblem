@@ -18,7 +18,7 @@ import PackageIcon from "@mui/icons-material/LocalShipping";
 import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
-import type { Order, OrderEvent, PackageDetails, Point } from "../../types";
+import type { Order, OrderEvent, OrderStatus, PackageDetails, Point } from "../../types";
 import type { CustomerWarehouse } from "../../types";
 
 interface AddOrderModalProps {
@@ -38,6 +38,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
     receiverName: string;
     note: string;
 
+    status: OrderStatus;
+
     origin: string;
     destination: string;
 
@@ -54,6 +56,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
     senderName: "",
     receiverName: "",
     note: "",
+
+    status: "ORDER.CREATED",
 
     origin: "",
     destination: "",
@@ -73,6 +77,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
       senderName: "",
       receiverName: "",
       note: "",
+
+      status: "ORDER.CREATED",
 
       origin: "",
       destination: "",
@@ -125,6 +131,7 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
         senderName: initialOrder.senderName ?? "",
         receiverName: initialOrder.receiverName ?? "",
         note: initialOrder.note ?? "",
+        status: (initialOrder.status ?? "ORDER.CREATED") as OrderStatus,
         origin: initialOrder.origin?.address ?? "",
         destination: initialOrder.destination?.address ?? "",
         description: initialOrder.package?.description ?? "",
@@ -202,6 +209,7 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
 
       const order: Order = {
         id: initialOrder?.id ?? (window.crypto?.randomUUID?.() ?? ""),
+        status: initialOrder ? formData.status  : "ORDER.CREATED",
         origin: originPoint,
         destination: destinationPoint,
         senderName: formData.senderName,
@@ -279,6 +287,26 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
                 onChange={handleChange}
               />
             </Grid>
+
+            {initialOrder && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Order status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="ORDER.CREATED">ORDER.CREATED</MenuItem>
+                  <MenuItem value="ORDER.PICKED_UP">ORDER.PICKED_UP</MenuItem>
+                  <MenuItem value="ORDER.DELIVERED">ORDER.DELIVERED</MenuItem>
+                  <MenuItem value="ORDER.PAYMENT_RECEIVED">ORDER.PAYMENT_RECEIVED</MenuItem>
+                  <MenuItem value="ORDER.FAILED_ATTEMPT">ORDER.FAILED_ATTEMPT</MenuItem>
+                  <MenuItem value="ORDER.CANCELLED">ORDER.CANCELLED</MenuItem>
+                </TextField>
+              </Grid>
+            )}
 
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="Sender Name" name="senderName" value={formData.senderName} onChange={handleChange} />

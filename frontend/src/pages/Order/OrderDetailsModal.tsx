@@ -74,6 +74,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Parties
             </Typography>
+            <FieldRow label="Status" value={order.status} />
             <FieldRow label="Sender" value={order.senderName} />
             <FieldRow label="Receiver" value={order.receiverName} />
 

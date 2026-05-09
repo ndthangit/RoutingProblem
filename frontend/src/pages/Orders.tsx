@@ -53,6 +53,7 @@ export default function Orders() {
   const columns: GridColDef[] = useMemo(
     () => [
       { field: "id", headerName: "Order ID", width: 240 },
+      { field: "status", headerName: "Status", width: 160, valueGetter: (v) => v || "N/A" },
       {
         field: "origin",
         headerName: "Origin",
@@ -67,22 +68,7 @@ export default function Orders() {
         sortable: false,
         valueGetter: (_v, row: Order) => row.destination?.address || "N/A",
       },
-      { field: "senderName", headerName: "Sender", width: 160, valueGetter: (v) => v || "N/A" },
-      { field: "receiverName", headerName: "Receiver", width: 160, valueGetter: (v) => v || "N/A" },
-      {
-        field: "codAmount",
-        headerName: "COD",
-        width: 120,
-        type: "number",
-        valueGetter: (v) => (v ?? "N/A"),
-      },
-      {
-        field: "shippingFee",
-        headerName: "Shipping",
-        width: 120,
-        type: "number",
-        valueGetter: (v) => (v ?? "N/A"),
-      },
+
       {
         field: "createdAt",
         headerName: "Created",
