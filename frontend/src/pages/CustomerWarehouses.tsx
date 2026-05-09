@@ -132,7 +132,7 @@ export default function CustomerWarehouses() {
 
                     await request<CustomerWarehouseEvent>(
                       "DELETE",
-                      `/v1/customer-houses/${row.id}`,
+                      `/v1/customer-warehouses/${row.id}`,
                       undefined,
                       undefined,
                       payload

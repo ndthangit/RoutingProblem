@@ -100,9 +100,9 @@ export default function WarehouseRegistrationPage() {
       };
       console.log("Submitting customer warehouse registration:", payload);
 
-      await request<CustomerWarehouseEvent>("POST", "/v1/customer-houses", undefined, undefined, payload);
+      await request<CustomerWarehouseEvent>("POST", "/v1/customer-warehouses", undefined, undefined, payload);
 
-      navigate("/warehouses");
+      navigate("/customer-warehouses");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add customer warehouse");
     } finally {
