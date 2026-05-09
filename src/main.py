@@ -127,7 +127,9 @@ setup_keycloak_middleware(
         r"^/redoc",
         r"^/openapi.json$",
         r"^/v1/retrieval/sse/.*",
+        r"^/v1/orders/*",
         r"^/ws/.*",
+
         # r"^/.*",  # tạm thời cho phép tất cả api không cần xác thực
     ],
 )

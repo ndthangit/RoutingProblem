@@ -300,9 +300,10 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
                 >
                   <MenuItem value="ORDER.CREATED">ORDER.CREATED</MenuItem>
                   <MenuItem value="ORDER.PICKED_UP">ORDER.PICKED_UP</MenuItem>
-                  <MenuItem value="ORDER.DELIVERED">ORDER.DELIVERED</MenuItem>
+                  <MenuItem value="ORDER.DELIVERING">ORDER.DELIVERING</MenuItem>
                   <MenuItem value="ORDER.PAYMENT_RECEIVED">ORDER.PAYMENT_RECEIVED</MenuItem>
                   <MenuItem value="ORDER.FAILED_ATTEMPT">ORDER.FAILED_ATTEMPT</MenuItem>
+                  <MenuItem value="ORDER.COMPLETED">ORDER.COMPLETED</MenuItem>
                   <MenuItem value="ORDER.CANCELLED">ORDER.CANCELLED</MenuItem>
                 </TextField>
               </Grid>

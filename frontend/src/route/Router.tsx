@@ -11,7 +11,6 @@ import WarehouseRegistrationPage from "../pages/CustomerWarehouse/WarehouseRegis
 import Geography from "../pages/Geography";
 import RoutesPage from "../pages/Routes";
 import Schedules from "../pages/Schedules";
-// import WarehouseRegistrationPage from "../pages/Warehouse/WarehouseRegistrationPage";
 
 export function AppRouter() {
   return (

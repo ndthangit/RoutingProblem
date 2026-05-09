@@ -42,9 +42,10 @@ export interface Order {
 export type OrderStatus =
   | "ORDER.CREATED"
   | "ORDER.PICKED_UP"
-  | "ORDER.DELIVERED"
+  | "ORDER.DELIVERING"
   | "ORDER.PAYMENT_RECEIVED"
   | "ORDER.FAILED_ATTEMPT"
+  | "ORDER.COMPLETED"
   | "ORDER.CANCELLED";
 
 export type OrderEventType =

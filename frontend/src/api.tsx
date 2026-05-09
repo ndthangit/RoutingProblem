@@ -22,6 +22,25 @@ const axiosInstance = axios.create({
     headers: { "Content-Type": "application/json" },
 });
 
+// Public request helper (no Keycloak auth). Use for truly public endpoints (e.g. order tracking on landing page).
+export async function publicRequest<T = never>(
+    method: string,
+    url: string,
+    data?: unknown,
+    config: RequestConfig = {},
+    controller?: AbortController
+): Promise<AxiosResponse<T>> {
+    const safeConfig: RequestConfig = config || {};
+    const options: AxiosRequestConfig = {
+        method: method.toLowerCase(),
+        url,
+        data,
+        ...safeConfig,
+        signal: controller?.signal,
+    };
+    return axiosInstance.request(options) as Promise<AxiosResponse<T>>;
+}
+
 // Tạo header Bearer Authentication
 export const bearerAuth = (token: string | undefined): string => `Bearer ${token}`;
 

@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 
-export default function Hero() {
+type HeroProps = {
+  onTrackingSearch?: (orderId: string) => void | Promise<void>;
+};
+
+export default function Hero({ onTrackingSearch }: HeroProps) {
   const [trackingNumber, setTrackingNumber] = useState('');
 
   const handleTrackingSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (trackingNumber.trim()) {
-      alert(`Tracking number: ${trackingNumber}`);
+      onTrackingSearch?.(trackingNumber.trim());
     }
   };
 
@@ -33,7 +37,7 @@ export default function Hero() {
             Kết nối thế giới với dịch vụ vận chuyển hàng đầu
           </p>
 
-          <form onSubmit={handleTrackingSearch} className="max-w-2xl mx-auto">
+           <form onSubmit={handleTrackingSearch} className="max-w-2xl mx-auto">
             <div className="flex flex-col sm:flex-row gap-3 bg-white rounded-lg p-2 shadow-2xl">
               <div className="flex-1 flex items-center px-4">
                 <Search className="h-5 w-5 text-gray-400 mr-2" />
@@ -41,7 +45,7 @@ export default function Hero() {
                   type="text"
                   value={trackingNumber}
                   onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="Nhập mã vận đơn để tra cứu..."
+                   placeholder="Nhập mã đơn hàng / mã vận đơn để tra cứu..."
                   className="w-full py-3 text-gray-900 outline-none"
                 />
               </div>
