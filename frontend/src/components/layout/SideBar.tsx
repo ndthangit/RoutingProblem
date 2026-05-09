@@ -187,13 +187,15 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
                 <span className="text-sm font-medium text-white">Quản lý tài khoản</span>
               </button>
 
-              <button
-                onClick={handleWarehouseRegistration}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left"
-              >
-                <Icons.Warehouse className="w-5 h-5 text-slate-400" />
-                <span className="text-sm font-medium text-white">Đăng ký kho</span>
-              </button>
+             {userRoles.includes('warehouse_register') && (
+                <button
+                  onClick={handleWarehouseRegistration}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left"
+                >
+                  <Icons.Warehouse className="w-5 h-5 text-slate-400" />
+                  <span className="text-sm font-medium text-white">Đăng ký kho</span>
+                </button>
+              )}
 
               <div className="border-t border-slate-700" />
               <button
