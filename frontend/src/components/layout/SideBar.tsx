@@ -18,7 +18,14 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
   const userInfo = keycloak?.tokenParsed || {};
   const userName = userInfo.name || userInfo.preferred_username || 'Admin User';
   const userEmail = userInfo.email || 'user@tms.com';
-  
+
+  const getUserRoles = () => {
+    const roles = keycloak.tokenParsed?.resource_access?.["GoShip"]?.roles || [];
+    return roles;
+  };
+
+  const userRoles = getUserRoles();
+
   // Lấy initials từ tên
   const getUserInitials = () => {
     if (userInfo.given_name && userInfo.family_name) {
@@ -37,17 +44,34 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     return 'AD';
   };
 
-  const menuItems: Array<{ id: string; label: string; icon: any; path: string }> = [
-    { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard, path: '/dashboard' },
-    { id: 'orders', label: 'Orders', icon: Icons.Package, path: '/orders' },
-    { id: 'fleet', label: 'Fleet', icon: Icons.Truck, path: '/fleet' },
-    { id: 'drivers', label: 'Drivers', icon: Icons.Users, path: '/drivers' },
-    { id: 'warehouses', label: 'Warehouses', icon: Icons.Warehouse, path: '/warehouses' },
-    { id: 'customerWarehouses', label: 'Customer', icon: Icons.MapPin, path: '/customer-warehouses' },
-    { id: 'routes', label: 'Plans', icon: Icons.ClipboardList, path: '/routes' },
-    { id: 'schedules', label: 'Schedules', icon: Icons.Calendar, path: '/schedules' },
-    { id: 'geography', label: 'Bản đồ', icon: Icons.Map, path: '/geography' },
+  // Định nghĩa menu items với required roles
+  const menuItems: Array<{
+    id: string;
+    label: string;
+    icon: any;
+    path: string;
+    requiredRole?: string; // Role cần có để xem menu này
+  }> = [
+    { id: 'dashboard', label: 'Dashboard', icon: Icons.LayoutDashboard, path: '/dashboard', requiredRole: 'dashboard' },
+    { id: 'orders', label: 'Orders', icon: Icons.Package, path: '/orders', requiredRole: 'orders' },
+    { id: 'fleet', label: 'Fleet', icon: Icons.Truck, path: '/fleet', requiredRole: 'fleet' },
+    { id: 'drivers', label: 'Drivers', icon: Icons.Users, path: '/drivers', requiredRole: 'drivers' },
+    { id: 'warehouses', label: 'Warehouses', icon: Icons.Warehouse, path: '/warehouses', requiredRole: 'warehouses' },
+    { id: 'customerWarehouses', label: 'Customer', icon: Icons.MapPin, path: '/customer-warehouses', requiredRole: 'customer' },
+    { id: 'plans', label: 'Plans', icon: Icons.ClipboardList, path: '/plans', requiredRole: 'plans' },
+    { id: 'schedules', label: 'Schedules', icon: Icons.Calendar, path: '/schedules', requiredRole: 'schedules' },
+    { id: 'geography', label: 'Bản đồ', icon: Icons.Map, path: '/geography', requiredRole: 'geography' },
   ];
+
+  // Kiểm tra user có quyền truy cập menu item không
+  const hasAccess = (requiredRole?: string) => {
+    if (!requiredRole) return true;
+    // Kiểm tra user có role được yêu cầu không
+    return userRoles.includes(requiredRole);
+  };
+
+  // Lọc menu items dựa trên quyền
+  const accessibleMenuItems = menuItems.filter(item => hasAccess(item.requiredRole));
 
   const handleMenuClick = (item: typeof menuItems[0]) => {
     setActiveTab(item.id);
@@ -93,6 +117,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     if (initialized && !keycloak?.authenticated) {
       navigate('/login');
     }
+
+    console.log("user:", keycloak?.tokenParsed);
   }, [initialized, keycloak, navigate]);
 
   return (
@@ -110,7 +136,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
       </div>
 
       <nav className="flex-1 p-4">
-        {menuItems.map((item) => {
+        {accessibleMenuItems.map((item) => {
           const Icon = item.icon;
           return (
             <button

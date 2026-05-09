@@ -19,7 +19,6 @@ export default function Layout() {
     else if (path.startsWith('/routes')) next = 'routes';
     else if (path.startsWith('/schedules')) next = 'schedules';
     else if (path.startsWith('/geography')) next = 'geography';
-    else if (path.startsWith('/ai-optimization')) next = 'ai';
     else if (path.startsWith('/dashboard')) next = 'dashboard';
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveTab(next);

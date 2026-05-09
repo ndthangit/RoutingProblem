@@ -12,7 +12,7 @@ export default function Header() {
 
   const handleSignup = () => {
     keycloak.register({
-      redirectUri: window.location.origin + '/',
+      redirectUri: window.location.origin + '/dashboard',
     });
   };
 

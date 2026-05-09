@@ -26,20 +26,20 @@ export function AppRouter() {
         </Route> */}
         {/* Protected routes with Layout */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-          <Route path="/dashboard" element={<div>Dashboard Page</div>} />
-                        <Route path="/orders" element={<Orders />} />
-                                      <Route path="/fleet" element={<Vehicles />} />
-                                      <Route path="/drivers" element={<Drivers />} />
-                                      <Route path="/warehouses" element={<Warehouses />} />
-                                      <Route path="/customer-warehouses" element={<CustomerWarehouses />} />
-                                      <Route path="/routes" element={<RoutesPage />} />
-                                      <Route path="/schedules" element={<Schedules />} />
-                                      <Route path="/geography" element={<Geography />} />
-                                       <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />
+            <Route element={<Layout />}>
+            {/*<Route path="/dashboard" element={<div>Dashboard Page</div>} />*/}
+            {/*<Route path="/orders" element={<Orders />} />*/}
+            {/*<Route path="/fleet" element={<Vehicles />} />*/}
+            {/*<Route path="/drivers" element={<Drivers />} />*/}
+            {/*<Route path="/warehouses" element={<Warehouses />} />*/}
+            {/*<Route path="/customer-warehouses" element={<CustomerWarehouses />} />*/}
+            {/*<Route path="/plans" element={<RoutesPage />} />*/}
+            {/*<Route path="/schedules" element={<Schedules />} />*/}
+            {/*<Route path="/geography" element={<Geography />} />*/}
+            {/*<Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />*/}
 
 
-            {/* <Route element={<ProtectedRoute requiredRole="dashboard" />}>
+             <Route element={<ProtectedRoute requiredRole="dashboard" />}>
               <Route path="/dashboard" element={<div>Dashboard Page</div>} />
             </Route>
             <Route element={<ProtectedRoute requiredRole="orders" />}>
@@ -54,11 +54,24 @@ export function AppRouter() {
             </Route>
             <Route element={<ProtectedRoute requiredRole="warehouses" />}>
               <Route path="/warehouses" element={<Warehouses />} />
+            </Route>
+                <Route element={<ProtectedRoute requiredRole="/customer-warehouses" />}>
+              <Route path="//customer-warehouses" element={<CustomerWarehouses />} />
+            </Route>
+                <Route element={<ProtectedRoute requiredRole="plans" />}>
+              <Route path="/plans" element={<RoutesPage />} />
+            </Route>
+                <Route element={<ProtectedRoute requiredRole="schedules" />}>
+              <Route path="/schedules" element={<Schedules />} />
+            </Route>
+                <Route element={<ProtectedRoute requiredRole="geography" />}>
+              <Route path="/geography" element={<Geography />} />
+            </Route>
+                <Route element={<ProtectedRoute requiredRole="warehouse_register" />}>
               <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />
-            </Route> */}
+            </Route>
 
 
-            <Route path="/ai-optimization" element={<div>404 Page</div>} />
           </Route>
         </Route>
 
