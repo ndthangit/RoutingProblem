@@ -257,7 +257,7 @@ export default function Drivers() {
       {
         field: "phone",
         headerName: "Phone",
-        width: 120,
+        width: 100,
         valueGetter: (value) => value || "N/A",
       },
       {
@@ -271,7 +271,7 @@ export default function Drivers() {
       {
         field: "driverType",
         headerName: "Type",
-        width: 110,
+        width: 100,
         sortable: false,
         renderCell: (params: GridRenderCellParams<Driver, Driver["driverType"]>) => (
           <DriverTypeBadge driverType={params.value as DriverType | undefined} />
@@ -299,13 +299,7 @@ export default function Drivers() {
           );
         },
       },
-      {
-        field: "rating",
-        headerName: "Rating",
-        width: 80,
-        type: "number",
-        valueGetter: (value) => (value ?? "N/A"),
-      },
+
       {
         field: "licenseClass",
         headerName: "License Class",

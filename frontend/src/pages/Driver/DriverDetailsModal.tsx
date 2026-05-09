@@ -139,11 +139,8 @@ export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDe
             <Divider sx={{ my: 2 }} />
 
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-              Health & Emergency
+              Emergency
             </Typography>
-            <FieldRow label="Health check date" value={formatDate(driver.healthCheckDate)} />
-            <FieldRow label="Health check expiry" value={formatDate(driver.healthCheckExpiry)} />
-            <FieldRow label="Medical conditions" value={driver.medicalConditions} />
             <FieldRow label="Emergency contact name" value={driver.emergencyContactName} />
             <FieldRow label="Emergency contact phone" value={driver.emergencyContactPhone} />
             <FieldRow label="Emergency contact relation" value={driver.emergencyContactRelation} />

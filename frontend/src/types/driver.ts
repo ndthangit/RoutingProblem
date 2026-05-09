@@ -58,10 +58,6 @@ export interface Driver {
   contractStartDate?: string;
   contractEndDate?: string;
 
-  // Health
-  healthCheckDate?: string;
-  healthCheckExpiry?: string;
-  medicalConditions?: string;
 
   // Keycloak / identity
   sub?: string;

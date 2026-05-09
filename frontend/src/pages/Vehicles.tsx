@@ -93,19 +93,11 @@ export default function Vehicles() {
     },
 
     {
-      field: 'brandModel',
-      headerName: 'Brand/Model',
-      width: 120,
+      field: 'warehouseAddress',
+      headerName: 'warehouse',
+      width: 220,
       sortable: false,
-      valueGetter: (_value, row: Vehicle) =>
-        row.brand && row.model ? `${row.brand} ${row.model}` : (row.brand || row.model || 'N/A'),
-    },
-    {
-      field: 'year',
-      headerName: 'Year',
-      width: 60,
-      type: 'number',
-      valueGetter: (value) => value ?? 'N/A',
+      valueGetter:  (value) => value ?? 'N/A',
     },
     {
       field: 'capacity',

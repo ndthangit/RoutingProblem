@@ -47,7 +47,7 @@ const steps = [
   "Thông tin tài khoản",
   "Bằng lái & công việc",
   "Hợp đồng & phân công",
-  "Sức khỏe & liên hệ khẩn",
+  "Liên hệ khẩn",
 ];
 
 function toIsoDateTime(value?: string): string | undefined {
@@ -130,10 +130,6 @@ export default function EditDriverModal({ isOpen, onClose, onSuccess, driver }: 
       emergencyContactName: driver.emergencyContactName ?? "",
       emergencyContactPhone: driver.emergencyContactPhone ?? "",
       emergencyContactRelation: driver.emergencyContactRelation ?? "",
-
-      healthCheckDate: driver.healthCheckDate ?? "",
-      healthCheckExpiry: driver.healthCheckExpiry ?? "",
-      medicalConditions: driver.medicalConditions ?? "",
     });
   }, [isOpen, driver]);
 
@@ -249,8 +245,6 @@ export default function EditDriverModal({ isOpen, onClose, onSuccess, driver }: 
         licenseExpiryDate: toIsoDateTime(formData.licenseExpiryDate),
         contractStartDate: toIsoDateTime(formData.contractStartDate),
         contractEndDate: toIsoDateTime(formData.contractEndDate),
-        healthCheckDate: toIsoDateTime(formData.healthCheckDate),
-        healthCheckExpiry: toIsoDateTime(formData.healthCheckExpiry),
       } as Driver);
 
       const payload = {
@@ -619,42 +613,6 @@ export default function EditDriverModal({ isOpen, onClose, onSuccess, driver }: 
                 value={formData.emergencyContactRelation ?? ""}
                 onChange={handleChange}
                 placeholder="Spouse / Parent"
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Health check date"
-                name="healthCheckDate"
-                type="date"
-                value={(formData.healthCheckDate ?? "").slice(0, 10)}
-                onChange={handleChange}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Health check expiry"
-                name="healthCheckExpiry"
-                type="date"
-                value={(formData.healthCheckExpiry ?? "").slice(0, 10)}
-                onChange={handleChange}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Medical conditions"
-                name="medicalConditions"
-                value={formData.medicalConditions ?? ""}
-                onChange={handleChange}
-                multiline
-                minRows={3}
-                placeholder="Ghi chú nếu có"
               />
             </Grid>
           </Grid>

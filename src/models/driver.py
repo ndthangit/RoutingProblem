@@ -88,13 +88,7 @@ class DriverBase(BaseModel):
     contract_end_date: Optional[datetime] = Field(default=None, description="Ngày kết thúc hợp đồng",
                                                   alias="contractEndDate")
 
-    # Hồ sơ sức khỏe
-    health_check_date: Optional[datetime] = Field(default=None, description="Ngày khám sức khỏe gần nhất",
-                                                  alias="healthCheckDate")
-    health_check_expiry: Optional[datetime] = Field(default=None, description="Hạn khám sức khỏe",
-                                                    alias="healthCheckExpiry")
-    medical_conditions: Optional[str] = Field(default=None, description="Tình trạng sức khỏe đặc biệt",
-                                              alias="medicalConditions")
+    # (Removed) Hồ sơ sức khỏe
 
 
 class Driver(User, DriverBase):
@@ -120,12 +114,6 @@ class Driver(User, DriverBase):
         """Kiểm tra bằng lái còn hiệu lực"""
         return datetime.now(timezone.utc) < self.license_expiry_date
 
-    @property
-    def is_health_check_valid(self) -> bool:
-        """Kiểm tra giấy khám sức khỏe còn hiệu lực"""
-        if self.health_check_expiry:
-            return datetime.now(timezone.utc) < self.health_check_expiry
-        return False
 
     @property
     def is_available_for_trip(self) -> bool:
