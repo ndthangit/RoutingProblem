@@ -222,19 +222,29 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
       };
 
       if (initialOrder) {
-        console.log("Updating order:", order);
-        await request<Order>("PUT", `/v1/orders/${initialOrder.id}`, undefined, undefined, order);
-      } else {
-        const payload: OrderEvent = {
+      // UPDATE: Send ORDER.UPDATED event
+      console.log("Updating order:", order);
+      const updateEvent: OrderEvent = {
+        event_id: window.crypto?.randomUUID?.() ?? "",
+        timestamp: nowIso,
+        ownerEmail: "unknown",
+        eventType: "ORDER.UPDATED", // Changed from ORDER.CREATED to ORDER.UPDATED
+        order,
+      };
+      // Backend expects append event at POST /v1/orders/{order_id}/events
+      await request<OrderEvent>("POST", `/v1/orders/${order.id}/events`, undefined, undefined, updateEvent);
+    } else {
+        // CREATE: Send ORDER.CREATED event
+        const createEvent: OrderEvent = {
           event_id: window.crypto?.randomUUID?.() ?? "",
           timestamp: nowIso,
           ownerEmail: "unknown",
           eventType: "ORDER.CREATED",
           order,
         };
-
-        console.log("Submitting new order event:", payload);
-        await request<OrderEvent>("POST", "/v1/orders", undefined, undefined, payload);
+        console.log("Submitting new order event:", createEvent);
+        // Backend create endpoint is POST /v1/orders
+        await request<OrderEvent>("POST", "/v1/orders", undefined, undefined, createEvent);
       }
 
       onSuccess();

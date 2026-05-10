@@ -50,13 +50,8 @@ export type OrderStatus =
 
 export type OrderEventType =
   | "ORDER.CREATED"
-  | "ORDER.PICKED_UP"
-  | "ORDER.ARRIVED_AT_HUB"
-  | "ORDER.DISPATCHED"
-  | "ORDER.OUT_FOR_DELIVERY"
-  | "ORDER.DELIVERED"
-  | "ORDER.PAYMENT_RECEIVED"
-  | "ORDER.FAILED_ATTEMPT"
+  | "ORDER.UPDATED"
+  | "ORDER.DELETED"
   | "ORDER.CANCELLED";
 
 export interface OrderEvent {

@@ -19,6 +19,7 @@ from src.api.drivers import router as drivers_router
 from src.api.brand_warehouses import router as brand_warehouses_router
 from src.api.customer_warehouses import router as customer_houses_router
 from src.api.orders import router as orders_router
+from src.api.public_orders import router as public_orders_router
 from src.api.routing import router as routing_router
 from src.api.routes import router as routes_router
 from src.api.schedules import router as schedules_router
@@ -127,7 +128,8 @@ setup_keycloak_middleware(
         r"^/redoc",
         r"^/openapi.json$",
         r"^/v1/retrieval/sse/.*",
-        r"^/v1/orders/*",
+        r"^/v1/public/orders/.*",
+        # r"^/v1/orders/*",
         r"^/ws/.*",
 
         # r"^/.*",  # tạm thời cho phép tất cả api không cần xác thực
@@ -194,6 +196,7 @@ app.include_router(drivers_router, prefix=settings.API_V1_PREFIX)
 app.include_router(brand_warehouses_router, prefix=settings.API_V1_PREFIX)
 app.include_router(customer_houses_router, prefix=settings.API_V1_PREFIX)
 app.include_router(orders_router, prefix=settings.API_V1_PREFIX)
+app.include_router(public_orders_router, prefix=settings.API_V1_PREFIX)
 app.include_router(routing_router, prefix=settings.API_V1_PREFIX)
 app.include_router(routes_router, prefix=settings.API_V1_PREFIX)
 app.include_router(schedules_router, prefix=settings.API_V1_PREFIX)

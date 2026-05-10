@@ -79,7 +79,7 @@ export default function Home() {
     setTrackedOrder(null);
 
     try {
-      const res = await publicRequest<Order>("GET", `/v1/orders/${encodeURIComponent(orderId)}`);
+      const res = await publicRequest<Order>("GET", `/v1/public/orders/${encodeURIComponent(orderId)}`);
       const order = res.data ?? null;
       if (!order) {
         setTrackingError("Không tìm thấy đơn hàng.");

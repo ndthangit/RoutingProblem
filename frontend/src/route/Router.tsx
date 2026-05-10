@@ -54,8 +54,8 @@ export function AppRouter() {
             <Route element={<ProtectedRoute requiredRole="warehouses" />}>
               <Route path="/warehouses" element={<Warehouses />} />
             </Route>
-                <Route element={<ProtectedRoute requiredRole="/customer-warehouses" />}>
-              <Route path="//customer-warehouses" element={<CustomerWarehouses />} />
+                <Route element={<ProtectedRoute requiredRole="customer-warehouses" />}>
+              <Route path="/customer-warehouses" element={<CustomerWarehouses />} />
             </Route>
                 <Route element={<ProtectedRoute requiredRole="plans" />}>
               <Route path="/plans" element={<RoutesPage />} />

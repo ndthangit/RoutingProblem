@@ -10,6 +10,7 @@ from src.models.customer_warehouse import CustomerWarehouseEvent, CustomerWareho
 from src.models.routing import Point
 from src.services.routing_service import RoutingService
 from src.services.customer_warehouse_service import CustomerWarehouseService
+from src.services.order_customer_warehouse_service import OrderCustomerWarehouseService
 
 ORDER_COLLECTION = "order"
 ORDER_EVENT_COLLECTION = "order_event"
@@ -153,6 +154,9 @@ class OrderService:
         # Keep the stored order immutable fields stable.
         event.order.created_at = existing.created_at
         await self._persist_event(event)
+
+        # Apply side-effects for specific updates (e.g. PICKED_UP decrements pending load).
+        await OrderCustomerWarehouseService(self._cb).handle_order_updated(event)
         return event
 
     async def list_events(self, order_id: str, *, limit: int = 200, offset: int = 0) -> list[OrderEvent]:
