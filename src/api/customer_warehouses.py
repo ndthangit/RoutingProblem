@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from src.config.couchbase import CouchbaseClient
 from src.dependencies import get_current_user
@@ -36,6 +36,18 @@ async def create_customer_house(
     return await service.create_customer_warehouse(event)
 
 
+@router.get("/me", response_model=CustomerWarehouse)
+async def get_my_customer_house(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    service = _get_service(request)
+    customer_house = await service.get_customer_warehouse_by_owner_email(current_user.email)
+    if customer_house is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer house not found")
+    return customer_house
+
+
 @router.get("/{customer_house_id}", response_model=CustomerWarehouse)
 async def get_customer_house(customer_house_id: str, request: Request):
     service = _get_service(request)
@@ -46,8 +58,16 @@ async def get_customer_house(customer_house_id: str, request: Request):
 
 
 @router.get("", response_model=list[CustomerWarehouse])
-async def list_customer_houses(request: Request, limit: int = 100, offset: int = 0):
+async def list_customer_houses(
+    request: Request,
+    limit: int = 100,
+    offset: int = 0,
+    owner_email: str | None = Query(default=None, alias="ownerEmail"),
+):
     service = _get_service(request)
+    if owner_email:
+        cw = await service.get_customer_warehouse_by_owner_email(owner_email)
+        return [cw] if cw else []
     return await service.list_customer_warehouses(limit=limit, offset=offset)
 
 

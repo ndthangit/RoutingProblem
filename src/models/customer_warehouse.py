@@ -17,6 +17,10 @@ class CustomerWarehouseStatus(str, Enum):
 
 
 class CustomerWarehouse(Point):
+    # --- OWNER ---
+    # Persist owner email on the warehouse document so the API can query "my" warehouse.
+    owner_email: Optional[str] = Field(default=None, alias="ownerEmail")
+
     # --- THÔNG TIN NGƯỜI ĐẠI DIỆN ---
     representative_name: str = Field(..., description="Tên người đại diện tại kho", alias="representativeName")
     contact_phone: str = Field(..., alias="contactPhone")

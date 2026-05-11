@@ -120,6 +120,10 @@ class CustomerWarehouseService:
             coord = await RoutingService().geocode_address(event.customer_warehouse.address)
             event.customer_warehouse.coordinate = coord
 
+        # Persist owner for later user-scoped queries.
+        if getattr(event, "owner_email", None):
+            event.customer_warehouse.owner_email = event.owner_email
+
         # Default hubResponsible: nearest HUB
         if not event.customer_warehouse.hub_responsible:
             event.customer_warehouse.hub_responsible = await self._resolve_nearest_hub_id(event.customer_warehouse)
@@ -156,10 +160,36 @@ class CustomerWarehouseService:
             print(f"Couchbase query failed: {e}")
             return []
 
+    async def get_customer_warehouse_by_owner_email(self, owner_email: str) -> Optional[CustomerWarehouse]:
+        """Return the most recently updated customer warehouse owned by the given email."""
+        scope_name = self._cb.scope.name if self._cb.scope else "default"
+        statement = (
+            f"SELECT c.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{CUSTOMER_HOUSE_COLLECTION} c "
+            "WHERE c.ownerEmail = $owner_email "
+            "ORDER BY c.updatedAt DESC "
+            "LIMIT 1"
+        )
+
+        try:
+            result = await self._cb.query(statement, owner_email=owner_email)
+            rows = list(result)
+            if not rows:
+                return None
+            return CustomerWarehouse.model_validate(rows[0])
+        except CouchbaseException as e:
+            print(f"Couchbase query failed while getting customer warehouse by ownerEmail: {e}")
+            return None
+
     async def update_customer_warehouse(self, event: CustomerWarehouseEvent) -> Optional[CustomerWarehouse]:
         existing = await self.get_customer_warehouse(event.customer_warehouse.id)
         if existing is None:
             return None
+
+        # Keep ownership stable (always prefer server-authenticated owner).
+        if getattr(event, "owner_email", None):
+            event.customer_warehouse.owner_email = event.owner_email
+        else:
+            event.customer_warehouse.owner_email = getattr(existing, "owner_email", None)
 
         event.customer_warehouse.created_at = existing.created_at
         event.customer_warehouse.updated_at = datetime.now(timezone.utc)

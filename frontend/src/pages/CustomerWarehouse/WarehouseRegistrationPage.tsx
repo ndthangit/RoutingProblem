@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -26,7 +26,15 @@ export default function WarehouseRegistrationPage() {
   const { keycloak } = useKeycloak();
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [existingWarehouse, setExistingWarehouse] = useState<CustomerWarehouse | null>(null);
+
+  const ownerEmail = useMemo(() => {
+    return (
+      ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email || "unknown"
+    );
+  }, [keycloak?.tokenParsed]);
 
   const [formData, setFormData] = useState<Partial<CustomerWarehouse>>({
     name: "",
@@ -66,10 +74,59 @@ export default function WarehouseRegistrationPage() {
     });
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchMyWarehouse = async () => {
+      setInitialLoading(true);
+      setError(null);
+      try {
+        const res = await request<CustomerWarehouse>("GET", "/v1/customer-warehouses/me");
+        const cw = res?.data ?? null;
+        if (cancelled) return;
+
+        if (cw) {
+          setExistingWarehouse(cw);
+          setFormData({
+            id: cw.id,
+            name: cw.name ?? "",
+            address: cw.address ?? "",
+            representativeName: cw.representativeName ?? (keycloak?.tokenParsed?.name || ""),
+            contactPhone: cw.contactPhone ?? "",
+            pendingWeight: cw.pendingWeight ?? 0,
+            totalPendingOrders: cw.totalPendingOrders ?? 0,
+            status: cw.status ?? "ACTIVE",
+            hubResponsible: cw.hubResponsible ?? null,
+            coordinate: cw.coordinate ?? null,
+            createdAt: cw.createdAt,
+            updatedAt: cw.updatedAt,
+          });
+        } else {
+          setExistingWarehouse(null);
+          resetForm();
+        }
+      } catch (err) {
+        // If the user has no warehouse yet, backend returns 404; that's not an error for this page.
+        const message = err instanceof Error ? err.message : String(err);
+        if (!cancelled && !/404/.test(message)) {
+          setError("Không thể tải thông tin kho hiện tại.");
+        }
+      } finally {
+        if (!cancelled) setInitialLoading(false);
+      }
+    };
+
+    fetchMyWarehouse();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleCancel = () => {
-    if (loading) return;
+    if (loading || initialLoading) return;
     resetForm();
-    navigate("/warehouses");
+    navigate("/customer-warehouses");
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -92,15 +149,23 @@ export default function WarehouseRegistrationPage() {
       const payload: CustomerWarehouseEvent = {
         event_id: window.crypto?.randomUUID?.() ?? "",
         timestamp: nowIso,
-        ownerEmail:
-          ((keycloak?.tokenParsed as unknown) as { email?: string } | undefined)?.email ||
-          "unknown",
-        eventType: "CUSTOMER_LOCATION.REGISTERED",
-        customerWarehouse:  customerWarehouse as CustomerWarehouse,
+        ownerEmail,
+        eventType: existingWarehouse ? "CUSTOMER_LOCATION.UPDATED" : "CUSTOMER_LOCATION.REGISTERED",
+        customerWarehouse: customerWarehouse as CustomerWarehouse,
       };
       console.log("Submitting customer warehouse registration:", payload);
 
-      await request<CustomerWarehouseEvent>("POST", "/v1/customer-warehouses", undefined, undefined, payload);
+      if (existingWarehouse?.id) {
+        await request<CustomerWarehouseEvent>(
+          "PUT",
+          `/v1/customer-warehouses/${existingWarehouse.id}`,
+          undefined,
+          undefined,
+          payload
+        );
+      } else {
+        await request<CustomerWarehouseEvent>("POST", "/v1/customer-warehouses", undefined, undefined, payload);
+      }
 
       navigate("/customer-warehouses");
     } catch (err) {
@@ -115,7 +180,9 @@ export default function WarehouseRegistrationPage() {
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <WarehouseIcon fontSize="small" />
-          <h2 className="text-lg font-bold text-slate-900">Đăng ký kho khách hàng</h2>
+          <h2 className="text-lg font-bold text-slate-900">
+            {existingWarehouse ? "Thông tin kho khách hàng" : "Đăng ký kho khách hàng"}
+          </h2>
         </div>
       </div>
 
@@ -127,6 +194,12 @@ export default function WarehouseRegistrationPage() {
             </Alert>
           )}
 
+          {initialLoading ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <CircularProgress size={18} />
+              <span>Loading...</span>
+            </Box>
+          ) : (
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
@@ -202,6 +275,7 @@ export default function WarehouseRegistrationPage() {
                 onChange={handleChange}
                 slotProps={{ htmlInput: { min: 0, step: 0.1 } }}
                 variant="outlined"
+                disabled={true}
               />
             </Grid>
 
@@ -215,9 +289,11 @@ export default function WarehouseRegistrationPage() {
                 onChange={handleChange}
                 slotProps={{ htmlInput: { min: 0, step: 1 } }}
                 variant="outlined"
+                disabled={true}
               />
             </Grid>
           </Grid>
+          )}
 
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
             <Button onClick={handleCancel} disabled={loading} variant="outlined" size="large">
@@ -225,7 +301,7 @@ export default function WarehouseRegistrationPage() {
             </Button>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || initialLoading}
               variant="contained"
               size="large"
               sx={{ minWidth: 140 }}
@@ -236,7 +312,7 @@ export default function WarehouseRegistrationPage() {
                   Save...
                 </Box>
               ) : (
-                "Save"
+                existingWarehouse ? "Update" : "Save"
               )}
             </Button>
           </Box>
