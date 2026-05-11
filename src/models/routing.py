@@ -112,6 +112,8 @@ class Route(BaseModel):
     origin: Point = Field(..., description="Điểm bắt đầu")
     destination: Point = Field(..., description="Điểm kết kthúc")
 
+    created_at : datetime = Field(default_factory=lambda: datetime.now(), alias="createdAt")
+
     start_time: Optional[datetime] = Field(default=None, alias="startTime")
     end_time: Optional[datetime] = Field(default=None, alias="endTime")
     # New: route type (camelCase on API)

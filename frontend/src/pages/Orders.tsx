@@ -52,8 +52,8 @@ export default function Orders() {
 
   const columns: GridColDef[] = useMemo(
     () => [
-      { field: "id", headerName: "Order ID", width: 240 },
-      { field: "status", headerName: "Status", width: 160, valueGetter: (v) => v || "N/A" },
+      { field: "id", headerName: "Order ID", width: 150 },
+      { field: "status", headerName: "Status", width: 150, valueGetter: (v) => v || "N/A" },
       {
         field: "origin",
         headerName: "Origin",

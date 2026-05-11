@@ -12,7 +12,10 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 
+import React from "react";
+
 import type { Plan } from "../../types";
+import { request } from "../../api";
 
 interface PlanDetailsModalProps {
   isOpen: boolean;
@@ -44,8 +47,113 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
 export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsModalProps) {
   const stops = Array.isArray(plan?.points) ? plan!.points!.length : 0;
 
+  // UI-only state: mark a stop as arrived within this modal session.
+  const [arrivedByStopKey, setArrivedByStopKey] = React.useState<Record<string, boolean>>({});
+
+  React.useEffect(() => {
+    // Reset state when switching plans or reopening.
+    if (isOpen) setArrivedByStopKey({});
+  }, [isOpen, plan?.id]);
+
+  const [isSavingStopKey, setIsSavingStopKey] = React.useState<string | null>(null);
+
+  const updatePlanStartTimeIfNeeded = async (nowIso: string) => {
+    if (!plan) return;
+    const hasStart = plan.startTime !== null && plan.startTime !== undefined && String(plan.startTime).trim() !== "";
+    if (hasStart) return;
+
+    const updatedPlan: Plan = { ...plan, startTime: nowIso };
+    const payload = {
+      event_id: window.crypto?.randomUUID?.() ?? "",
+      timestamp: nowIso,
+      ownerEmail: "unknown",
+      eventType: "PLAN.UPDATED",
+      plan: updatedPlan,
+    };
+
+    await request("PUT", `/v1/plans/${encodeURIComponent(plan.id)}`, undefined, undefined, payload as any);
+  };
+
+  const updateRouteStatus = async (routeId: string, patch: Record<string, unknown>, nowIso: string) => {
+    // NOTE: backend Route model origin/destination are Point objects; we rely on plan.routes already containing that.
+    const route = (plan as any)?.routes?.find((r: any) => String(r?.id) === String(routeId));
+    if (!route) return;
+    const updatedRoute = { ...route, ...patch };
+
+    const payload = {
+      event_id: window.crypto?.randomUUID?.() ?? "",
+      timestamp: nowIso,
+      ownerEmail: "unknown",
+      // use update endpoint; eventType not strictly validated
+      eventType: "ROUTE.STATUS_CHANGED",
+      route: updatedRoute,
+    };
+
+    await request("PUT", `/v1/routes/${encodeURIComponent(routeId)}`, undefined, undefined, payload as any);
+  };
+
+  const handleMarkArrived = async (stopKey: string, idx: number) => {
+    if (!plan) return;
+    const nowIso = new Date().toISOString();
+
+    // optimistic UI
+    setArrivedByStopKey((prev) => ({ ...prev, [stopKey]: true }));
+    setIsSavingStopKey(stopKey);
+
+    try {
+      // 1) If this is the first point of the plan => set plan.startTime = now
+      if (idx === 0) {
+        await updatePlanStartTimeIfNeeded(nowIso);
+      }
+
+      // 2) Route logic: treat "Stop i" as start of route i, and stop i+1 as end of route i
+      // This is consistent with: routes are segments between consecutive points.
+      const routes: any[] = Array.isArray((plan as any).routes) ? ((plan as any).routes as any[]) : [];
+
+      // If arriving at start of a route => IN_PROGRESS + startTime
+      if (routes[idx]?.id) {
+        await updateRouteStatus(
+          String(routes[idx].id),
+          {
+            routeStatus: "IN_PROGRESS",
+            startTime: nowIso,
+          },
+          nowIso
+        );
+      }
+
+      // If arriving at end of a route (destination) => COMPLETED + endTime
+      if (idx > 0 && routes[idx - 1]?.id) {
+        await updateRouteStatus(
+          String(routes[idx - 1].id),
+          {
+            routeStatus: "COMPLETED",
+            endTime: nowIso,
+          },
+          nowIso
+        );
+      }
+    } catch (e) {
+      console.error("Mark arrived failed:", e);
+      // rollback optimistic UI on failure
+      setArrivedByStopKey((prev) => {
+        const next = { ...prev };
+        delete next[stopKey];
+        return next;
+      });
+    } finally {
+      setIsSavingStopKey(null);
+    }
+  };
+
+  const handleClose = () => {
+    setArrivedByStopKey({});
+    setIsSavingStopKey(null);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={isOpen} onClose={handleClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <PlaylistAddCheckIcon sx={{ color: "primary.main" }} />
         <Box sx={{ flex: 1 }}>
@@ -56,7 +164,7 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
             {plan?.id ?? ""}
           </Typography>
         </Box>
-        <IconButton onClick={onClose} size="small" aria-label="Close">
+        <IconButton onClick={handleClose} size="small" aria-label="Close">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -106,11 +214,30 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
                       p: 1.5,
                     }}
                   >
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      Stop {idx + 1}
-                    </Typography>
+                    {(() => {
+                      const stopKey = String(p.id ?? idx);
+                      const arrived = Boolean(arrivedByStopKey[stopKey]);
+                      return (
+                        <>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, flex: 1 }}>
+                              Stop {idx + 1}
+                            </Typography>
+                            <Button
+                              size="small"
+                              variant={arrived ? "outlined" : "contained"}
+                              color={arrived ? "success" : "primary"}
+                              disabled={arrived || isSavingStopKey === stopKey}
+                              onClick={() => void handleMarkArrived(stopKey, idx)}
+                            >
+                              Đã đến
+                            </Button>
+                          </Box>
+                        </>
+                      );
+                    })()}
                     <Typography variant="body2" color="text.secondary">
-                      {String(p.name ?? p.address ?? p.id ?? "N/A")}
+                      {String(p.address ?? p.name ?? p.id ?? "N/A")}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {p.coordinate ? `${p.coordinate.lat}, ${p.coordinate.lon}` : ""}
@@ -128,7 +255,7 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} variant="contained">
+        <Button onClick={handleClose} variant="contained">
           Close
         </Button>
       </DialogActions>

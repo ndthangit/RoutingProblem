@@ -43,11 +43,11 @@ class CustomerWarehouseService:
         """
         scope_name = self._cb.scope.name if self._cb.scope else "default"
         statement = (
-            f"SELECT w.id, w.coordinate FROM `{self._cb.bucket.name}`.`{scope_name}`.warehouse w "
+            f"SELECT w.id, w.coordinate FROM `{self._cb.bucket.name}`.`{scope_name}`.brand_warehouse w "
             "WHERE w.warehouseType = $warehouse_type AND w.coordinate IS NOT NULL"
         )
         try:
-            result = await self._cb.query(statement, warehouse_type=BrandWarehouseType.HUB.value)
+            result = await self._cb.query(statement, warehouse_type=BrandWarehouseType.DEPOT.value)
             return list(result)
         except CouchbaseException as e:
             print(f"Couchbase query failed while listing hubs: {e}")

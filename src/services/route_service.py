@@ -38,10 +38,6 @@ class RouteService:
                 f"Invalid eventType: expected {RouteEventType.ROUTE_STARTED}, got {event.event_type}"
             )
 
-        # start time should reflect when the route starts moving
-        if event.route.start_time is None:
-            # EventBase.timestamp is timezone-aware; fall back to now if needed
-            event.route.start_time = getattr(event, "timestamp", None) or datetime.now(timezone.utc)
 
         # Enrich coordinates from addresses if not provided by client.
         # Route.origin / Route.destination are Point models (with `.address` + optional `.coordinate`).
@@ -87,9 +83,6 @@ class RouteService:
         # Force correct id
         event.route.id = route_id
 
-        # Preserve original start_time unless explicitly provided
-        if event.route.start_time is None:
-            event.route.start_time = existing.start_time
 
         # If coordinates are missing, try to enrich from addresses
         if getattr(event.route.origin, "coordinate", None) is None:
