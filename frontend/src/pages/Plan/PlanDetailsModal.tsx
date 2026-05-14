@@ -74,9 +74,13 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
     await request("PUT", `/v1/plans/${encodeURIComponent(plan.id)}`, undefined, undefined, payload as any);
   };
 
+  const fetchRouteById = async (routeId: string) => {
+    const response = await request("GET", `/v1/routes/${encodeURIComponent(routeId)}`);
+    return (response as any)?.data ?? null;
+  };
+
   const updateRouteStatus = async (routeId: string, patch: Record<string, unknown>, nowIso: string) => {
-    // NOTE: backend Route model origin/destination are Point objects; we rely on plan.routes already containing that.
-    const route = (plan as any)?.routes?.find((r: any) => String(r?.id) === String(routeId));
+    const route = await fetchRouteById(routeId);
     if (!route) return;
     const updatedRoute = { ...route, ...patch };
 
@@ -108,12 +112,12 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
 
       // 2) Route logic: treat "Stop i" as start of route i, and stop i+1 as end of route i
       // This is consistent with: routes are segments between consecutive points.
-      const routes: any[] = Array.isArray((plan as any).routes) ? ((plan as any).routes as any[]) : [];
+      const routeIds: string[] = Array.isArray(plan.routeIds) ? plan.routeIds.map(String) : [];
 
       // If arriving at start of a route => IN_PROGRESS + startTime
-      if (routes[idx]?.id) {
+      if (routeIds[idx]) {
         await updateRouteStatus(
-          String(routes[idx].id),
+          routeIds[idx],
           {
             routeStatus: "IN_PROGRESS",
             startTime: nowIso,
@@ -123,9 +127,9 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
       }
 
       // If arriving at end of a route (destination) => COMPLETED + endTime
-      if (idx > 0 && routes[idx - 1]?.id) {
+      if (idx > 0 && routeIds[idx - 1]) {
         await updateRouteStatus(
-          String(routes[idx - 1].id),
+          routeIds[idx - 1],
           {
             routeStatus: "COMPLETED",
             endTime: nowIso,

@@ -121,26 +121,28 @@ class MovingPlanService:
             if len(route_nodes) <= 2:
                 continue
 
+            plan_routes = [
+                Route(
+                    vehicleId=vehicles[vehicle_id].id,
+                    origin=route_nodes[i].to_dict(),
+                    destination=route_nodes[i + 1].to_dict(),
+                )
+                for i in range(len(route_nodes) - 1)
+            ]
+
             plan = Plan(
                 vehicleId=vehicles[vehicle_id].id,
                 origin=depot.id,
                 destination=depot.id,
                 points=[loc.to_dict() for loc in route_nodes],
-                routes=[
-                    Route(
-                        vehicleId=vehicles[vehicle_id].id,
-                        origin=route_nodes[i].to_dict(),
-                        destination=route_nodes[i + 1].to_dict(),
-                    )
-                    for i in range(len(route_nodes) - 1)
-                ],
+                routeIds=[route.id for route in plan_routes],
                 note=note or "MOVING_PLAN",
             )
 
             event = PlanEvent(eventType=PlanEventType.PLAN_CREATED, plan=plan)
             created_plan = await self._plan_service.create_plan(event)
 
-            for route in created_plan.routes:
+            for route in plan_routes:
                 route_event = RouteEvent(eventType=RouteEventType.ROUTE_STARTED, route=route)
                 await self._route_service.create_route(route_event)
 

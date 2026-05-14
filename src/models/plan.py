@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import uuid
@@ -6,11 +5,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict, AliasChoices
+from pydantic import BaseModel, Field, ConfigDict, AliasChoices, model_validator
 
 from src.models import Point
 from src.models.event import EventBase, EventType
-from src.models.routing import Coordinate, Route
+from src.models.routing import Coordinate
 
 
 class PlanStatus(str, Enum):
@@ -23,7 +22,7 @@ class Plan(BaseModel):
     """Movement plan for a vehicle: origin -> (points)* -> destination.
 
     - `points`: where the vehicle will pause.
-    - `routes`: each segment between consecutive points.
+    - `route_ids`: references to routes between consecutive points.
     """
 
     model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
@@ -49,12 +48,31 @@ class Plan(BaseModel):
     end_time: Optional[datetime] = Field(default=None, alias="endTime")
 
     points: list[Point] = Field(default_factory=list, description="Danh sách điểm dừng", alias="points")
-    routes: list[Route] = Field(default_factory=list, description="Các đoạn route giữa các point", alias="routes")
+    route_ids: list[str] = Field(default_factory=list, alias="routeIds")
 
     note: Optional[str] = Field(default=None)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_route_ids(cls, data):
+        if not isinstance(data, dict):
+            return data
+        if "routeIds" in data or "route_ids" in data:
+            return data
+        routes = data.get("routes")
+        if isinstance(routes, list):
+            route_ids: list[str] = []
+            for route in routes:
+                if isinstance(route, dict) and route.get("id"):
+                    route_ids.append(str(route["id"]))
+                elif hasattr(route, "id"):
+                    route_ids.append(str(route.id))
+            if route_ids:
+                data = {**data, "routeIds": route_ids}
+        return data
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json", by_alias=True, exclude_none=True)
