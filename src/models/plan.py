@@ -55,24 +55,6 @@ class Plan(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
 
-    @model_validator(mode="before")
-    @classmethod
-    def _coerce_route_ids(cls, data):
-        if not isinstance(data, dict):
-            return data
-        if "routeIds" in data or "route_ids" in data:
-            return data
-        routes = data.get("routes")
-        if isinstance(routes, list):
-            route_ids: list[str] = []
-            for route in routes:
-                if isinstance(route, dict) and route.get("id"):
-                    route_ids.append(str(route["id"]))
-                elif hasattr(route, "id"):
-                    route_ids.append(str(route.id))
-            if route_ids:
-                data = {**data, "routeIds": route_ids}
-        return data
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json", by_alias=True, exclude_none=True)
