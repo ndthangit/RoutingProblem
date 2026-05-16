@@ -11,6 +11,7 @@ from src.models.routing import Point
 from src.services.routing_service import RoutingService
 from src.services.customer_warehouse_service import CustomerWarehouseService
 from src.services.order_customer_warehouse_service import OrderCustomerWarehouseService
+from src.services.order_point_service import OrderPointService
 
 ORDER_COLLECTION = "order"
 ORDER_EVENT_COLLECTION = "order_event"
@@ -81,6 +82,10 @@ class OrderService:
             event.order.destination.coordinate = await RoutingService().geocode_address(event.order.destination.address)
 
         order = event.order
+        order.routes = await OrderPointService(self._cb).build_order_points(
+            order,
+            customer_warehouse=customer_warehouse,
+        )
 
         # Persist order + order event
         await self._cb.upsert_document(_doc_id(order.id), order.to_dict(), ORDER_COLLECTION)

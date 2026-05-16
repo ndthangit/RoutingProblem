@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import math
 from typing import Optional
 import uuid
 
@@ -9,6 +10,7 @@ from couchbase.exceptions import CouchbaseException
 from src.config.couchbase import CouchbaseClient
 from src.services.routing_service import RoutingService
 from src.models.brand_warehouse import BrandWarehouse, WarehouseEvent, BrandWarehouseEventType
+from src.models.routing import Point
 
 BRAND_WAREHOUSE_COLLECTION = "brand_warehouse"
 BRAND_WAREHOUSE_EVENT_COLLECTION = "brand_warehouse_event"
@@ -25,6 +27,19 @@ def _event_doc_id(warehouse_id: str, event_id: str) -> str:
 class BrandWarehouseService:
     def __init__(self, cb: CouchbaseClient):
         self._cb = cb
+
+    @staticmethod
+    def _haversine_m(*, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Great-circle distance in meters."""
+        r = 6371000.0
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        d_phi = math.radians(lat2 - lat1)
+        d_lam = math.radians(lon2 - lon1)
+
+        a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lam / 2) ** 2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return r * c
 
     async def _persist_event(self, event: WarehouseEvent) -> None:
         await self._cb.upsert_document(
@@ -86,6 +101,58 @@ class BrandWarehouseService:
         except CouchbaseException as e:
             print(f"Couchbase query failed: {e}")
             return []
+
+    async def list_warehouses_by_type(
+        self,
+        warehouse_type: str,
+        *,
+        limit: int = 5000,
+    ) -> list[BrandWarehouse]:
+        scope_name = self._cb.scope.name if self._cb.scope else "default"
+        statement = (
+            f"SELECT w.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{BRAND_WAREHOUSE_COLLECTION} w "
+            "WHERE w.warehouseType = $warehouse_type AND w.coordinate IS NOT NULL "
+            "ORDER BY w.updatedAt DESC "
+            "LIMIT $limit"
+        )
+
+        try:
+            result = await self._cb.query(statement, warehouse_type=warehouse_type, limit=limit)
+            rows = list(result)
+            return [BrandWarehouse.model_validate(row) for row in rows]
+        except CouchbaseException as e:
+            print(f"Couchbase query failed: {e}")
+            return []
+
+    async def find_nearest_warehouse(
+        self,
+        point: Point,
+        warehouse_type: str,
+    ) -> Optional[BrandWarehouse]:
+        if point.coordinate is None:
+            return None
+
+        warehouses = await self.list_warehouses_by_type(warehouse_type)
+        if not warehouses:
+            return None
+
+        best: Optional[BrandWarehouse] = None
+        best_distance = float("inf")
+        for warehouse in warehouses:
+            if warehouse.coordinate is None:
+                continue
+
+            distance = self._haversine_m(
+                lat1=point.coordinate.lat,
+                lon1=point.coordinate.lon,
+                lat2=warehouse.coordinate.lat,
+                lon2=warehouse.coordinate.lon,
+            )
+            if distance < best_distance:
+                best = warehouse
+                best_distance = distance
+
+        return best
 
     async def list_warehouses_in_bbox(
         self,

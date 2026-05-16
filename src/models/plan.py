@@ -47,6 +47,7 @@ class Plan(BaseModel):
     start_time: Optional[datetime] = Field(default=None, alias="startTime")
     end_time: Optional[datetime] = Field(default=None, alias="endTime")
 
+    point_state: int = Field(default=None, description="chỉ số index của point mà xe đã đi đến")
     points: list[Point] = Field(default_factory=list, description="Danh sách điểm dừng", alias="points")
     route_ids: list[str] = Field(default_factory=list, alias="routeIds")
 

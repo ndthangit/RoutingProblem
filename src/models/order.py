@@ -56,9 +56,11 @@ class Order(BaseModel):
 
     package: PackageDetails = Field(..., description="Thông tin kiện hàng")
 
-    # Current status of the order (authoritative snapshot).
     # Keep enum values in storage/JSON (see model_config.use_enum_values=True).
     status: OrderStatus = Field(default=OrderStatus.ORDER_CREATED, description="Trạng thái đơn hàng")
+
+    route_state: int = Field(default=0, description="chỉ số index của point mà order đang ở")
+    routes: Optional[list[Point]] = Field(default=None, description="Lộ trình di chuyển dự kiến (có thể thay đổi theo thực tế)")
 
     # Thông tin tài chính thỏa thuận ban đầu
     cod_amount: float = Field(default=0, ge=0, alias="codAmount")
@@ -66,9 +68,8 @@ class Order(BaseModel):
     
     note: Optional[str] = Field(default=None, description="Ghi chú vận chuyển")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
-    vehicle_id: Optional[str] = Field(default=None, description="ID của xe đang chở hàng", alias="vehicleId")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
 
-    route_id: Optional[str]= Field(default=None, description="ID của Route", alias="routeId")
 
     @staticmethod
     def normalize_status(value: str | OrderStatus | None) -> OrderStatus:
