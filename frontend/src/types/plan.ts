@@ -53,6 +53,8 @@ export interface Plan {
 
   startTime?: string | null;
   endTime?: string | null;
+  pointState?: number | null;
+  point_state?: number | null;
 
   points?: PlanPoint[];
   routeIds?: string[];

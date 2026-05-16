@@ -59,6 +59,11 @@ export default function RoutesPage() {
     }
   };
 
+  const handlePlanUpdated = (updatedPlan: Plan) => {
+    setPlans((prev) => prev.map((plan) => (plan.id === updatedPlan.id ? { ...plan, ...updatedPlan } : plan)));
+    setDetailPlan(updatedPlan);
+  };
+
   const visiblePlans = useMemo(() => {
     if (!showOnlyScheduled) return plans;
     return plans.filter((p) => {
@@ -262,6 +267,7 @@ export default function RoutesPage() {
           setDetailPlan(null);
         }}
         plan={detailPlan}
+        onPlanUpdated={handlePlanUpdated}
       />
     </div>
   );

@@ -11,14 +11,16 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { request } from "../../api";
 import type { Plan } from "../../types";
 
 interface PlanDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   plan: Plan | null;
+  onPlanUpdated?: (plan: Plan) => void;
 }
 
 function formatDate(value?: string | number | null): string {
@@ -42,8 +44,82 @@ function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
   );
 }
 
-export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsModalProps) {
-  const stops = Array.isArray(plan?.points) ? plan.points.length : 0;
+function getPointState(plan?: Plan | null): number {
+  const raw = plan?.pointState ?? plan?.point_state;
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return 0;
+  return Math.max(0, Math.floor(raw));
+}
+
+function withPointState(plan: Plan): Plan {
+  const pointState = getPointState(plan);
+  return {
+    ...plan,
+    pointState,
+    point_state: pointState,
+  };
+}
+
+export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated }: PlanDetailsModalProps) {
+  const [localPlan, setLocalPlan] = useState<Plan | null>(plan ? withPointState(plan) : null);
+  const [isSavingStopIndex, setIsSavingStopIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    setLocalPlan(plan ? withPointState(plan) : null);
+    setIsSavingStopIndex(null);
+  }, [isOpen, plan]);
+
+  const displayPlan = localPlan;
+  const stops = Array.isArray(displayPlan?.points) ? displayPlan.points.length : 0;
+  const currentPointState = useMemo(() => Math.min(getPointState(displayPlan), stops), [displayPlan, stops]);
+
+  const handleMarkArrived = async (idx: number) => {
+    if (!displayPlan || idx !== currentPointState || idx >= stops) return;
+
+    const nextPointState = currentPointState + 1;
+    const previousPlan = displayPlan;
+    const optimisticPlan = withPointState({
+      ...displayPlan,
+      pointState: nextPointState,
+      point_state: nextPointState,
+    });
+    const nowIso = new Date().toISOString();
+    const payload = {
+      event_id: window.crypto?.randomUUID?.() ?? "",
+      timestamp: nowIso,
+      ownerEmail: "unknown",
+      eventType: "PLAN.UPDATED",
+      plan: {
+        ...optimisticPlan,
+        point_state: nextPointState,
+      },
+    };
+
+    setIsSavingStopIndex(idx);
+    setLocalPlan(optimisticPlan);
+
+    try {
+      const response = await request<Plan>(
+        "PUT",
+        `/v1/plans/${encodeURIComponent(displayPlan.id)}`,
+        undefined,
+        undefined,
+        payload as any
+      );
+
+      if (!response?.data) {
+        throw new Error("Plan update returned no data");
+      }
+
+      const persistedPlan = withPointState(response.data);
+      setLocalPlan(persistedPlan);
+      onPlanUpdated?.(persistedPlan);
+    } catch (error) {
+      console.error("Mark arrived failed:", error);
+      setLocalPlan(previousPlan);
+    } finally {
+      setIsSavingStopIndex(null);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
@@ -54,7 +130,7 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
             Plan details
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {plan?.id ?? ""}
+            {displayPlan?.id ?? ""}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" aria-label="Close">
@@ -63,7 +139,7 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
       </DialogTitle>
 
       <DialogContent dividers>
-        {!plan ? (
+        {!displayPlan ? (
           <Typography variant="body2" color="text.secondary">
             No plan selected.
           </Typography>
@@ -72,33 +148,38 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Summary
             </Typography>
-            <FieldRow label="ID" value={plan.id} />
-            <FieldRow label="Vehicle" value={plan.vehicleId} />
-            <FieldRow label="Status" value={plan.status} />
-            <FieldRow label="Origin" value={plan.origin} />
-            <FieldRow label="Destination" value={plan.destination} />
+            <FieldRow label="ID" value={displayPlan.id} />
+            <FieldRow label="Vehicle" value={displayPlan.vehicleId} />
+            <FieldRow label="Status" value={displayPlan.status} />
+            <FieldRow label="Origin" value={displayPlan.origin} />
+            <FieldRow label="Destination" value={displayPlan.destination} />
             <FieldRow label="Stops" value={stops} />
-            <FieldRow label="Note" value={plan.note} />
+            <FieldRow label="Point state" value={`${currentPointState}/${stops}`} />
+            <FieldRow label="Note" value={displayPlan.note} />
 
             <Divider sx={{ my: 2 }} />
 
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Timing
             </Typography>
-            <FieldRow label="Start time" value={formatDate(plan.startTime ?? null)} />
-            <FieldRow label="End time" value={formatDate(plan.endTime ?? null)} />
-            <FieldRow label="Created at" value={formatDate(plan.createdAt ?? null)} />
-            <FieldRow label="Updated at" value={formatDate(plan.updatedAt ?? null)} />
+            <FieldRow label="Start time" value={formatDate(displayPlan.startTime ?? null)} />
+            <FieldRow label="End time" value={formatDate(displayPlan.endTime ?? null)} />
+            <FieldRow label="Created at" value={formatDate(displayPlan.createdAt ?? null)} />
+            <FieldRow label="Updated at" value={formatDate(displayPlan.updatedAt ?? null)} />
 
             <Divider sx={{ my: 2 }} />
 
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Stops detail
             </Typography>
-            {Array.isArray(plan.points) && plan.points.length ? (
+            {Array.isArray(displayPlan.points) && displayPlan.points.length ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {plan.points.map((p, idx) => {
+                {displayPlan.points.map((p, idx) => {
                   const stopKey = String(p.id ?? idx);
+                  const arrived = idx < currentPointState;
+                  const isCurrentStop = idx === currentPointState;
+                  const disabled = arrived || !isCurrentStop || isSavingStopIndex !== null;
+                  const helperText = arrived ? "Đã xác nhận đến điểm này" : isCurrentStop ? "Có thể xác nhận" : "Chưa đến lượt";
 
                   return (
                     <Box
@@ -110,9 +191,28 @@ export default function PlanDetailsModal({ isOpen, onClose, plan }: PlanDetailsM
                         p: 1.5,
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        Stop {idx + 1}
-                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            Stop {idx + 1}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: arrived ? "success.main" : "text.secondary" }}
+                          >
+                            {helperText}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant={arrived ? "outlined" : "contained"}
+                          color={arrived ? "success" : "primary"}
+                          disabled={disabled}
+                          onClick={() => void handleMarkArrived(idx)}
+                        >
+                          Đã đến
+                        </Button>
+                      </Box>
                       <Typography variant="body2" color="text.secondary">
                         {String(p.address ?? p.name ?? p.id ?? "N/A")}
                       </Typography>
