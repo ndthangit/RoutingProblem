@@ -7,6 +7,8 @@ from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
 from src.models.plan import Plan, PlanEvent, PlanEventType
+from src.models.routing import Point
+from src.services.order_service import OrderService
 
 PLAN_COLLECTION = "plan"
 PLAN_EVENT_COLLECTION = "plan_event"
@@ -23,6 +25,31 @@ def _event_doc_id(plan_id: str, event_id: str) -> str:
 class PlanService:
     def __init__(self, cb: CouchbaseClient):
         self._cb = cb
+
+    async def _advance_order_route_state_for_plan_progress(
+        self,
+        *,
+        existing: Plan,
+        updated: Plan,
+    ) -> None:
+        if updated.point_state is None:
+            return
+
+        previous_state = existing.point_state
+        start_index = 1 if previous_state is None else previous_state + 1
+        end_index = updated.point_state
+        if end_index < start_index:
+            return
+
+        points: list[Point] = updated.points or existing.points
+        if not points:
+            return
+
+        plan_start = points[0]
+        order_service = OrderService(self._cb)
+        for point_index in range(start_index, min(end_index, len(points) - 1) + 1):
+            arrival = points[point_index]
+            await order_service.increment_route_state_for_consecutive_points(plan_start, arrival)
 
     async def _persist_event(self, event: PlanEvent) -> None:
         await self._cb.upsert_document(
@@ -76,6 +103,7 @@ class PlanService:
 
         await self._cb.upsert_document(_doc_id(event.plan.id), event.plan.to_dict(), PLAN_COLLECTION)
         await self._persist_event(event)
+        await self._advance_order_route_state_for_plan_progress(existing=existing, updated=event.plan)
         return event.plan
 
     async def delete_plan(self, plan_id: str, event: PlanEvent) -> bool:

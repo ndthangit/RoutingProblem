@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from src.dependencies import get_current_user
 from src.models.user import User
-from src.models.plan import Plan
+from src.models.plan import InputPlan, Plan
 from src.services.pickup_plan_service import PickupPlanService
 from src.services.plan_service import PlanService
 from src.services.route_service import RouteService
@@ -94,10 +94,15 @@ async def create_pickup_plan(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more customer warehouses not found")
 
     try:
-        plans = await pickup_plan_service.create_pickup_plan(
+        input_plan = InputPlan(
             depot=depot,
             vehicles=vehicles,
-            customer_warehouses=customer_warehouses,
+            points=customer_warehouses,
+            demands=[int(warehouse.pending_weight) for warehouse in customer_warehouses],
+            note="PICKUP_PLAN",
+        )
+        plans = await pickup_plan_service.create_pickup_plan(
+            input_plan,
         )
         return plans
     except Exception as e:

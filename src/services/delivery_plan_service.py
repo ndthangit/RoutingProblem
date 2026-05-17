@@ -4,13 +4,11 @@ from typing import TYPE_CHECKING
 
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
-from src.models.brand_warehouse import BrandWarehouse
-from src.models.plan import Plan, PlanEvent, PlanEventType
+from src.models.plan import InputPlan, Plan, PlanEvent, PlanEventType
 from src.models.routing import Point, Route, RouteEvent, RouteEventType
 
 if TYPE_CHECKING:
     from src.config.couchbase import CouchbaseClient
-    from src.models.vehicle import Vehicle
     from src.services.plan_service import PlanService
     from src.services.route_service import RouteService
 
@@ -23,11 +21,7 @@ class DeliveryPlanService:
 
     async def create_delivery_plan(
         self,
-        depot: BrandWarehouse,
-        vehicles: list[Vehicle],
-        delivery_points: list[Point],
-        *,
-        note: str | None = None,
+        input_plan: InputPlan,
     ) -> list[Plan]:
         """Create a delivery plan starting/ending at a brand warehouse depot.
 
@@ -38,12 +32,20 @@ class DeliveryPlanService:
         similar to `MovingPlanService`.
         """
 
+        depot = input_plan.depot
+        vehicles = input_plan.vehicles
+
         if not vehicles:
             return []
 
         # Ensure uniqueness (by point.id) and avoid including the depot as a delivery stop.
-        unique_by_id: dict[str, Point] = {p.id: p for p in delivery_points if p is not None}
-        unique_by_id.pop(depot.id, None)
+        unique_by_id: dict[str, Point] = {}
+        unique_demands_by_id: dict[str, int] = {}
+        for point, demand in zip(input_plan.points, input_plan.demands):
+            if point is None or point.id == depot.id or point.id in unique_by_id:
+                continue
+            unique_by_id[point.id] = point
+            unique_demands_by_id[point.id] = int(demand)
 
         locations: list[Point] = [depot] + list(unique_by_id.values())
         if len(locations) <= 1:
@@ -75,7 +77,7 @@ class DeliveryPlanService:
         routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
         # Capacity dimension (kept; 0 demand by default)
-        demands = [0 for _ in locations]
+        demands = [0] + [unique_demands_by_id[point.id] for point in locations[1:]]
         vehicle_capacities = [int(v.capacity) if v.capacity is not None else 10**18 for v in vehicles]
 
         def demand_callback(from_index: int) -> int:
@@ -132,7 +134,7 @@ class DeliveryPlanService:
                 destination=depot.id,
                 points=[loc.to_dict() for loc in route_nodes],
                 routeIds=[route.id for route in plan_routes],
-                note=note or "DELIVERY_PLAN",
+                note=input_plan.note or "DELIVERY_PLAN",
             )
 
             event = PlanEvent(eventType=PlanEventType.PLAN_CREATED, plan=plan)

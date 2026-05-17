@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Optional
 
 from couchbase.exceptions import CouchbaseException
@@ -28,6 +29,17 @@ def _event_doc_id(order_id: str, event_id: str) -> str:
 class OrderService:
     def __init__(self, cb: CouchbaseClient):
         self._cb = cb
+
+    @staticmethod
+    def _is_same_point(left: Point, right: Point) -> bool:
+        if left.id and right.id and left.id == right.id:
+            return True
+
+        if left.coordinate is not None and right.coordinate is not None:
+            if left.coordinate.lat == right.coordinate.lat and left.coordinate.lon == right.coordinate.lon:
+                return True
+
+        return left.address == right.address and left.name == right.name
 
     async def _persist_event(self, event: OrderEvent) -> None:
         await self._cb.upsert_document(
@@ -126,6 +138,52 @@ class OrderService:
         except CouchbaseException as e:
             print(f"Couchbase query failed: {e}")
             return []
+
+    async def increment_route_state_for_consecutive_points(self, first: Point, second: Point) -> int:
+        """Advance orders whose current/next route points match this pair."""
+        scope_name = self._cb.scope.name if self._cb.scope else "default"
+        statement = (
+            f"SELECT o.* FROM `{self._cb.bucket.name}`.`{scope_name}`.`{ORDER_COLLECTION}` o "
+            "WHERE o.routes IS NOT MISSING "
+            "AND ARRAY_LENGTH(o.routes) > IFMISSINGORNULL(o.route_state, 0) + 1"
+        )
+
+        try:
+            result = await self._cb.query(statement)
+            rows = list(result)
+        except CouchbaseException as e:
+            print(f"Couchbase query failed while updating order route_state: {e}")
+            return 0
+
+        updated_count = 0
+        now = datetime.now(timezone.utc)
+        for row in rows:
+            try:
+                order = Order.model_validate(row)
+            except Exception:
+                continue
+
+            if not order.routes:
+                continue
+
+            current_index = order.route_state or 0
+            next_index = current_index + 1
+            if current_index < 0 or next_index >= len(order.routes):
+                continue
+
+            current_point = order.routes[current_index]
+            next_point = order.routes[next_index]
+            is_forward_match = self._is_same_point(current_point, first) and self._is_same_point(next_point, second)
+            is_reverse_match = self._is_same_point(current_point, second) and self._is_same_point(next_point, first)
+            if not (is_forward_match or is_reverse_match):
+                continue
+
+            order.route_state = next_index
+            order.updated_at = now
+            await self._cb.upsert_document(_doc_id(order.id), order.to_dict(), ORDER_COLLECTION)
+            updated_count += 1
+
+        return updated_count
 
     async def update_order(self, order_id: str, order: Order) -> Optional[Order]:
         existing = await self.get_order(order_id)

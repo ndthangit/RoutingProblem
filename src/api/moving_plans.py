@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from src.config.couchbase import CouchbaseClient
 from src.dependencies import get_current_user
 from src.models.brand_warehouse import BrandWarehouse
-from src.models.plan import Plan
+from src.models.plan import InputPlan, Plan
 from src.models.user import User
 from src.services.brand_warehouse_service import BrandWarehouseService
 from src.services.moving_plan_service import MovingPlanService
@@ -84,11 +84,15 @@ async def create_moving_plan(
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more brand warehouses not found")
 
 	try:
-		return await moving_plan_service.create_moving_plan(
+		input_plan = InputPlan(
 			depot=depot,
 			vehicles=vehicles,
-			brand_warehouses=bws,
+			points=bws,
+			demands=[0 for _ in bws],
 			note=payload.note,
+		)
+		return await moving_plan_service.create_moving_plan(
+			input_plan,
 		)
 	except Exception as e:
 		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

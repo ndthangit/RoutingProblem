@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from src.config.couchbase import CouchbaseClient
 from src.dependencies import get_current_user
-from src.models.plan import Plan
+from src.models.plan import InputPlan, Plan
 from src.models.routing import Point
 from src.models.user import User
 from src.services.brand_warehouse_service import BrandWarehouseService
@@ -84,11 +84,15 @@ async def create_delivery_plan(
     # If caller forgets coordinates, we will still run (cost becomes 0); but it's better to validate.
     # Keep it permissive like PickupPlanService.
     try:
-        plans = await delivery_plan_service.create_delivery_plan(
+        input_plan = InputPlan(
             depot=depot,
             vehicles=vehicles,
-            delivery_points=payload.delivery_points,
+            points=payload.delivery_points,
+            demands=[0 for _ in payload.delivery_points],
             note=payload.note,
+        )
+        plans = await delivery_plan_service.create_delivery_plan(
+            input_plan,
         )
         return plans
     except Exception as e:

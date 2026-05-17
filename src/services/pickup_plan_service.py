@@ -3,14 +3,11 @@ from typing import TYPE_CHECKING
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 
-from src.models.brand_warehouse import BrandWarehouse
-from src.models.plan import Plan, PlanEvent, PlanEventType
+from src.models.plan import InputPlan, Plan, PlanEvent, PlanEventType
 from src.models.routing import Route, RouteEvent, RouteEventType
 
 if TYPE_CHECKING:
     from src.config.couchbase import CouchbaseClient
-    from src.models.vehicle import Vehicle
-    from src.models.customer_warehouse import CustomerWarehouse
     from src.services.plan_service import PlanService
     from src.services.route_service import RouteService
 
@@ -24,14 +21,14 @@ class PickupPlanService:
 
     async def create_pickup_plan(
         self,
-        depot: BrandWarehouse,
-        vehicles: list[Vehicle],
-        customer_warehouses: list[CustomerWarehouse],
+        input_plan: InputPlan,
     ) -> list[Plan]:
         """
         Creates a pickup plan for a list of vehicles and customer warehouses using straight-line distance.
         """
-        locations = [depot] + customer_warehouses
+        depot = input_plan.depot
+        vehicles = input_plan.vehicles
+        locations = [depot] + input_plan.points
         location_coords = [loc.coordinate for loc in locations]
 
         # Create the routing model.
@@ -67,7 +64,7 @@ class PickupPlanService:
         routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
         # Add capacity constraints.
-        demands = [0] + [int(wh.pending_weight) for wh in customer_warehouses]
+        demands = [0] + [int(demand) for demand in input_plan.demands]
         vehicle_capacities = [int(v.capacity) for v in vehicles]
 
         def demand_callback(from_index):
@@ -135,6 +132,7 @@ class PickupPlanService:
                 destination=depot.id,
                 points=[loc.to_dict() for loc in route_nodes],
                 routeIds=[route.id for route in plan_routes],
+                note=input_plan.note or "PICKUP_PLAN",
             )
             event = PlanEvent(
                 eventType=PlanEventType.PLAN_CREATED,

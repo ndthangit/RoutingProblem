@@ -4,13 +4,11 @@ from typing import TYPE_CHECKING
 
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
-from src.models.brand_warehouse import BrandWarehouse
-from src.models.plan import Plan, PlanEvent, PlanEventType
-from src.models.routing import Route, RouteEvent, RouteEventType
+from src.models.plan import InputPlan, Plan, PlanEvent, PlanEventType
+from src.models.routing import Point, Route, RouteEvent, RouteEventType
 
 if TYPE_CHECKING:
     from src.config.couchbase import CouchbaseClient
-    from src.models.vehicle import Vehicle
     from src.services.plan_service import PlanService
     from src.services.route_service import RouteService
 
@@ -23,11 +21,7 @@ class MovingPlanService:
 
     async def create_moving_plan(
         self,
-        depot: BrandWarehouse,
-        vehicles: list[Vehicle],
-        brand_warehouses: list[BrandWarehouse],
-        *,
-        note: str | None = None,
+        input_plan: InputPlan,
     ) -> list[Plan]:
         """Create inter-warehouse moving plans using straight-line distance.
 
@@ -41,14 +35,22 @@ class MovingPlanService:
         not yet model per-transfer weights.
         """
 
+        depot = input_plan.depot
+        vehicles = input_plan.vehicles
+
         if not vehicles:
             return []
 
         # Ensure uniqueness and avoid including the depot twice.
-        unique_by_id: dict[str, BrandWarehouse] = {bw.id: bw for bw in brand_warehouses if bw is not None}
-        unique_by_id.pop(depot.id, None)
+        unique_by_id: dict[str, Point] = {}
+        unique_demands_by_id: dict[str, int] = {}
+        for point, demand in zip(input_plan.points, input_plan.demands):
+            if point is None or point.id == depot.id or point.id in unique_by_id:
+                continue
+            unique_by_id[point.id] = point
+            unique_demands_by_id[point.id] = int(demand)
 
-        locations: list[BrandWarehouse] = [depot] + list(unique_by_id.values())
+        locations: list[Point] = [depot] + list(unique_by_id.values())
         if len(locations) <= 1:
             return []
 
@@ -79,7 +81,7 @@ class MovingPlanService:
 
         # Capacity dimension (kept, but with 0 demand everywhere by default).
         # If `Vehicle.capacity` is missing, treat as "infinite".
-        demands = [0 for _ in locations]
+        demands = [0] + [unique_demands_by_id[point.id] for point in locations[1:]]
         vehicle_capacities = [int(v.capacity) if v.capacity is not None else 10**18 for v in vehicles]
 
         def demand_callback(from_index: int) -> int:
@@ -107,7 +109,7 @@ class MovingPlanService:
         plans: list[Plan] = []
         for vehicle_id in range(num_vehicles):
             index = routing.Start(vehicle_id)
-            route_nodes: list[BrandWarehouse] = []
+            route_nodes: list[Point] = []
 
             while not routing.IsEnd(index):
                 node_index = manager.IndexToNode(index)
@@ -136,7 +138,7 @@ class MovingPlanService:
                 destination=depot.id,
                 points=[loc.to_dict() for loc in route_nodes],
                 routeIds=[route.id for route in plan_routes],
-                note=note or "MOVING_PLAN",
+                note=input_plan.note or "MOVING_PLAN",
             )
 
             event = PlanEvent(eventType=PlanEventType.PLAN_CREATED, plan=plan)

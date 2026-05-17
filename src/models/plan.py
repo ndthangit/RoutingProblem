@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, ConfigDict, AliasChoices, model_validator
 from src.models import Point
 from src.models.event import EventBase, EventType
 from src.models.routing import Coordinate
+from src.models.vehicle import Vehicle
 
 
 class PlanStatus(str, Enum):
@@ -79,3 +80,19 @@ class PlanEvent(EventBase):
 
     def to_dict(self) -> dict:
         return self.model_dump(mode="json", by_alias=True, exclude_none=True)
+
+
+class InputPlan(BaseModel):
+    """Dùng để định nghĩa đầu vào cho bài toán lập kế hoạch"""
+
+    depot: Point = Field(..., description="Vị trí của depot")
+    vehicles: list[Vehicle] = Field(..., description="Danh sách xe tham gia vào bài toán")
+    points: list[Point] = Field(..., description="Danh sách điểm cần phục vụ")
+    demands: list[int] = Field(..., description="Danh sách nhu cầu tại mỗi điểm, tương ứng với danh sách điểm")
+    note: Optional[str] = Field(default=None, description="Ghi chú cho plan được sinh ra")
+
+    @model_validator(mode="after")
+    def validate_demands(self) -> InputPlan:
+        if len(self.demands) != len(self.points):
+            raise ValueError("demands must have the same length as points")
+        return self
