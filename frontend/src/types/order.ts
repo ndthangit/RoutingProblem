@@ -35,6 +35,10 @@ export interface Order {
   createdAt?: Date | string;
   vehicleId?: string | null;
 
+  // Index of current point in `routes` that the order is at.
+  // Backend field name is snake_case.
+  route_state?: number;
+
   // Route currently transporting this order. Null/undefined when not yet assigned.
   routeId?: string | null;
 }

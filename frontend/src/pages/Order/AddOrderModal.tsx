@@ -40,6 +40,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
 
     status: OrderStatus;
 
+    route_state: string;
+
     origin: string;
     destination: string;
 
@@ -58,6 +60,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
     note: "",
 
     status: "ORDER.CREATED",
+
+    route_state: "0",
 
     origin: "",
     destination: "",
@@ -79,6 +83,8 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
       note: "",
 
       status: "ORDER.CREATED",
+
+      route_state: "0",
 
       origin: "",
       destination: "",
@@ -132,6 +138,7 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
         receiverName: initialOrder.receiverName ?? "",
         note: initialOrder.note ?? "",
         status: (initialOrder.status ?? "ORDER.CREATED") as OrderStatus,
+        route_state: String(initialOrder.route_state ?? 0),
         origin: initialOrder.origin?.address ?? "",
         destination: initialOrder.destination?.address ?? "",
         description: initialOrder.package?.description ?? "",
@@ -158,6 +165,12 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
     if (value === "") return undefined;
     const n = Number(value);
     return Number.isFinite(n) ? n : undefined;
+  };
+
+  const toIntOrUndefined = (value: string) => {
+    const n = toNumberOrUndefined(value);
+    if (n === undefined) return undefined;
+    return Math.trunc(n);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -215,6 +228,7 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
         senderName: formData.senderName,
         receiverName: formData.receiverName,
         package: pkg,
+        route_state: initialOrder ? (toIntOrUndefined(formData.route_state) ?? 0) : 0,
         codAmount: toNumberOrUndefined(formData.codAmount),
         shippingFee: toNumberOrUndefined(formData.shippingFee),
         note: formData.note,
@@ -316,6 +330,20 @@ export default function AddOrderModal({ isOpen, onClose, onSuccess, initialOrder
                   <MenuItem value="ORDER.COMPLETED">ORDER.COMPLETED</MenuItem>
                   <MenuItem value="ORDER.CANCELLED">ORDER.CANCELLED</MenuItem>
                 </TextField>
+              </Grid>
+            )}
+
+            {initialOrder && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  label="route_state (current route index)"
+                  name="route_state"
+                  type="number"
+                  value={formData.route_state}
+                  onChange={handleChange}
+                  inputProps={{ step: 1, min: 0 }}
+                />
               </Grid>
             )}
 

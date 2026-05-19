@@ -13,8 +13,51 @@ import CloseIcon from "@mui/icons-material/Close";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+
 import { request } from "../../api";
 import type { Plan } from "../../types";
+
+// Fix default marker icon paths for bundlers (Vite)
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+let leafletIconsConfigured = false;
+function ensureLeafletDefaultIcons() {
+  if (leafletIconsConfigured) return;
+  leafletIconsConfigured = true;
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: markerIcon2x,
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow,
+  });
+}
+
+type MapPoint = {
+  key: string;
+  label: string;
+  address?: string;
+  lat: number;
+  lon: number;
+};
+
+function FitBounds({ points }: { points: MapPoint[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!points.length) return;
+    const latLngs = points.map((p) => L.latLng(p.lat, p.lon));
+    const bounds = L.latLngBounds(latLngs);
+    if (!bounds.isValid()) return;
+    map.fitBounds(bounds, { padding: [24, 24] });
+  }, [map, points]);
+
+  return null;
+}
 
 interface PlanDetailsModalProps {
   isOpen: boolean;
@@ -71,6 +114,56 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
   const displayPlan = localPlan;
   const stops = Array.isArray(displayPlan?.points) ? displayPlan.points.length : 0;
   const currentPointState = useMemo(() => Math.min(getPointState(displayPlan), stops), [displayPlan, stops]);
+
+  const mapPoints = useMemo<MapPoint[]>(() => {
+    if (!displayPlan) return [];
+    const next: MapPoint[] = [];
+
+    const originCoord = displayPlan.originCoordinate;
+    if (originCoord && typeof originCoord.lat === "number" && typeof originCoord.lon === "number") {
+      next.push({
+        key: `origin:${displayPlan.id}`,
+        label: "Origin",
+        address: displayPlan.origin,
+        lat: originCoord.lat,
+        lon: originCoord.lon,
+      });
+    }
+
+    const points = Array.isArray(displayPlan.points) ? displayPlan.points : [];
+    points.forEach((p, idx) => {
+      const c = (p as any)?.coordinate;
+      if (!c || typeof c.lat !== "number" || typeof c.lon !== "number") return;
+      next.push({
+        key: `stop:${String(p.id ?? idx)}`,
+        label: `Stop ${idx + 1}`,
+        address: String(p.address ?? p.name ?? p.id ?? ""),
+        lat: c.lat,
+        lon: c.lon,
+      });
+    });
+
+    const destCoord = displayPlan.destinationCoordinate;
+    if (destCoord && typeof destCoord.lat === "number" && typeof destCoord.lon === "number") {
+      next.push({
+        key: `destination:${displayPlan.id}`,
+        label: "Destination",
+        address: displayPlan.destination,
+        lat: destCoord.lat,
+        lon: destCoord.lon,
+      });
+    }
+
+    return next;
+  }, [displayPlan]);
+
+  const polylineLatLngs = useMemo(() => mapPoints.map((p) => [p.lat, p.lon] as [number, number]), [mapPoints]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!mapPoints.length) return;
+    ensureLeafletDefaultIcons();
+  }, [isOpen, mapPoints.length]);
 
   const handleMarkArrived = async (idx: number) => {
     if (!displayPlan || idx !== currentPointState || idx >= stops) return;
@@ -226,6 +319,67 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
             ) : (
               <Typography variant="body2" color="text.secondary">
                 No stops.
+              </Typography>
+            )}
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+              Map
+            </Typography>
+            {mapPoints.length ? (
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  height: 420,
+                  width: "100%",
+                }}
+              >
+                <MapContainer
+                  center={[mapPoints[0]!.lat, mapPoints[0]!.lon]}
+                  zoom={13}
+                  style={{ height: "100%", width: "100%" }}
+                  preferCanvas
+                >
+                  <TileLayer
+                    attribution="&copy; OpenStreetMap contributors"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <FitBounds points={mapPoints} />
+
+                  {polylineLatLngs.length >= 2 ? <Polyline positions={polylineLatLngs} /> : null}
+
+                  {mapPoints.map((p) => (
+                    <Marker key={p.key} position={[p.lat, p.lon]}>
+                      <Popup>
+                        <Box sx={{ minWidth: 220 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {p.label}
+                          </Typography>
+                          {p.address ? (
+                            <Typography variant="caption" color="text.secondary">
+                              {p.address}
+                            </Typography>
+                          ) : null}
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 0.5 }}
+                          >
+                            {p.lat}, {p.lon}
+                          </Typography>
+                        </Box>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Không có toạ độ để hiển thị trên bản đồ.
               </Typography>
             )}
           </Box>
