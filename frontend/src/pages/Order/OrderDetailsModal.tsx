@@ -1,18 +1,51 @@
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  IconButton,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import { useEffect, useMemo, type ReactNode } from "react";
 
-import type { Order } from "../../types";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+
+import type { Order, Point } from "../../types";
+
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+let leafletIconsConfigured = false;
+function ensureLeafletDefaultIcons() {
+  if (leafletIconsConfigured) return;
+  leafletIconsConfigured = true;
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: markerIcon2x,
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow,
+  });
+}
+
+type MapPoint = {
+  key: string;
+  label: string;
+  address?: string;
+  lat: number;
+  lon: number;
+};
+
+function FitBounds({ points }: { points: MapPoint[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!points.length) return;
+    const latLngs = points.map((p) => L.latLng(p.lat, p.lon));
+    const bounds = L.latLngBounds(latLngs);
+    if (!bounds.isValid()) return;
+    map.fitBounds(bounds, { padding: [24, 24] });
+  }, [map, points]);
+
+  return null;
+}
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -32,7 +65,21 @@ function formatDate(value?: string | number): string {
   return d.toLocaleString();
 }
 
-function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
+function getPointLabel(point: Point | undefined, fallback: string): string {
+  return String(point?.name ?? point?.address ?? point?.id ?? fallback);
+}
+
+function getRouteState(order?: Order | null): number {
+  const raw = order?.route_state ?? order?.routeState;
+  if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, Math.floor(raw));
+  if (typeof raw === "string") {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) return Math.max(0, Math.floor(parsed));
+  }
+  return 0;
+}
+
+function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
   const display = value === null || value === undefined || value === "" ? "N/A" : value;
   return (
     <Box sx={{ display: "flex", gap: 2, py: 0.75 }}>
@@ -47,6 +94,61 @@ function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) 
 }
 
 export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetailsModalProps) {
+  const routePoints = useMemo<Point[]>(() => {
+    if (!order) return [];
+    if (Array.isArray(order.routes) && order.routes.length) return order.routes;
+    return [order.origin, order.destination].filter(Boolean);
+  }, [order]);
+
+  const currentRouteState = useMemo(() => {
+    if (!routePoints.length) return 0;
+    return Math.min(getRouteState(order), Math.max(routePoints.length - 1, 0));
+  }, [order, routePoints.length]);
+
+  const routeSegments = useMemo(
+    () =>
+      routePoints.slice(0, -1).map((from, idx) => ({
+        key: `${from.id ?? from.address ?? idx}:${routePoints[idx + 1]?.id ?? routePoints[idx + 1]?.address ?? idx + 1}`,
+        from,
+        to: routePoints[idx + 1],
+        idx,
+      })),
+    [routePoints]
+  );
+
+  const mapPoints = useMemo<MapPoint[]>(() => {
+    const next: MapPoint[] = [];
+    const appendPoint = (point: MapPoint) => {
+      const previous = next[next.length - 1];
+      if (previous && previous.lat === point.lat && previous.lon === point.lon) return;
+      next.push(point);
+    };
+
+    routePoints.forEach((point, idx) => {
+      const coordinate = point?.coordinate;
+      if (!coordinate || typeof coordinate.lat !== "number" || typeof coordinate.lon !== "number") return;
+
+      const isFirst = idx === 0;
+      const isLast = idx === routePoints.length - 1;
+      appendPoint({
+        key: `order-point:${String(point.id ?? idx)}`,
+        label: isFirst ? "Origin" : isLast ? "Destination" : `Waypoint ${idx}`,
+        address: getPointLabel(point, `Point ${idx + 1}`),
+        lat: coordinate.lat,
+        lon: coordinate.lon,
+      });
+    });
+
+    return next;
+  }, [routePoints]);
+
+  const polylineLatLngs = useMemo(() => mapPoints.map((p) => [p.lat, p.lon] as [number, number]), [mapPoints]);
+
+  useEffect(() => {
+    if (!isOpen || !mapPoints.length) return;
+    ensureLeafletDefaultIcons();
+  }, [isOpen, mapPoints.length]);
+
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -121,6 +223,131 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
             </Typography>
             <FieldRow label="Vehicle ID" value={order.vehicleId} />
             <FieldRow label="Route ID" value={order.routeId} />
+            <FieldRow
+              label="Route state"
+              value={routePoints.length ? `${currentRouteState}/${Math.max(routePoints.length - 1, 0)}` : order.route_state}
+            />
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+              Route stages
+            </Typography>
+            {routeSegments.length ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {routeSegments.map(({ key, from, to, idx }) => {
+                  const completed = currentRouteState > idx;
+                  const current = currentRouteState === idx && currentRouteState < routePoints.length - 1;
+                  const statusText = completed ? "Completed" : current ? "Current" : "Pending";
+                  const statusColor = completed ? "success.main" : current ? "primary.main" : "text.secondary";
+
+                  return (
+                    <Box
+                      key={key}
+                      sx={{
+                        border: "1px solid",
+                        borderColor: current ? "primary.light" : "divider",
+                        borderRadius: 1,
+                        p: 1.5,
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            Stage {idx + 1}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: statusColor }}>
+                            {statusText}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Typography variant="body2" color="text.secondary">
+                        {getPointLabel(from, `Point ${idx + 1}`)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        to {getPointLabel(to, `Point ${idx + 2}`)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {from.coordinate ? `${from.coordinate.lat}, ${from.coordinate.lon}` : "N/A"}
+                        {" -> "}
+                        {to.coordinate ? `${to.coordinate.lat}, ${to.coordinate.lon}` : "N/A"}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No route stages.
+              </Typography>
+            )}
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+              Map
+            </Typography>
+            {mapPoints.length ? (
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  height: 420,
+                  width: "100%",
+                }}
+              >
+                <MapContainer
+                  center={[mapPoints[0]!.lat, mapPoints[0]!.lon]}
+                  zoom={13}
+                  style={{ height: "100%", width: "100%" }}
+                  preferCanvas
+                >
+                  <TileLayer
+                    attribution="&copy; OpenStreetMap contributors"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <FitBounds points={mapPoints} />
+
+                  {polylineLatLngs.length >= 2 ? (
+                    <Polyline
+                      positions={polylineLatLngs}
+                      pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.85 }}
+                    />
+                  ) : null}
+
+                  {mapPoints.map((p) => (
+                    <Marker key={p.key} position={[p.lat, p.lon]}>
+                      <Popup>
+                        <Box sx={{ minWidth: 220 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {p.label}
+                          </Typography>
+                          {p.address ? (
+                            <Typography variant="caption" color="text.secondary">
+                              {p.address}
+                            </Typography>
+                          ) : null}
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 0.5 }}
+                          >
+                            {p.lat}, {p.lon}
+                          </Typography>
+                        </Box>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No coordinates available for the map.
+              </Typography>
+            )}
 
             <Divider sx={{ my: 2 }} />
 

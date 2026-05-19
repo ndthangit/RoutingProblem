@@ -53,7 +53,7 @@ class OrderPointService:
             if (
                 warehouse is not None
                 and warehouse.coordinate is not None
-                and warehouse.brand_warehouse_type == BrandWarehouseType.HUB
+                and warehouse.brand_warehouse_type == BrandWarehouseType.DEPOT
             ):
                 return self._as_point(warehouse)
 

@@ -153,6 +153,16 @@ class Settings(BaseSettings):
         examples=["https://nominatim.openstreetmap.org"],
         json_schema_extra={"env": "NOMINATIM_BASE_URL"},
     )
+    NOMINATIM_USER_AGENT: str = Field(
+        default=os.getenv("NOMINATIM_USER_AGENT", "RoutingProblem/1.0"),
+        description="User-Agent sent to Nominatim. Configure this with your app/contact info.",
+        json_schema_extra={"env": "NOMINATIM_USER_AGENT"},
+    )
+    NOMINATIM_EMAIL: str = Field(
+        default=os.getenv("NOMINATIM_EMAIL", ""),
+        description="Optional contact email sent to Nominatim.",
+        json_schema_extra={"env": "NOMINATIM_EMAIL"},
+    )
 
     KAFKA_BOOTSTRAP_SERVERS: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
     # KAFKA_TOPIC_PROMPT: str = os.getenv("KAFKA_TOPIC_PROMPT", "topic")
@@ -264,30 +274,6 @@ class Settings(BaseSettings):
         json_schema_extra={"env": "OSRM_BASE_URL"},
     )
 
-    # Routing provider selection
-    # Values: "osrm" (direct OSRM) or "rapidapi" (RapidAPI fast-routing)
-    ROUTING_PROVIDER: str = Field(
-        default=os.getenv("ROUTING_PROVIDER", "osrm"),
-        description="Routing provider to use (osrm|rapidapi)",
-        json_schema_extra={"env": "ROUTING_PROVIDER"},
-    )
-
-    # RapidAPI fast-routing (OSRM-compatible)
-    RAPIDAPI_BASE_URL: str = Field(
-        default=os.getenv("RAPIDAPI_BASE_URL", "https://fast-routing.p.rapidapi.com"),
-        description="RapidAPI base URL for fast-routing",
-        json_schema_extra={"env": "RAPIDAPI_BASE_URL"},
-    )
-    RAPIDAPI_HOST: str = Field(
-        default=os.getenv("RAPIDAPI_HOST", "fast-routing.p.rapidapi.com"),
-        description="RapidAPI host header value",
-        json_schema_extra={"env": "RAPIDAPI_HOST"},
-    )
-    RAPIDAPI_KEY: str = Field(
-        default=os.getenv("RAPIDAPI_KEY", ""),
-        description="RapidAPI key (secret)",
-        json_schema_extra={"env": "RAPIDAPI_KEY"},
-    )
     ROUTING_UPSTREAM_TIMEOUT_S: float = Field(
         default=float(os.getenv("ROUTING_UPSTREAM_TIMEOUT_S", "20")),
         description="Timeout (seconds) for upstream routing HTTP calls",

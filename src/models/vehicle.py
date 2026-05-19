@@ -50,7 +50,7 @@ class VehicleBase(BaseModel):
 
     warehouse_address: Optional[str] = Field(default=None, description="Địa chỉ kho phụ trách", alias="warehouseAddress")
 
-    # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
+    # Dang object (lon/lat) de dung truc tiep cho OSRM.
     coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
 
 

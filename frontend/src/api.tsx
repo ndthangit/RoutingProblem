@@ -97,15 +97,15 @@ const handleRequestError = (error: AxiosError, errorHandlers?: ErrorHandlers): v
 };
 
 // Hàm request chính
-export async function request<T = never>(
+export async function request<TResponse = never, TData = unknown>(
     method: string,
     url: string,
-    successHandler?: (response: AxiosResponse<T>) => void,
+    successHandler?: (response: AxiosResponse<TResponse>) => void,
     errorHandlers?: ErrorHandlers,
-    data?: T,
+    data?: TData,
     config: RequestConfig = {},
     controller?: AbortController
-): Promise<AxiosResponse<T> | void> {
+): Promise<AxiosResponse<TResponse> | void> {
     // Kiểm tra xác thực Keycloak
     if (!keycloak.authenticated) {
         console.warn("Bạn chưa đăng nhập. Đang chuyển hướng...");
@@ -146,7 +146,7 @@ export async function request<T = never>(
     };
 
     try {
-        const res: AxiosResponse<T> = await axiosInstance.request(options);
+        const res: AxiosResponse<TResponse> = await axiosInstance.request(options);
         if (isFunction(successHandler)) {
             successHandler(res);
         }

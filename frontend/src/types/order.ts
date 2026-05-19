@@ -38,9 +38,12 @@ export interface Order {
   // Index of current point in `routes` that the order is at.
   // Backend field name is snake_case.
   route_state?: number;
+  routeState?: number;
+  routes?: Point[] | null;
 
   // Route currently transporting this order. Null/undefined when not yet assigned.
   routeId?: string | null;
+  updatedAt?: Date | string;
 }
 
 export type OrderStatus =

@@ -6,7 +6,7 @@ from typing import Optional
 from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
-from src.models.order import Order, OrderEvent
+from src.models.order import Order, OrderEvent, OrderEventType
 from src.models.customer_warehouse import CustomerWarehouseEvent, CustomerWarehouseEventType
 from src.models.routing import Point
 from src.services.routing_service import RoutingService
@@ -29,6 +29,19 @@ def _event_doc_id(order_id: str, event_id: str) -> str:
 class OrderService:
     def __init__(self, cb: CouchbaseClient):
         self._cb = cb
+
+    @staticmethod
+    def _merge_order_update(existing: Order, incoming: Order) -> Order:
+        """Apply editable order fields while preserving server-managed route metadata."""
+        updated = incoming.model_copy(deep=True)
+        updated.id = existing.id
+        updated.created_at = existing.created_at
+        updated.updated_at = datetime.now(timezone.utc)
+
+        if updated.routes is None:
+            updated.routes = existing.routes
+
+        return updated
 
     @staticmethod
     def _is_same_point(left: Point, right: Point) -> bool:
@@ -190,9 +203,7 @@ class OrderService:
         if existing is None:
             return None
 
-        # Order is intended to be immutable; keep original created_at.
-        order.id = order_id
-        order.created_at = existing.created_at
+        order = self._merge_order_update(existing, order)
 
         await self._cb.upsert_document(_doc_id(order_id), order.to_dict(), ORDER_COLLECTION)
         return order
@@ -214,12 +225,24 @@ class OrderService:
         if existing is None:
             raise ValueError("Order not found")
 
-        # Keep the stored order immutable fields stable.
-        event.order.created_at = existing.created_at
+        if event.event_type == OrderEventType.ORDER_UPDATED:
+            event.order = self._merge_order_update(existing, event.order)
+        else:
+            # Keep the stored order immutable fields stable for history-only events.
+            event.order.created_at = existing.created_at
+
         await self._persist_event(event)
 
         # Apply side-effects for specific updates (e.g. PICKED_UP decrements pending load).
         await OrderCustomerWarehouseService(self._cb).handle_order_updated(event)
+
+        if event.event_type == OrderEventType.ORDER_UPDATED:
+            await self._cb.upsert_document(
+                _doc_id(event.order.id),
+                event.order.to_dict(),
+                ORDER_COLLECTION,
+            )
+
         return event
 
     async def list_events(self, order_id: str, *, limit: int = 200, offset: int = 0) -> list[OrderEvent]:

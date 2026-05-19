@@ -1,6 +1,8 @@
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -45,16 +47,48 @@ type MapPoint = {
   lon: number;
 };
 
-function FitBounds({ points }: { points: MapPoint[] }) {
+type RouteLine = {
+  positions: [number, number][];
+  distanceM: number;
+  durationS: number;
+};
+
+type RoutingRouteRequest = {
+  coordinates: { lon: number; lat: number }[];
+  profile: "driving";
+  steps: boolean;
+  alternatives: boolean;
+  overview: "full";
+  geometries: "geojson";
+};
+
+type RoutingRouteResponse = {
+  distanceM: number;
+  durationS: number;
+  geometry?: {
+    type?: string;
+    coordinates?: unknown;
+  };
+};
+
+function FitBounds({
+  points,
+  routePositions,
+}: {
+  points: MapPoint[];
+  routePositions: [number, number][];
+}) {
   const map = useMap();
 
   useEffect(() => {
     if (!points.length) return;
-    const latLngs = points.map((p) => L.latLng(p.lat, p.lon));
+    const latLngs = routePositions.length
+      ? routePositions.map(([lat, lon]) => L.latLng(lat, lon))
+      : points.map((p) => L.latLng(p.lat, p.lon));
     const bounds = L.latLngBounds(latLngs);
     if (!bounds.isValid()) return;
     map.fitBounds(bounds, { padding: [24, 24] });
-  }, [map, points]);
+  }, [map, points, routePositions]);
 
   return null;
 }
@@ -71,6 +105,16 @@ function formatDate(value?: string | number | null): string {
   const d = new Date(value);
   if (isNaN(d.getTime())) return String(value);
   return d.toLocaleString();
+}
+
+function formatDistance(distanceM: number): string {
+  if (!Number.isFinite(distanceM)) return "N/A";
+  return `${(distanceM / 1000).toFixed(2)} km`;
+}
+
+function formatDuration(durationS: number): string {
+  if (!Number.isFinite(durationS)) return "N/A";
+  return `${Math.round(durationS / 60)} min`;
 }
 
 function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
@@ -105,10 +149,16 @@ function withPointState(plan: Plan): Plan {
 export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated }: PlanDetailsModalProps) {
   const [localPlan, setLocalPlan] = useState<Plan | null>(plan ? withPointState(plan) : null);
   const [isSavingStopIndex, setIsSavingStopIndex] = useState<number | null>(null);
+  const [routeLine, setRouteLine] = useState<RouteLine | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
 
   useEffect(() => {
     setLocalPlan(plan ? withPointState(plan) : null);
     setIsSavingStopIndex(null);
+    setRouteLine(null);
+    setRouteError(null);
+    setIsRouteLoading(false);
   }, [isOpen, plan]);
 
   const displayPlan = localPlan;
@@ -118,10 +168,15 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
   const mapPoints = useMemo<MapPoint[]>(() => {
     if (!displayPlan) return [];
     const next: MapPoint[] = [];
+    const appendPoint = (point: MapPoint) => {
+      const previous = next[next.length - 1];
+      if (previous && previous.lat === point.lat && previous.lon === point.lon) return;
+      next.push(point);
+    };
 
     const originCoord = displayPlan.originCoordinate;
     if (originCoord && typeof originCoord.lat === "number" && typeof originCoord.lon === "number") {
-      next.push({
+      appendPoint({
         key: `origin:${displayPlan.id}`,
         label: "Origin",
         address: displayPlan.origin,
@@ -134,7 +189,7 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
     points.forEach((p, idx) => {
       const c = (p as any)?.coordinate;
       if (!c || typeof c.lat !== "number" || typeof c.lon !== "number") return;
-      next.push({
+      appendPoint({
         key: `stop:${String(p.id ?? idx)}`,
         label: `Stop ${idx + 1}`,
         address: String(p.address ?? p.name ?? p.id ?? ""),
@@ -145,7 +200,7 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
 
     const destCoord = displayPlan.destinationCoordinate;
     if (destCoord && typeof destCoord.lat === "number" && typeof destCoord.lon === "number") {
-      next.push({
+      appendPoint({
         key: `destination:${displayPlan.id}`,
         label: "Destination",
         address: displayPlan.destination,
@@ -158,12 +213,94 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
   }, [displayPlan]);
 
   const polylineLatLngs = useMemo(() => mapPoints.map((p) => [p.lat, p.lon] as [number, number]), [mapPoints]);
+  const routeLinePositions = useMemo(
+    () => (routeLine?.positions.length ? routeLine.positions : polylineLatLngs),
+    [polylineLatLngs, routeLine]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
     if (!mapPoints.length) return;
     ensureLeafletDefaultIcons();
   }, [isOpen, mapPoints.length]);
+
+  useEffect(() => {
+    if (!isOpen || mapPoints.length < 2) {
+      setRouteLine(null);
+      setRouteError(null);
+      setIsRouteLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    const payload: RoutingRouteRequest = {
+      coordinates: mapPoints.map((p) => ({ lon: p.lon, lat: p.lat })),
+      profile: "driving",
+      steps: false,
+      alternatives: false,
+      overview: "full",
+      geometries: "geojson",
+    };
+
+    setRouteLine(null);
+    setRouteError(null);
+    setIsRouteLoading(true);
+
+    void request<RoutingRouteResponse, RoutingRouteRequest>(
+      "POST",
+      "/v1/routing/route",
+      undefined,
+      undefined,
+      payload,
+      {},
+      controller
+    )
+      .then((res) => {
+        if (cancelled) return;
+
+        const data = res?.data;
+        const coordinates = data?.geometry?.coordinates;
+        if (!Array.isArray(coordinates)) {
+          setRouteError("Could not calculate the road route.");
+          return;
+        }
+
+        const positions = coordinates
+          .map((coord) => {
+            if (!Array.isArray(coord) || coord.length < 2) return null;
+            const lon = Number(coord[0]);
+            const lat = Number(coord[1]);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            return [lat, lon] as [number, number];
+          })
+          .filter((position): position is [number, number] => position !== null);
+
+        if (positions.length < 2) {
+          setRouteError("OSRM returned an empty route geometry.");
+          return;
+        }
+
+        setRouteLine({
+          positions,
+          distanceM: Number(data?.distanceM ?? 0),
+          durationS: Number(data?.durationS ?? 0),
+        });
+      })
+      .catch((error) => {
+        if (cancelled || controller.signal.aborted) return;
+        setRouteError(error instanceof Error ? error.message : "Could not calculate the road route.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsRouteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [isOpen, mapPoints]);
 
   const handleMarkArrived = async (idx: number) => {
     if (!displayPlan || idx !== currentPointState || idx >= stops) return;
@@ -328,55 +465,79 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
               Map
             </Typography>
             {mapPoints.length ? (
-              <Box
-                sx={{
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
-                  overflow: "hidden",
-                  height: 420,
-                  width: "100%",
-                }}
-              >
-                <MapContainer
-                  center={[mapPoints[0]!.lat, mapPoints[0]!.lon]}
-                  zoom={13}
-                  style={{ height: "100%", width: "100%" }}
-                  preferCanvas
+              <>
+                {isRouteLoading ? (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                    <CircularProgress size={16} />
+                    <Typography variant="caption" color="text.secondary">
+                      Calculating road route...
+                    </Typography>
+                  </Box>
+                ) : routeLine ? (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    Road route: {formatDistance(routeLine.distanceM)} / {formatDuration(routeLine.durationS)}
+                  </Typography>
+                ) : routeError ? (
+                  <Alert severity="warning" sx={{ mb: 1 }}>
+                    {routeError} Showing straight-line fallback.
+                  </Alert>
+                ) : null}
+
+                <Box
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    overflow: "hidden",
+                    height: 420,
+                    width: "100%",
+                  }}
                 >
-                  <TileLayer
-                    attribution="&copy; OpenStreetMap contributors"
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <FitBounds points={mapPoints} />
+                  <MapContainer
+                    center={[mapPoints[0]!.lat, mapPoints[0]!.lon]}
+                    zoom={13}
+                    style={{ height: "100%", width: "100%" }}
+                    preferCanvas
+                  >
+                    <TileLayer
+                      attribution="&copy; OpenStreetMap contributors"
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <FitBounds points={mapPoints} routePositions={routeLinePositions} />
 
-                  {polylineLatLngs.length >= 2 ? <Polyline positions={polylineLatLngs} /> : null}
+                    {routeLinePositions.length >= 2 ? (
+                      <Polyline
+                        positions={routeLinePositions}
+                        pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.85 }}
+                      />
+                    ) : null}
 
-                  {mapPoints.map((p) => (
-                    <Marker key={p.key} position={[p.lat, p.lon]}>
-                      <Popup>
-                        <Box sx={{ minWidth: 220 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {p.label}
-                          </Typography>
-                          {p.address ? (
-                            <Typography variant="caption" color="text.secondary">
-                              {p.address}
+                    {mapPoints.map((p) => (
+                      <Marker key={p.key} position={[p.lat, p.lon]}>
+                        <Popup>
+                          <Box sx={{ minWidth: 220 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {p.label}
                             </Typography>
-                          ) : null}
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: "block", mt: 0.5 }}
-                          >
-                            {p.lat}, {p.lon}
-                          </Typography>
-                        </Box>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              </Box>
+                            {p.address ? (
+                              <Typography variant="caption" color="text.secondary">
+                                {p.address}
+                              </Typography>
+                            ) : null}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: "block", mt: 0.5 }}
+                            >
+                              {p.lat}, {p.lon}
+                            </Typography>
+                          </Box>
+                        </Popup>
+                      </Marker>
+                    ))}
+                  </MapContainer>
+                </Box>
+              </>
             ) : (
               <Typography variant="body2" color="text.secondary">
                 Không có toạ độ để hiển thị trên bản đồ.

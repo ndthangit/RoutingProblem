@@ -6,7 +6,15 @@ from typing import Any
 import httpx
 
 from src.config.config import settings
-from src.models.routing import Coordinate, RouteLeg, RouteRequest, RouteResponse
+from src.models.routing import (
+	AddressRouteRequest,
+	AddressRouteResponse,
+	Coordinate,
+	GeocodeResponse,
+	RouteLeg,
+	RouteRequest,
+	RouteResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,21 +29,39 @@ class RoutingService:
 		*,
 		base_url: str | None = None,
 		timeout_s: float | None = None,
-		provider: str | None = None,
 	):
 		# Backward compatible: base_url is OSRM base url.
 		self._osrm_base_url = (base_url or settings.OSRM_BASE_URL).rstrip("/")
-		self._rapidapi_base_url = settings.RAPIDAPI_BASE_URL.rstrip("/")
 		self._timeout = httpx.Timeout(timeout_s or settings.ROUTING_UPSTREAM_TIMEOUT_S)
-		self._provider = (provider or settings.ROUTING_PROVIDER or "osrm").strip().lower()
 
 	async def route(self, req: RouteRequest) -> RouteResponse:
-		"""Compute a route using configured provider (OSRM direct or RapidAPI)."""
-		if self._provider in {"rapidapi", "fast-routing", "fast_routing"}:
-			return await self._route_via_rapidapi(req)
-		if self._provider not in {"osrm"}:
-			raise OsrmError(f"Unknown ROUTING_PROVIDER='{self._provider}'. Use 'osrm' or 'rapidapi'.")
+		"""Compute a route using OSRM."""
 		return await self._route_via_osrm(req)
+
+	async def route_by_address(self, req: AddressRouteRequest) -> AddressRouteResponse:
+		"""Geocode two addresses with Nominatim, then calculate the OSRM route."""
+		start_coordinate = await self.geocode_address(req.start_address)
+		end_coordinate = await self.geocode_address(req.end_address)
+
+		route = await self.route(
+			RouteRequest(
+				coordinates=[start_coordinate, end_coordinate],
+				profile=req.profile,
+				steps=req.steps,
+				alternatives=req.alternatives,
+				overview=req.overview,
+				geometries=req.geometries,
+			)
+		)
+
+		return AddressRouteResponse(
+			distanceM=route.distance_m,
+			durationS=route.duration_s,
+			geometry=route.geometry,
+			legs=route.legs,
+			startCoordinate=start_coordinate,
+			endCoordinate=end_coordinate,
+		)
 
 	async def _route_via_osrm(self, req: RouteRequest) -> RouteResponse:
 		coords = ";".join([c.to_osrm_str() for c in req.coordinates])
@@ -47,70 +73,36 @@ class RoutingService:
 			"geometries": req.geometries,
 			"annotations": "false",
 		}
-		return await self._execute_osrm_like_request(url=url, params=params, provider_label="OSRM")
+		return await self._execute_osrm_request(url=url, params=params)
 
-	async def _route_via_rapidapi(self, req: RouteRequest) -> RouteResponse:
-		# RapidAPI fast-routing is OSRM-compatible but requires headers.
-		if not settings.RAPIDAPI_KEY:
-			raise OsrmError(
-				"RAPIDAPI_KEY is not set. Set env RAPIDAPI_KEY to use ROUTING_PROVIDER=rapidapi."
-			)
-		coords = ";".join([c.to_osrm_str() for c in req.coordinates])
-		url = f"{self._rapidapi_base_url}/route/v1/{req.profile}/{coords}"
-		params = {
-			"steps": "true" if req.steps else "false",
-			"overview": req.overview,
-			"exclude": "ferry",
-			"snapping": "default",
-			"skip_waypoints": "false",
-			"geometries": req.geometries,
-			"continue_straight": "default",
-			# rapidapi/osrm supports alternatives too in many deployments; keep it if requested
-			"alternatives": "true" if req.alternatives else "false",
-		}
-
-		headers = {
-			"x-rapidapi-key": settings.RAPIDAPI_KEY,
-			"x-rapidapi-host": settings.RAPIDAPI_HOST or "fast-routing.p.rapidapi.com",
-			"Content-Type": "application/json",
-		}
-		return await self._execute_osrm_like_request(
-			url=url,
-			params=params,
-			headers=headers,
-			provider_label="RapidAPI",
-		)
-
-	async def _execute_osrm_like_request(
+	async def _execute_osrm_request(
 		self,
 		*,
 		url: str,
 		params: dict[str, str],
-		headers: dict[str, str] | None = None,
-		provider_label: str,
 	) -> RouteResponse:
 		async with httpx.AsyncClient(timeout=self._timeout) as client:
 			try:
-				r = await client.get(url, params=params, headers=headers)
+				r = await client.get(url, params=params)
 			except httpx.TimeoutException as e:
-				raise OsrmError(f"{provider_label} timed out: {e}") from e
+				raise OsrmError(f"OSRM timed out: {e}") from e
 			except httpx.RequestError as e:
-				raise OsrmError(f"{provider_label} request error: {e}") from e
+				raise OsrmError(f"OSRM request error: {e}") from e
 
 		if r.status_code != 200:
-			raise OsrmError(f"{provider_label} HTTP {r.status_code}: {r.text}")
+			raise OsrmError(f"OSRM HTTP {r.status_code}: {r.text}")
 
 		try:
 			data: dict[str, Any] = r.json()
 		except ValueError as e:
-			raise OsrmError(f"{provider_label} returned non-JSON response") from e
+			raise OsrmError("OSRM returned non-JSON response") from e
 
 		if data.get("code") != "Ok":
-			raise OsrmError(f"{provider_label} response not Ok: {data}")
+			raise OsrmError(f"OSRM response not Ok: {data}")
 
 		routes = data.get("routes") or []
 		if not routes:
-			raise OsrmError(f"{provider_label} returned no routes")
+			raise OsrmError("OSRM returned no routes")
 
 		best = routes[0]
 		legs: list[RouteLeg] = []
@@ -146,6 +138,11 @@ class RoutingService:
 		- GEOCODING_PROVIDER: 'nominatim' (default)
 		- NOMINATIM_BASE_URL: default 'https://nominatim.openstreetmap.org'
 		"""
+		result = await self.geocode_address_detail(address)
+		return result.coordinate
+
+	async def geocode_address_detail(self, address: str) -> GeocodeResponse:
+		"""Geocode an address with Nominatim and return coordinate plus display name."""
 		address = (address or "").strip()
 		if not address:
 			raise ValueError("Address is required for geocoding")
@@ -159,13 +156,21 @@ class RoutingService:
 		)
 		url = f"{base_url}/search"
 		params = {
-			"format": "jsonv2",
 			"q": address,
+			"format": "json",
 			"limit": "1",
 		}
+		email = (getattr(settings, "NOMINATIM_EMAIL", "") or "").strip()
+		if email:
+			params["email"] = email
+
+		user_agent = (getattr(settings, "NOMINATIM_USER_AGENT", "") or "").strip()
+		if not user_agent:
+			user_agent = f"{getattr(settings, 'APP_NAME', 'routing-app')}/1.0"
+
 		headers = {
 			# Nominatim requires a valid User-Agent identifying the application.
-			"User-Agent": getattr(settings, "APP_NAME", "routing-app") + " (geocoding)",
+			"User-Agent": user_agent,
 			"Accept": "application/json",
 		}
 
@@ -186,7 +191,7 @@ class RoutingService:
 			raise OsrmError("Geocoding returned non-JSON response") from e
 
 		if not data:
-			raise OsrmError("Geocoding returned no results")
+			raise OsrmError(f"Geocoding returned no results for address: {address}")
 
 		best = data[0]
 		try:
@@ -196,5 +201,9 @@ class RoutingService:
 			raise OsrmError(f"Unexpected geocoding response: {best}") from e
 
 		# Coordinate is lon/lat.
-		return Coordinate(lon=lon, lat=lat)
+		return GeocodeResponse(
+			address=address,
+			coordinate=Coordinate(lon=lon, lat=lat),
+			displayName=best.get("display_name"),
+		)
 

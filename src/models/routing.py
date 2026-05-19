@@ -35,6 +35,32 @@ class RouteRequest(BaseModel):
     geometries: Literal["polyline", "polyline6", "geojson"] = Field(default="geojson")
 
 
+class GeocodeRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    address: str = Field(..., min_length=1, description="Address to geocode")
+
+
+class GeocodeResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    address: str
+    coordinate: Coordinate
+    display_name: Optional[str] = Field(default=None, alias="displayName")
+
+
+class AddressRouteRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    start_address: str = Field(..., min_length=1, alias="startAddress")
+    end_address: str = Field(..., min_length=1, alias="endAddress")
+    profile: Literal["driving", "driving-traffic", "walking", "cycling"] = Field(default="driving")
+    steps: bool = Field(default=False)
+    alternatives: bool = Field(default=False)
+    overview: Literal["simplified", "full", "false"] = Field(default="full")
+    geometries: Literal["polyline", "polyline6", "geojson"] = Field(default="geojson")
+
+
 class RouteLeg(BaseModel):
     distance_m: float = Field(..., alias="distanceM")
     duration_s: float = Field(..., alias="durationS")
@@ -47,6 +73,11 @@ class RouteResponse(BaseModel):
     duration_s: float = Field(..., alias="durationS")
     geometry: dict = Field(..., description="GeoJSON LineString")
     legs: list[RouteLeg] = Field(default_factory=list)
+
+
+class AddressRouteResponse(RouteResponse):
+    start_coordinate: Coordinate = Field(..., alias="startCoordinate")
+    end_coordinate: Coordinate = Field(..., alias="endCoordinate")
 
 
 class EtaUpdate(BaseModel):
@@ -73,7 +104,7 @@ class Point(BaseModel):
     name: Optional[str] = Field(default=None, description="Tên điểm")
     address: str = Field(..., description="Địa chỉ")
 
-    # Dạng object (lon/lat) để dùng trực tiếp cho routing engines (OSRM/RapidAPI)
+    # Dang object (lon/lat) de dung truc tiep cho OSRM.
     coordinate: Optional[Coordinate] = Field(default=None, description="Tọa độ (lon/lat)")
 
     def to_dict(self) -> dict:
