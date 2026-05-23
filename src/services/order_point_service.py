@@ -60,7 +60,7 @@ class OrderPointService:
         lookup_origin = customer_warehouse if customer_warehouse is not None else origin
         warehouse = await self._brand_warehouse_service.find_nearest_warehouse(
             lookup_origin,
-            BrandWarehouseType.HUB.value,
+            BrandWarehouseType.DEPOT.value,
         )
         if warehouse is None:
             return None
