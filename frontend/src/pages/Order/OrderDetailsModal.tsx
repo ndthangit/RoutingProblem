@@ -94,27 +94,18 @@ function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
 }
 
 export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetailsModalProps) {
-  const routePoints = useMemo<Point[]>(() => {
+  const stopPoints = useMemo<Point[]>(() => {
     if (!order) return [];
     if (Array.isArray(order.routes) && order.routes.length) return order.routes;
     return [order.origin, order.destination].filter(Boolean);
   }, [order]);
 
-  const currentRouteState = useMemo(() => {
-    if (!routePoints.length) return 0;
-    return Math.min(getRouteState(order), Math.max(routePoints.length - 1, 0));
-  }, [order, routePoints.length]);
+  const currentStopIndex = useMemo(() => {
+    if (!stopPoints.length) return 0;
+    return Math.min(getRouteState(order), Math.max(stopPoints.length - 1, 0));
+  }, [order, stopPoints.length]);
 
-  const routeSegments = useMemo(
-    () =>
-      routePoints.slice(0, -1).map((from, idx) => ({
-        key: `${from.id ?? from.address ?? idx}:${routePoints[idx + 1]?.id ?? routePoints[idx + 1]?.address ?? idx + 1}`,
-        from,
-        to: routePoints[idx + 1],
-        idx,
-      })),
-    [routePoints]
-  );
+  const currentStop = stopPoints[currentStopIndex];
 
   const mapPoints = useMemo<MapPoint[]>(() => {
     const next: MapPoint[] = [];
@@ -124,15 +115,16 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
       next.push(point);
     };
 
-    routePoints.forEach((point, idx) => {
+    stopPoints.forEach((point, idx) => {
       const coordinate = point?.coordinate;
       if (!coordinate || typeof coordinate.lat !== "number" || typeof coordinate.lon !== "number") return;
 
       const isFirst = idx === 0;
-      const isLast = idx === routePoints.length - 1;
+      const isLast = idx === stopPoints.length - 1;
+      const isCurrent = idx === currentStopIndex;
       appendPoint({
         key: `order-point:${String(point.id ?? idx)}`,
-        label: isFirst ? "Origin" : isLast ? "Destination" : `Waypoint ${idx}`,
+        label: isCurrent ? "Current location" : isFirst ? "Origin" : isLast ? "Destination" : `Stop ${idx + 1}`,
         address: getPointLabel(point, `Point ${idx + 1}`),
         lat: coordinate.lat,
         lon: coordinate.lon,
@@ -140,7 +132,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
     });
 
     return next;
-  }, [routePoints]);
+  }, [currentStopIndex, stopPoints]);
 
   const polylineLatLngs = useMemo(() => mapPoints.map((p) => [p.lat, p.lon] as [number, number]), [mapPoints]);
 
@@ -224,26 +216,33 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
             <FieldRow label="Vehicle ID" value={order.vehicleId} />
             <FieldRow label="Route ID" value={order.routeId} />
             <FieldRow
-              label="Route state"
-              value={routePoints.length ? `${currentRouteState}/${Math.max(routePoints.length - 1, 0)}` : order.route_state}
+              label="Current stop"
+              value={
+                stopPoints.length
+                  ? `${currentStopIndex + 1}/${stopPoints.length} - ${getPointLabel(currentStop, "Current location")}`
+                  : order.route_state
+              }
             />
 
             <Divider sx={{ my: 2 }} />
 
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-              Route stages
+              Stops
             </Typography>
-            {routeSegments.length ? (
+            {stopPoints.length ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {routeSegments.map(({ key, from, to, idx }) => {
-                  const completed = currentRouteState > idx;
-                  const current = currentRouteState === idx && currentRouteState < routePoints.length - 1;
-                  const statusText = completed ? "Completed" : current ? "Current" : "Pending";
+                {stopPoints.map((point, idx) => {
+                  const completed = idx < currentStopIndex;
+                  const current = idx === currentStopIndex;
+                  const statusText = completed ? "Passed" : current ? "Current location" : "Pending";
                   const statusColor = completed ? "success.main" : current ? "primary.main" : "text.secondary";
+                  const isFirst = idx === 0;
+                  const isLast = idx === stopPoints.length - 1;
+                  const stopTitle = isFirst ? "Origin" : isLast ? "Destination" : `Stop ${idx + 1}`;
 
                   return (
                     <Box
-                      key={key}
+                      key={`${point.id ?? point.address ?? idx}:${idx}`}
                       sx={{
                         border: "1px solid",
                         borderColor: current ? "primary.light" : "divider",
@@ -254,7 +253,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            Stage {idx + 1}
+                            {stopTitle}
                           </Typography>
                           <Typography variant="caption" sx={{ color: statusColor }}>
                             {statusText}
@@ -263,15 +262,10 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
                       </Box>
 
                       <Typography variant="body2" color="text.secondary">
-                        {getPointLabel(from, `Point ${idx + 1}`)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        to {getPointLabel(to, `Point ${idx + 2}`)}
+                        {getPointLabel(point, `Point ${idx + 1}`)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {from.coordinate ? `${from.coordinate.lat}, ${from.coordinate.lon}` : "N/A"}
-                        {" -> "}
-                        {to.coordinate ? `${to.coordinate.lat}, ${to.coordinate.lon}` : "N/A"}
+                        {point.coordinate ? `${point.coordinate.lat}, ${point.coordinate.lon}` : "N/A"}
                       </Typography>
                     </Box>
                   );
@@ -279,7 +273,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
               </Box>
             ) : (
               <Typography variant="body2" color="text.secondary">
-                No route stages.
+                No stops.
               </Typography>
             )}
 
