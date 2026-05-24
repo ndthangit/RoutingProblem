@@ -58,6 +58,10 @@ class DriverVehicleService:
 		target_vehicle = await self._vehicles.get_vehicle(target_vehicle_id)
 		if target_vehicle is None:
 			raise ValueError(f"Invalid assignedVehicleId: vehicle '{target_vehicle_id}' not found")
+		if not existing_driver.warehouse_id:
+			raise ValueError("Driver must belong to a BrandWarehouse before assigning a vehicle")
+		if target_vehicle.warehouse_id != existing_driver.warehouse_id:
+			raise ValueError("Vehicle must be managed by the same BrandWarehouse as the driver")
 
 		now = datetime.now(timezone.utc)
 		owner_email = event.owner_email

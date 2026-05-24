@@ -53,8 +53,10 @@ export default function AssignVehicleModal({
 
   const eligibleVehicles = useMemo(() => {
     if (!driver) return [];
-    // Only allow assigning vehicles that are currently unassigned.
-    return vehicles.filter((v) => !v.driverId);
+    const driverWarehouseId = String(driver.warehouseId ?? "");
+    if (!driverWarehouseId) return [];
+    // Only allow assigning unassigned vehicles managed by the same BrandWarehouse as the driver.
+    return vehicles.filter((v) => !v.driverId && String(v.warehouseId ?? "") === driverWarehouseId);
   }, [vehicles, driver]);
 
   const currentVehicleId = driver?.assignedVehicleId ?? "";
@@ -62,11 +64,15 @@ export default function AssignVehicleModal({
 
   // Pre-fill selection when opening modal / switching driver
   useEffect(() => {
-    if (!isOpen || !driver) return;
-    if (selectedVehicleId) return;
+    if (!isOpen || !driver) {
+      setSelectedVehicleId("");
+      return;
+    }
     const defaultId = eligibleVehicles[0]?.id || "";
-    setSelectedVehicleId(defaultId);
-  }, [isOpen, driver, currentVehicleId, eligibleVehicles, selectedVehicleId]);
+    setSelectedVehicleId((current) =>
+      eligibleVehicles.some((vehicle) => vehicle.id === current) ? current : defaultId
+    );
+  }, [isOpen, driver, currentVehicleId, eligibleVehicles]);
 
   const handleClose = () => {
     if (submitting) return;
@@ -88,6 +94,11 @@ export default function AssignVehicleModal({
       return;
     }
 
+    if (!driver.warehouseId) {
+      setError("Tai xe chua thuoc BrandWarehouse nao nen khong the phan cong xe.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -101,6 +112,11 @@ export default function AssignVehicleModal({
 
       if (nextVehicle.driverId) {
         setError("Xe này đã được phân công. Vui lòng chọn xe khác.");
+        return;
+      }
+
+      if (String(nextVehicle.warehouseId ?? "") !== String(driver.warehouseId)) {
+        setError("Xe duoc chon khong thuoc BrandWarehouse quan ly tai xe nay.");
         return;
       }
 
@@ -199,6 +215,10 @@ export default function AssignVehicleModal({
           <>
             <Typography sx={{ mb: 2 }}>
               Tài xế: <b>{`${driver.firstName ?? ""} ${driver.lastName ?? ""}`.trim() || driver.username || driver.id}</b>
+            </Typography>
+
+            <Typography variant="body2" sx={{ mb: 2, color: "text.secondary" }}>
+              Warehouse: {driver.warehouseAddress || driver.warehouseId || "N/A"}
             </Typography>
 
             <FormControl fullWidth>
