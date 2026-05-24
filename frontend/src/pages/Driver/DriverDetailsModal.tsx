@@ -21,45 +21,6 @@ interface DriverDetailsModalProps {
   driver: Driver | null;
 }
 
-const KNOWN_DRIVER_FIELDS = [
-  "id",
-  "employeeCode",
-  "hireDate",
-  "status",
-  "driverType",
-  "licenseNumber",
-  "licenseClass",
-  "licenseIssueDate",
-  "licenseExpiryDate",
-  "emergencyContactName",
-  "emergencyContactPhone",
-  "emergencyContactRelation",
-  "yearsOfExperience",
-  "totalTrips",
-  "rating",
-  "assignedVehicleId",
-  "licensePlate",
-  "warehouseId",
-  "warehouseAddress",
-  "contractNumber",
-  "contractStartDate",
-  "contractEndDate",
-  "sub",
-  "username",
-  "email",
-  "firstName",
-  "lastName",
-  "phone",
-  "enabled",
-  "emailVerified",
-  "createdTimestamp",
-  "createdAt",
-  "updatedAt",
-  "created_at",
-  "updated_at",
-  "attributes",
-] as const;
-
 function isEmptyValue(value: unknown): boolean {
   return (
     value === null ||
@@ -82,34 +43,6 @@ function formatDate(value?: string | number | Date | null): string {
   return d.toLocaleString();
 }
 
-function formatBoolean(value?: boolean): string {
-  if (value === null || value === undefined) return "N/A";
-  return value ? "Yes" : "No";
-}
-
-function formatValue(value: unknown): ReactNode {
-  if (isEmptyValue(value)) return "N/A";
-  if (typeof value === "boolean") return formatBoolean(value);
-  if (Array.isArray(value)) return value.map((item) => String(item)).join(", ");
-  if (typeof value === "object") {
-    return (
-      <Box
-        component="pre"
-        sx={{
-          m: 0,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          fontFamily: "monospace",
-          fontSize: 12,
-        }}
-      >
-        {JSON.stringify(value, null, 2)}
-      </Box>
-    );
-  }
-  return String(value);
-}
-
 function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
   const display = isEmptyValue(value) ? "N/A" : value;
   return (
@@ -124,31 +57,7 @@ function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
   );
 }
 
-function AdditionalFields({ data }: { data: Driver }) {
-  const known = new Set<string>(KNOWN_DRIVER_FIELDS);
-  const entries = Object.entries(data as unknown as Record<string, unknown>).filter(
-    ([key, value]) => !known.has(key) && !isEmptyValue(value)
-  );
-
-  if (!entries.length) return null;
-
-  return (
-    <>
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        Additional fields
-      </Typography>
-      {entries.map(([key, value]) => (
-        <FieldRow key={key} label={key} value={formatValue(value)} />
-      ))}
-    </>
-  );
-}
-
 export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDetailsModalProps) {
-  const createdAt = driver?.createdAt ?? driver?.created_at;
-  const updatedAt = driver?.updatedAt ?? driver?.updated_at;
-
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -176,18 +85,11 @@ export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDe
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Account & Identity
             </Typography>
-            <FieldRow label="ID" value={driver.id} />
-            <FieldRow label="Keycloak subject" value={driver.sub} />
             <FieldRow label="Employee code" value={driver.employeeCode} />
             <FieldRow label="First name" value={driver.firstName} />
             <FieldRow label="Last name" value={driver.lastName} />
-            <FieldRow label="Username" value={driver.username} />
             <FieldRow label="Email" value={driver.email} />
             <FieldRow label="Phone" value={driver.phone} />
-            <FieldRow label="Enabled" value={formatBoolean(driver.enabled)} />
-            <FieldRow label="Email verified" value={formatBoolean(driver.emailVerified)} />
-            <FieldRow label="Created timestamp" value={formatDate(driver.createdTimestamp)} />
-            <FieldRow label="Attributes" value={formatValue(driver.attributes)} />
 
             <Divider sx={{ my: 2 }} />
 
@@ -228,7 +130,6 @@ export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDe
             <FieldRow label="Contract number" value={driver.contractNumber} />
             <FieldRow label="Contract start" value={formatDate(driver.contractStartDate)} />
             <FieldRow label="Contract end" value={formatDate(driver.contractEndDate)} />
-            <FieldRow label="Warehouse ID" value={driver.warehouseId} />
             <FieldRow label="Warehouse address" value={driver.warehouseAddress} />
             <FieldRow
               label="Assigned vehicle"
@@ -249,15 +150,6 @@ export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDe
             <FieldRow label="Emergency contact name" value={driver.emergencyContactName} />
             <FieldRow label="Emergency contact phone" value={driver.emergencyContactPhone} />
             <FieldRow label="Emergency contact relation" value={driver.emergencyContactRelation} />
-
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-              Metadata
-            </Typography>
-            <FieldRow label="Created at" value={formatDate(createdAt)} />
-            <FieldRow label="Updated at" value={formatDate(updatedAt)} />
-            <AdditionalFields data={driver} />
           </Box>
         )}
       </DialogContent>
