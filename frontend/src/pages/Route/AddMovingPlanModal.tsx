@@ -82,6 +82,10 @@ export default function AddMovingPlanModal({ isOpen, onClose, onSuccess }: AddMo
   }, [isOpen]);
 
   const depotOptions = useMemo(() => brandWarehouses, [brandWarehouses]);
+  const vehicleOptions = useMemo(
+    () => vehicles.filter((v) => formData.depot_id && String(v.warehouseId ?? "") === String(formData.depot_id)),
+    [vehicles, formData.depot_id]
+  );
   const destinationDepotOptions = useMemo(
     () => brandWarehouses.filter((bw) => (bw.id ?? "") !== formData.depot_id),
     [brandWarehouses, formData.depot_id]
@@ -99,6 +103,11 @@ export default function AddMovingPlanModal({ isOpen, onClose, onSuccess }: AddMo
       }
       if (!formData.vehicle_ids.length) {
         setError("Vui lòng chọn ít nhất 1 vehicle.");
+        return;
+      }
+      const selectedVehicleIds = new Set(vehicleOptions.map((v) => v.id));
+      if (formData.vehicle_ids.some((id) => !selectedVehicleIds.has(id))) {
+        setError("Selected vehicles must be managed by the root depot.");
         return;
       }
       if (!formData.brand_warehouse_ids.length) {
@@ -132,6 +141,15 @@ export default function AddMovingPlanModal({ isOpen, onClose, onSuccess }: AddMo
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    if (name === "depot_id") {
+      setFormData((prev) => ({
+        ...prev,
+        depot_id: value,
+        vehicle_ids: [],
+        brand_warehouse_ids: prev.brand_warehouse_ids.filter((id) => id !== value),
+      } as FormData));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value } as FormData));
   };
 
@@ -233,9 +251,10 @@ export default function AddMovingPlanModal({ isOpen, onClose, onSuccess }: AddMo
                   name="vehicle_ids"
                   value={formData.vehicle_ids}
                   onChange={handleChangeMultiple("vehicle_ids")}
-                  helperText="Chọn 1 hoặc nhiều xe"
+                  disabled={!formData.depot_id}
+                  helperText="Chọn xe do depot root quản lý"
                 >
-                  {vehicles.map((v) => (
+                  {vehicleOptions.map((v) => (
                     <MenuItem key={v.id} value={v.id}>
                       {v.licensePlate ? `${v.licensePlate} - ${v.id}` : v.id}
                     </MenuItem>

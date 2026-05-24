@@ -1,8 +1,11 @@
 export type DriverStatus =
   | "ACTIVE"
   | "INACTIVE"
+  | "ON_DUTY"
+  | "OFF_DUTY"
   | "SUSPENDED"
-  | "ON_LEAVE";
+  | "ON_LEAVE"
+  | "TERMINATED";
 
 export type DriverType = "TRUCK_DRIVER" | "SEASONAL";
 
@@ -73,6 +76,8 @@ export interface Driver {
 
   createdAt?: string;
   updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface DriverHiredEvent {

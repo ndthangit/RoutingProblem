@@ -6,7 +6,7 @@ export interface PickupPlanRequest {
 
 export interface DeliveryPlanRequest {
   depot_id: string;
-  vehicle_ids: string[];
+  driver_ids: string[];
   delivery_points: {
     id?: string;
     name?: string | null;

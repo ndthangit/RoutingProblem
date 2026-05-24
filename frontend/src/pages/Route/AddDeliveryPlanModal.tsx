@@ -18,7 +18,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
-import type { BrandWarehouse, DeliveryPlanRequest, Order, Plan, Vehicle } from "../../types";
+import type { BrandWarehouse, DeliveryPlanRequest, Driver, Order, Plan } from "../../types";
 
 interface AddDeliveryPlanModalProps {
   isOpen: boolean;
@@ -28,7 +28,7 @@ interface AddDeliveryPlanModalProps {
 
 type FormData = {
   depot_id: string;
-  vehicle_ids: string[];
+  driver_ids: string[];
   order_ids: string[];
   note?: string | null;
 };
@@ -38,20 +38,20 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [brandWarehouses, setBrandWarehouses] = useState<BrandWarehouse[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [formData, setFormData] = useState<FormData>({
     depot_id: "",
-    vehicle_ids: [],
+    driver_ids: [],
     order_ids: [],
     note: "",
   });
 
   const resetForm = () => {
     setError(null);
-    setFormData({ depot_id: "", vehicle_ids: [], order_ids: [], note: "" });
+    setFormData({ depot_id: "", driver_ids: [], order_ids: [], note: "" });
   };
 
   const handleClose = () => {
@@ -67,21 +67,21 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
       setLoadingOptions(true);
       setError(null);
       try {
-        const [vehiclesRes, bwsRes, ordersRes] = await Promise.all([
-          request<Vehicle[]>("GET", "/v1/vehicles"),
+        const [driversRes, bwsRes, ordersRes] = await Promise.all([
+          request<Driver[]>("GET", "/v1/drivers"),
           request<BrandWarehouse[]>("GET", "/v1/brand-warehouses"),
           request<Order[]>("GET", "/v1/orders"),
         ]);
 
-        setVehicles(vehiclesRes?.data ?? []);
+        setDrivers(driversRes?.data ?? []);
         setBrandWarehouses(bwsRes?.data ?? []);
         setOrders(ordersRes?.data ?? []);
       } catch (err) {
         console.error(err);
-        setVehicles([]);
+        setDrivers([]);
         setBrandWarehouses([]);
         setOrders([]);
-        setError(err instanceof Error ? err.message : "Failed to load vehicles/warehouses/orders");
+        setError(err instanceof Error ? err.message : "Failed to load drivers/warehouses/orders");
       } finally {
         setLoadingOptions(false);
       }
@@ -91,6 +91,17 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
   }, [isOpen]);
 
   const depotOptions = useMemo(() => brandWarehouses, [brandWarehouses]);
+  const driverOptions = useMemo(
+    () =>
+      drivers.filter(
+        (d) =>
+          formData.depot_id &&
+          String(d.warehouseId ?? "") === String(formData.depot_id) &&
+          d.driverType === "SEASONAL" &&
+          !d.assignedVehicleId
+      ),
+    [drivers, formData.depot_id]
+  );
 
   const orderOptions = useMemo(() => {
     // Only show orders that have destination address.
@@ -107,8 +118,13 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
         setError("Vui lòng chọn depot (brand warehouse).");
         return;
       }
-      if (!formData.vehicle_ids.length) {
-        setError("Vui lòng chọn ít nhất 1 vehicle.");
+      if (!formData.driver_ids.length) {
+        setError("Vui lòng chọn ít nhất 1 driver thời vụ.");
+        return;
+      }
+      const selectedDriverIds = new Set(driverOptions.map((d) => d.id));
+      if (formData.driver_ids.some((id) => !selectedDriverIds.has(id))) {
+        setError("Selected drivers must be seasonal drivers managed by the root depot without assigned vehicles.");
         return;
       }
       if (!formData.order_ids.length) {
@@ -121,7 +137,7 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
 
       const payload: DeliveryPlanRequest = {
         depot_id: formData.depot_id,
-        vehicle_ids: formData.vehicle_ids,
+        driver_ids: formData.driver_ids,
         delivery_points,
         note: formData.note ? String(formData.note) : undefined,
       };
@@ -140,10 +156,14 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    if (name === "depot_id") {
+      setFormData((prev) => ({ ...prev, depot_id: value, driver_ids: [] } as FormData));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value } as FormData));
   };
 
-  const handleChangeMultiple = (name: keyof Pick<FormData, "vehicle_ids" | "order_ids">) =>
+  const handleChangeMultiple = (name: keyof Pick<FormData, "driver_ids" | "order_ids">) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = (e.target as unknown as { value: string[] | string }).value;
       const next = Array.isArray(value) ? value : value.split(",").filter(Boolean);
@@ -237,15 +257,18 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
                   fullWidth
                   required
                   SelectProps={{ multiple: true }}
-                  label="Vehicles"
-                  name="vehicle_ids"
-                  value={formData.vehicle_ids}
-                  onChange={handleChangeMultiple("vehicle_ids")}
-                  helperText="Chọn 1 hoặc nhiều shipper/xe"
+                  label="Seasonal Drivers"
+                  name="driver_ids"
+                  value={formData.driver_ids}
+                  onChange={handleChangeMultiple("driver_ids")}
+                  disabled={!formData.depot_id}
+                  helperText="Chọn driver thời vụ do depot này quản lý, chưa được cấp vehicle"
                 >
-                  {vehicles.map((v) => (
-                    <MenuItem key={v.id} value={v.id}>
-                      {v.licensePlate ? `${v.licensePlate} - ${v.id}` : v.id}
+                  {driverOptions.map((d) => (
+                    <MenuItem key={d.id} value={d.id}>
+                      {[d.employeeCode, `${d.firstName ?? ""} ${d.lastName ?? ""}`.trim() || d.username, d.id]
+                        .filter(Boolean)
+                        .join(" - ")}
                     </MenuItem>
                   ))}
                 </TextField>

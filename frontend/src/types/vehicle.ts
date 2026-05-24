@@ -48,6 +48,7 @@ export interface Vehicle {
   // Optional snake_case timestamps if backend returns them without aliases
   created_at?: Date | string;
   updated_at?: Date | string;
+  deleted_at?: Date | string | null;
 }
 
 export interface VehicleEvent {

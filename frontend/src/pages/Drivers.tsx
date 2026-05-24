@@ -40,15 +40,21 @@ function StatusBadge({ status }: { status: DriverStatus }) {
   const colorMap: Record<DriverStatus, "success" | "default" | "warning" | "error"> = {
     ACTIVE: "success",
     INACTIVE: "error",
+    ON_DUTY: "success",
+    OFF_DUTY: "default",
     SUSPENDED: "warning",
     ON_LEAVE: "default",
+    TERMINATED: "error",
   };
 
   const labelMap: Record<DriverStatus, string> = {
     ACTIVE: "Active",
     INACTIVE: "Inactive",
+    ON_DUTY: "On duty",
+    OFF_DUTY: "Off duty",
     SUSPENDED: "Suspended",
     ON_LEAVE: "On leave",
+    TERMINATED: "Terminated",
   };
 
   return (
@@ -241,23 +247,14 @@ export default function Drivers() {
       {
         field: "employeeCode",
         headerName: "Employee Code",
-        width: 150,
+        width: 120,
         valueGetter: (value) => value || "N/A",
       },
+
       {
-        field: "fullName",
-        headerName: "Name",
-        width: 160,
-        sortable: false,
-        valueGetter: (_value, row: Driver) => {
-          const name = `${row.firstName ?? ""} ${row.lastName ?? ""}`.trim();
-          return name || row.username || "N/A";
-        },
-      },
-      {
-        field: "phone",
-        headerName: "Phone",
-        width: 100,
+        field: "warehouseAddress",
+        headerName: "Warehouse",
+        width: 250,
         valueGetter: (value) => value || "N/A",
       },
       {

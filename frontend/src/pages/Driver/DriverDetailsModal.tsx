@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import BadgeIcon from "@mui/icons-material/Badge";
+import type { ReactNode } from "react";
 
 import type { Driver } from "../../types";
 
@@ -20,8 +21,57 @@ interface DriverDetailsModalProps {
   driver: Driver | null;
 }
 
-function formatDate(value?: string | number): string {
+const KNOWN_DRIVER_FIELDS = [
+  "id",
+  "employeeCode",
+  "hireDate",
+  "status",
+  "driverType",
+  "licenseNumber",
+  "licenseClass",
+  "licenseIssueDate",
+  "licenseExpiryDate",
+  "emergencyContactName",
+  "emergencyContactPhone",
+  "emergencyContactRelation",
+  "yearsOfExperience",
+  "totalTrips",
+  "rating",
+  "assignedVehicleId",
+  "licensePlate",
+  "warehouseId",
+  "warehouseAddress",
+  "contractNumber",
+  "contractStartDate",
+  "contractEndDate",
+  "sub",
+  "username",
+  "email",
+  "firstName",
+  "lastName",
+  "phone",
+  "enabled",
+  "emailVerified",
+  "createdTimestamp",
+  "createdAt",
+  "updatedAt",
+  "created_at",
+  "updated_at",
+  "attributes",
+] as const;
+
+function isEmptyValue(value: unknown): boolean {
+  return (
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+function formatDate(value?: string | number | Date | null): string {
   if (value === null || value === undefined || value === "") return "N/A";
+  if (value instanceof Date) return isNaN(value.getTime()) ? "N/A" : value.toLocaleString();
   if (typeof value === "number") {
     const d = new Date(value);
     return isNaN(d.getTime()) ? String(value) : d.toLocaleString();
@@ -32,21 +82,73 @@ function formatDate(value?: string | number): string {
   return d.toLocaleString();
 }
 
-function FieldRow({ label, value }: { label: string; value?: React.ReactNode }) {
-  const display = value === null || value === undefined || value === "" ? "N/A" : value;
+function formatBoolean(value?: boolean): string {
+  if (value === null || value === undefined) return "N/A";
+  return value ? "Yes" : "No";
+}
+
+function formatValue(value: unknown): ReactNode {
+  if (isEmptyValue(value)) return "N/A";
+  if (typeof value === "boolean") return formatBoolean(value);
+  if (Array.isArray(value)) return value.map((item) => String(item)).join(", ");
+  if (typeof value === "object") {
+    return (
+      <Box
+        component="pre"
+        sx={{
+          m: 0,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          fontFamily: "monospace",
+          fontSize: 12,
+        }}
+      >
+        {JSON.stringify(value, null, 2)}
+      </Box>
+    );
+  }
+  return String(value);
+}
+
+function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
+  const display = isEmptyValue(value) ? "N/A" : value;
   return (
     <Box sx={{ display: "flex", gap: 2, py: 0.75 }}>
       <Typography sx={{ width: 220, color: "text.secondary", fontWeight: 600 }} variant="body2">
         {label}
       </Typography>
-      <Typography sx={{ flex: 1 }} variant="body2">
+      <Typography component="div" sx={{ flex: 1, minWidth: 0, wordBreak: "break-word" }} variant="body2">
         {display}
       </Typography>
     </Box>
   );
 }
 
+function AdditionalFields({ data }: { data: Driver }) {
+  const known = new Set<string>(KNOWN_DRIVER_FIELDS);
+  const entries = Object.entries(data as unknown as Record<string, unknown>).filter(
+    ([key, value]) => !known.has(key) && !isEmptyValue(value)
+  );
+
+  if (!entries.length) return null;
+
+  return (
+    <>
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+        Additional fields
+      </Typography>
+      {entries.map(([key, value]) => (
+        <FieldRow key={key} label={key} value={formatValue(value)} />
+      ))}
+    </>
+  );
+}
+
 export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDetailsModalProps) {
+  const createdAt = driver?.createdAt ?? driver?.created_at;
+  const updatedAt = driver?.updatedAt ?? driver?.updated_at;
+
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -75,16 +177,17 @@ export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDe
               Account & Identity
             </Typography>
             <FieldRow label="ID" value={driver.id} />
+            <FieldRow label="Keycloak subject" value={driver.sub} />
             <FieldRow label="Employee code" value={driver.employeeCode} />
+            <FieldRow label="First name" value={driver.firstName} />
+            <FieldRow label="Last name" value={driver.lastName} />
             <FieldRow label="Username" value={driver.username} />
             <FieldRow label="Email" value={driver.email} />
             <FieldRow label="Phone" value={driver.phone} />
-            <FieldRow label="Enabled" value={driver.enabled === undefined ? "N/A" : driver.enabled ? "Yes" : "No"} />
-            <FieldRow
-              label="Email verified"
-              value={driver.emailVerified === undefined ? "N/A" : driver.emailVerified ? "Yes" : "No"}
-            />
+            <FieldRow label="Enabled" value={formatBoolean(driver.enabled)} />
+            <FieldRow label="Email verified" value={formatBoolean(driver.emailVerified)} />
             <FieldRow label="Created timestamp" value={formatDate(driver.createdTimestamp)} />
+            <FieldRow label="Attributes" value={formatValue(driver.attributes)} />
 
             <Divider sx={{ my: 2 }} />
 
@@ -125,6 +228,8 @@ export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDe
             <FieldRow label="Contract number" value={driver.contractNumber} />
             <FieldRow label="Contract start" value={formatDate(driver.contractStartDate)} />
             <FieldRow label="Contract end" value={formatDate(driver.contractEndDate)} />
+            <FieldRow label="Warehouse ID" value={driver.warehouseId} />
+            <FieldRow label="Warehouse address" value={driver.warehouseAddress} />
             <FieldRow
               label="Assigned vehicle"
               value={
@@ -150,8 +255,9 @@ export default function DriverDetailsModal({ isOpen, onClose, driver }: DriverDe
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Metadata
             </Typography>
-            <FieldRow label="Created at" value={formatDate(driver.createdAt)} />
-            <FieldRow label="Updated at" value={formatDate(driver.updatedAt)} />
+            <FieldRow label="Created at" value={formatDate(createdAt)} />
+            <FieldRow label="Updated at" value={formatDate(updatedAt)} />
+            <AdditionalFields data={driver} />
           </Box>
         )}
       </DialogContent>
