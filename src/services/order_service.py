@@ -152,6 +152,50 @@ class OrderService:
             print(f"Couchbase query failed: {e}")
             return []
 
+    @classmethod
+    def _is_ready_for_delivery_from_depot(cls, order: Order, depot: Point) -> bool:
+        if not order.routes:
+            return False
+
+        current_index = order.route_state or 0
+        next_index = current_index + 1
+        if current_index < 0 or next_index >= len(order.routes):
+            return False
+
+        current_point = order.routes[current_index]
+        next_point = order.routes[next_index]
+        return cls._is_same_point(current_point, depot) and cls._is_same_point(next_point, order.destination)
+
+    async def list_delivery_ready_orders_for_depot(self, depot: Point) -> list[Order]:
+        """Return orders currently at `depot` whose next route point is the buyer destination."""
+        scope_name = self._cb.scope.name if self._cb.scope else "default"
+        statement = (
+            f"SELECT o.* FROM `{self._cb.bucket.name}`.`{scope_name}`.`{ORDER_COLLECTION}` o "
+            "WHERE o.routes IS NOT MISSING "
+            "AND o.destination IS NOT MISSING "
+            "AND ARRAY_LENGTH(o.routes) > IFMISSINGORNULL(o.route_state, 0) + 1 "
+            "ORDER BY o.createdAt ASC"
+        )
+
+        try:
+            result = await self._cb.query(statement)
+            rows = list(result)
+        except CouchbaseException as e:
+            print(f"Couchbase query failed while listing delivery-ready orders: {e}")
+            return []
+
+        orders: list[Order] = []
+        for row in rows:
+            try:
+                order = Order.model_validate(row)
+            except Exception:
+                continue
+
+            if self._is_ready_for_delivery_from_depot(order, depot):
+                orders.append(order)
+
+        return orders
+
     async def increment_route_state_for_consecutive_points(self, first: Point, second: Point) -> int:
         """Advance orders whose current/next route points match this pair."""
         scope_name = self._cb.scope.name if self._cb.scope else "default"

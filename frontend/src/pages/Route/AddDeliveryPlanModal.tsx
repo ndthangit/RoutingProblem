@@ -18,7 +18,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import Grid from "@mui/material/Grid";
 
 import { request } from "../../api";
-import type { BrandWarehouse, DeliveryPlanRequest, Driver, Order, Plan } from "../../types";
+import type { BrandWarehouse, DeliveryPlanRequest, Driver, Plan } from "../../types";
 
 interface AddDeliveryPlanModalProps {
   isOpen: boolean;
@@ -29,7 +29,6 @@ interface AddDeliveryPlanModalProps {
 type FormData = {
   depot_id: string;
   driver_ids: string[];
-  order_ids: string[];
   note?: string | null;
 };
 
@@ -40,18 +39,16 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [brandWarehouses, setBrandWarehouses] = useState<BrandWarehouse[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
 
   const [formData, setFormData] = useState<FormData>({
     depot_id: "",
     driver_ids: [],
-    order_ids: [],
     note: "",
   });
 
   const resetForm = () => {
     setError(null);
-    setFormData({ depot_id: "", driver_ids: [], order_ids: [], note: "" });
+    setFormData({ depot_id: "", driver_ids: [], note: "" });
   };
 
   const handleClose = () => {
@@ -67,21 +64,18 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
       setLoadingOptions(true);
       setError(null);
       try {
-        const [driversRes, bwsRes, ordersRes] = await Promise.all([
+        const [driversRes, bwsRes] = await Promise.all([
           request<Driver[]>("GET", "/v1/drivers"),
           request<BrandWarehouse[]>("GET", "/v1/brand-warehouses"),
-          request<Order[]>("GET", "/v1/orders"),
         ]);
 
         setDrivers(driversRes?.data ?? []);
         setBrandWarehouses(bwsRes?.data ?? []);
-        setOrders(ordersRes?.data ?? []);
       } catch (err) {
         console.error(err);
         setDrivers([]);
         setBrandWarehouses([]);
-        setOrders([]);
-        setError(err instanceof Error ? err.message : "Failed to load drivers/warehouses/orders");
+        setError(err instanceof Error ? err.message : "Failed to load drivers/warehouses");
       } finally {
         setLoadingOptions(false);
       }
@@ -103,11 +97,6 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
     [drivers, formData.depot_id]
   );
 
-  const orderOptions = useMemo(() => {
-    // Only show orders that have destination address.
-    return orders.filter((o) => Boolean(o?.destination?.address));
-  }, [orders]);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -127,22 +116,20 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
         setError("Selected drivers must be seasonal drivers managed by the root depot without assigned vehicles.");
         return;
       }
-      if (!formData.order_ids.length) {
-        setError("Vui lòng chọn ít nhất 1 order để giao hàng.");
-        return;
-      }
-
-      const selected = orderOptions.filter((o) => formData.order_ids.includes(o.id));
-      const delivery_points = selected.map((o) => o.destination);
 
       const payload: DeliveryPlanRequest = {
         depot_id: formData.depot_id,
         driver_ids: formData.driver_ids,
-        delivery_points,
         note: formData.note ? String(formData.note) : undefined,
       };
 
-      const res = await request<Plan[]>("POST", "/v1/delivery-plans", undefined, undefined, payload as unknown as Plan[]);
+      const res = await request<Plan[], DeliveryPlanRequest>(
+        "POST",
+        "/v1/delivery-plans",
+        undefined,
+        undefined,
+        payload
+      );
       const plans = res?.data ?? [];
       onSuccess?.(plans);
       handleClose();
@@ -163,7 +150,8 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
     setFormData((prev) => ({ ...prev, [name]: value } as FormData));
   };
 
-  const handleChangeMultiple = (name: keyof Pick<FormData, "driver_ids" | "order_ids">) =>
+  const handleChangeMultiple =
+    (name: keyof Pick<FormData, "driver_ids">) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = (e.target as unknown as { value: string[] | string }).value;
       const next = Array.isArray(value) ? value : value.split(",").filter(Boolean);
@@ -276,32 +264,12 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
 
               <Grid size={{ xs: 12 }}>
                 <TextField
-                  select
-                  fullWidth
-                  required
-                  SelectProps={{ multiple: true }}
-                  label="Orders to deliver"
-                  name="order_ids"
-                  value={formData.order_ids}
-                  onChange={handleChangeMultiple("order_ids")}
-                  helperText="Chọn các đơn cần giao (sử dụng destination của order)"
-                >
-                  {orderOptions.map((o) => (
-                    <MenuItem key={o.id} value={o.id}>
-                      {o.id} - {o.destination?.address || "N/A"}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              <Grid size={{ xs: 12 }}>
-                <TextField
                   fullWidth
                   label="Note"
                   name="note"
                   value={formData.note ?? ""}
                   onChange={handleChange}
-                  helperText="Tuỳ chọn: ghi chú cho plan"
+                  helperText="Backend tự chọn các order sẵn sàng giao của depot này"
                 />
               </Grid>
             </Grid>
@@ -326,4 +294,3 @@ export default function AddDeliveryPlanModal({ isOpen, onClose, onSuccess }: Add
     </Dialog>
   );
 }
-

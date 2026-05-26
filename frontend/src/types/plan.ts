@@ -7,12 +7,6 @@ export interface PickupPlanRequest {
 export interface DeliveryPlanRequest {
   depot_id: string;
   driver_ids: string[];
-  delivery_points: {
-    id?: string;
-    name?: string | null;
-    address: string;
-    coordinate?: { lon: number; lat: number } | null;
-  }[];
   note?: string | null;
 }
 

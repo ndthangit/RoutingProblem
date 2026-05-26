@@ -7,12 +7,12 @@ from src.config.couchbase import CouchbaseClient
 from src.dependencies import get_current_user
 from src.models.driver import Driver, DriverType
 from src.models.plan import InputPlan, Plan
-from src.models.routing import Point
 from src.models.user import User
 from src.models.vehicle import Vehicle, VehicleStatus, VehicleType
 from src.services.brand_warehouse_service import BrandWarehouseService
 from src.services.delivery_plan_service import DeliveryPlanService
 from src.services.driver_service import DriverService
+from src.services.order_service import OrderService
 from src.services.plan_service import PlanService
 from src.services.route_service import RouteService
 
@@ -22,7 +22,6 @@ router = APIRouter(prefix="/delivery-plans", tags=["delivery-plans"])
 class DeliveryPlanRequest(BaseModel):
     depot_id: str = Field(..., description="Brand warehouse used as start/end depot")
     driver_ids: list[str] = Field(..., description="Seasonal drivers assigned to this delivery plan")
-    delivery_points: list[Point] = Field(..., description="Buyer locations (destinations)")
     note: str | None = None
 
 
@@ -63,6 +62,13 @@ def _get_brand_warehouse_service(request: Request) -> BrandWarehouseService:
     return BrandWarehouseService(cb)
 
 
+def _get_order_service(request: Request) -> OrderService:
+    cb: CouchbaseClient = getattr(request.app.state, "couchbase", None)
+    if cb is None:
+        raise RuntimeError("Couchbase client not available on app.state")
+    return OrderService(cb)
+
+
 def _driver_to_delivery_resource(driver: Driver) -> Vehicle:
     """Delivery routing still expects vehicle-like resources; seasonal drivers are the resource."""
     return Vehicle(
@@ -88,6 +94,7 @@ async def create_delivery_plan(
     delivery_plan_service = _get_delivery_plan_service(request)
     driver_service = _get_driver_service(request)
     brand_warehouse_service = _get_brand_warehouse_service(request)
+    order_service = _get_order_service(request)
 
     depot = await brand_warehouse_service.get_warehouse(payload.depot_id)
     if not depot:
@@ -117,6 +124,14 @@ async def create_delivery_plan(
         )
 
     vehicles = [_driver_to_delivery_resource(driver) for driver in drivers if driver is not None]
+    delivery_orders = await order_service.list_delivery_ready_orders_for_depot(depot)
+    if not delivery_orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No delivery-ready orders found for the selected depot",
+        )
+
+    delivery_points = [order.destination for order in delivery_orders]
 
     # If caller forgets coordinates, we will still run (cost becomes 0); but it's better to validate.
     # Keep it permissive like PickupPlanService.
@@ -124,8 +139,8 @@ async def create_delivery_plan(
         input_plan = InputPlan(
             depot=depot,
             vehicles=vehicles,
-            points=payload.delivery_points,
-            demands=[0 for _ in payload.delivery_points],
+            points=delivery_points,
+            demands=[0 for _ in delivery_points],
             note=payload.note,
         )
         plans = await delivery_plan_service.create_delivery_plan(
