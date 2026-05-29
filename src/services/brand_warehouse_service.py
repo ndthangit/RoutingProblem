@@ -29,6 +29,10 @@ class BrandWarehouseService:
         self._cb = cb
 
     @staticmethod
+    def _normalize_address(address: str | None) -> str:
+        return " ".join((address or "").split())
+
+    @staticmethod
     def _haversine_m(*, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         """Great-circle distance in meters."""
         r = 6371000.0
@@ -200,6 +204,14 @@ class BrandWarehouseService:
 
         event.warehouse.created_at = existing.created_at
         event.warehouse.updated_at = datetime.now(timezone.utc)
+
+        address_changed = self._normalize_address(event.warehouse.address) != self._normalize_address(
+            existing.address
+        )
+        if address_changed:
+            event.warehouse.coordinate = await RoutingService().geocode_address(event.warehouse.address)
+        elif event.warehouse.coordinate is None:
+            event.warehouse.coordinate = existing.coordinate
 
         await self._cb.upsert_document(
             _doc_id(event.warehouse.id),
