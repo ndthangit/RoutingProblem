@@ -48,6 +48,28 @@ async def get_my_customer_house(
     return customer_house
 
 
+@router.get("/geo", response_model=list[CustomerWarehouse])
+async def list_customer_houses_geo(
+    request: Request,
+    min_lat: float = Query(..., alias="minLat"),
+    min_lon: float = Query(..., alias="minLon"),
+    max_lat: float = Query(..., alias="maxLat"),
+    max_lon: float = Query(..., alias="maxLon"),
+    limit: int = 5000,
+):
+    if min_lat > max_lat or min_lon > max_lon:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid bbox")
+
+    service = _get_service(request)
+    return await service.list_customer_warehouses_in_bbox(
+        min_lat=min_lat,
+        min_lon=min_lon,
+        max_lat=max_lat,
+        max_lon=max_lon,
+        limit=limit,
+    )
+
+
 @router.get("/{customer_house_id}", response_model=CustomerWarehouse)
 async def get_customer_house(customer_house_id: str, request: Request):
     service = _get_service(request)

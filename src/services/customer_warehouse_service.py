@@ -160,6 +160,40 @@ class CustomerWarehouseService:
             print(f"Couchbase query failed: {e}")
             return []
 
+    async def list_customer_warehouses_in_bbox(
+        self,
+        *,
+        min_lat: float,
+        min_lon: float,
+        max_lat: float,
+        max_lon: float,
+        limit: int = 5000,
+    ) -> list[CustomerWarehouse]:
+        scope_name = self._cb.scope.name if self._cb.scope else "default"
+        statement = (
+            f"SELECT c.* FROM `{self._cb.bucket.name}`.`{scope_name}`.{CUSTOMER_HOUSE_COLLECTION} c "
+            "WHERE c.coordinate IS NOT NULL "
+            "AND c.coordinate.lat BETWEEN $min_lat AND $max_lat "
+            "AND c.coordinate.lon BETWEEN $min_lon AND $max_lon "
+            "ORDER BY c.updatedAt DESC "
+            "LIMIT $limit"
+        )
+
+        try:
+            result = await self._cb.query(
+                statement,
+                min_lat=min_lat,
+                max_lat=max_lat,
+                min_lon=min_lon,
+                max_lon=max_lon,
+                limit=limit,
+            )
+            rows = list(result)
+            return [CustomerWarehouse.model_validate(row) for row in rows]
+        except CouchbaseException as e:
+            print(f"Couchbase query failed: {e}")
+            return []
+
     async def get_customer_warehouse_by_owner_email(self, owner_email: str) -> Optional[CustomerWarehouse]:
         """Return the most recently updated customer warehouse owned by the given email."""
         scope_name = self._cb.scope.name if self._cb.scope else "default"
