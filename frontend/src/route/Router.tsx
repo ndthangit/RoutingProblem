@@ -7,6 +7,7 @@ import Drivers from "../pages/Drivers";
 import Warehouses from "../pages/Warehouses";
 import CustomerWarehouses from "../pages/CustomerWarehouses";
 import Orders from "../pages/Orders";
+import Dashboard from "../pages/Dashboard";
 import WarehouseRegistrationPage from "../pages/CustomerWarehouse/WarehouseRegistrationPage.tsx";
 import Geography from "../pages/Geography";
 import RoutesPage from "../pages/Routes";
@@ -39,7 +40,7 @@ export function AppRouter() {
 
 
              <Route element={<ProtectedRoute requiredRole="dashboard" />}>
-              <Route path="/dashboard" element={<div>Dashboard Page</div>} />
+              <Route path="/dashboard" element={<Dashboard />} />
             </Route>
             <Route element={<ProtectedRoute requiredRole="orders" />}>
               <Route path="/orders" element={<Orders />} />
