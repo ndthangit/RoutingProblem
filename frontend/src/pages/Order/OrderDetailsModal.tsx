@@ -179,22 +179,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
             </Typography>
             <FieldRow label="Origin" value={order.origin?.address} />
             <FieldRow label="Destination" value={order.destination?.address} />
-            <FieldRow
-              label="Origin coordinate"
-              value={
-                order.origin?.coordinate
-                  ? `${order.origin.coordinate.lat}, ${order.origin.coordinate.lon}`
-                  : "N/A"
-              }
-            />
-            <FieldRow
-              label="Destination coordinate"
-              value={
-                order.destination?.coordinate
-                  ? `${order.destination.coordinate.lat}, ${order.destination.coordinate.lon}`
-                  : "N/A"
-              }
-            />
+            
 
             <Divider sx={{ my: 2 }} />
 
@@ -213,8 +198,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order }: OrderDetai
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
               Assignment
             </Typography>
-            <FieldRow label="Vehicle ID" value={order.vehicleId} />
-            <FieldRow label="Route ID" value={order.routeId} />
+           
             <FieldRow
               label="Current stop"
               value={

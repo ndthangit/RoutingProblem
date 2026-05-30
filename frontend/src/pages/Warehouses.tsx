@@ -74,18 +74,18 @@ export default function Warehouses() {
   const columns: GridColDef[] = useMemo(
     () => [
       // { field: "id", headerName: "Warehouse ID", width: 240 },
-      { field: "name", headerName: "Name", width: 200, valueGetter: (value) => value || "N/A" },
+      { field: "name", headerName: "Name", width: 100, valueGetter: (value) => value || "N/A" },
       { field: "address", headerName: "Address", width: 280, sortable: false, valueGetter: (value) => value || "N/A" },
       {
         field: "warehouseType",
         headerName: "Type",
-        width: 140,
+        width: 80,
         valueGetter: (value) => (value ? typeLabel[value as BrandWarehouseType] ?? value : "N/A"),
       },
       {
         field: "status",
         headerName: "Status",
-        width: 160,
+        width: 80,
         renderCell: (params: GridRenderCellParams<BrandWarehouse, BrandWarehouse["status"]>) => (
           <StatusBadge status={(params.value as BrandWarehouseStatus) ?? "ACTIVE"} />
         ),
@@ -96,12 +96,7 @@ export default function Warehouses() {
         width: 120,
         valueGetter: (value) => (value ?? "N/A"),
       },
-      {
-        field: "managerId",
-        headerName: "Manager",
-        width: 160,
-        valueGetter: (value) => value || "N/A",
-      },
+      
       {
         field: "contactPhone",
         headerName: "Contact",

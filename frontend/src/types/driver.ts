@@ -21,6 +21,27 @@ export type LicenseClass =
   | "E"
   | "F";
 
+export type DriverEventType =
+  | "DRIVER.HIRED"
+  | "DRIVER.UPDATED"
+  | "DRIVER.STATUS.CHANGED"
+  | "DRIVER.ACTIVATED"
+  | "DRIVER.DEACTIVATED"
+  | "DRIVER.SUSPENDED"
+  | "DRIVER.TERMINATED"
+  | "DRIVER.LICENSE.UPDATED"
+  | "DRIVER.LICENSE.EXPIRING"
+  | "DRIVER.LICENSE.EXPIRED"
+  | "DRIVER.HEALTH_CHECK.UPDATED"
+  | "DRIVER.HEALTH_CHECK.EXPIRING"
+  | "DRIVER.VEHICLE.ASSIGNED"
+  | "DRIVER.VEHICLE.UNASSIGNED"
+  | "DRIVER.TRIP.STARTED"
+  | "DRIVER.TRIP.COMPLETED"
+  | "DRIVER.TRIP.CANCELLED"
+  | "DRIVER.RATED"
+  | "DRIVER.ACHIEVEMENT.EARNED";
+
 export interface DriverAttributes {
   [key: string]: unknown;
 }
@@ -51,7 +72,7 @@ export interface Driver {
   rating?: number;
 
   // Assignment
-  assignedVehicleId?: string;
+  assignedVehicleId?: string | null;
   licensePlate?: string | null;
   warehouseId?: string;
   warehouseAddress?: string | null;
@@ -80,10 +101,14 @@ export interface Driver {
   updated_at?: string;
 }
 
-export interface DriverHiredEvent {
+export interface DriverEvent {
   event_id?: string;
   timestamp?: string;
   ownerEmail?: string;
-  eventType: "DRIVER.HIRED";
+  eventType: DriverEventType;
   driver: Driver;
+}
+
+export interface DriverHiredEvent extends DriverEvent {
+  eventType: "DRIVER.HIRED";
 }

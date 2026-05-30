@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Chip, Box as MuiBox } from "@mui/material";
 import type { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { DataGrid } from "@mui/x-data-grid";
@@ -10,7 +10,7 @@ import AssignVehicleModal from "./Driver/AssignVehicleModal";
 import AssignedVehicleCell from "./Driver/AssignedVehicleCell";
 import DriverDetailsModal from "./Driver/DriverDetailsModal";
 import EditDriverModal from "./Driver/EditDriverModal";
-import type { Driver, DriverHiredEvent, DriverStatus, DriverType, LicenseClass, Vehicle } from "../types";
+import type { Driver, DriverEvent, DriverHiredEvent, DriverStatus, DriverType, LicenseClass, Vehicle } from "../types";
 
 function DriverTypeBadge({ driverType }: { driverType?: DriverType }) {
   const labelMap: Record<DriverType, string> = {
@@ -129,6 +129,11 @@ function normalizeDrivers(data: unknown): Driver[] {
   return [];
 }
 
+function getDriverLabel(driver: Driver): string {
+  const fullName = `${driver.firstName ?? ""} ${driver.lastName ?? ""}`.trim();
+  return fullName || driver.employeeCode || driver.username || driver.id;
+}
+
 export default function Drivers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -139,6 +144,8 @@ export default function Drivers() {
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingDriverId, setDeletingDriverId] = useState<string | null>(null);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
@@ -197,6 +204,7 @@ export default function Drivers() {
 
   const handleSuccess = () => {
     setLoading(true);
+    setDeleteError(null);
     fetchDrivers();
   };
 
@@ -242,8 +250,94 @@ export default function Drivers() {
     }
   };
 
-  const columns: GridColDef[] = useMemo(
-    () => [
+  const handleDeleteDriver = async (driver: Driver) => {
+    const label = getDriverLabel(driver);
+    const hasAssignedVehicle = Boolean(driver.assignedVehicleId);
+    const confirmed = window.confirm(
+      hasAssignedVehicle
+        ? `Delete driver ${label}? The assigned vehicle will be unassigned first.`
+        : `Delete driver ${label}?`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingDriverId(driver.id);
+    setDeleteError(null);
+
+    try {
+      const nowIso = new Date().toISOString();
+
+      if (hasAssignedVehicle) {
+        const unassignPayload: DriverEvent = {
+          event_id: window.crypto?.randomUUID?.() ?? undefined,
+          timestamp: nowIso,
+          ownerEmail: "unknown",
+          eventType: "DRIVER.VEHICLE.UNASSIGNED",
+          driver: {
+            ...driver,
+            assignedVehicleId: null,
+            licensePlate: null,
+          },
+        };
+
+        const unassignRes = await request<DriverEvent, DriverEvent>(
+          "POST",
+          "/v1/driver-vehicle",
+          undefined,
+          undefined,
+          unassignPayload
+        );
+
+        if (!unassignRes) {
+          throw new Error("Failed to unassign vehicle before deleting driver");
+        }
+      }
+
+      const deletePayload: DriverEvent = {
+        event_id: window.crypto?.randomUUID?.() ?? undefined,
+        timestamp: nowIso,
+        ownerEmail: "unknown",
+        eventType: "DRIVER.TERMINATED",
+        driver: {
+          ...driver,
+          status: "TERMINATED" as DriverStatus,
+          assignedVehicleId: null,
+          licensePlate: null,
+        },
+      };
+
+      const res = await request<void, DriverEvent>(
+        "DELETE",
+        `/v1/drivers/${driver.id}`,
+        undefined,
+        undefined,
+        deletePayload
+      );
+
+      if (!res) {
+        throw new Error("Failed to delete driver");
+      }
+
+      setDrivers((prev) => prev.filter((item) => item.id !== driver.id));
+      setIsAssignModalOpen(false);
+      setSelectedDriver(null);
+      setIsDetailModalOpen(false);
+      setDetailDriver(null);
+      setIsEditModalOpen(false);
+      setEditingDriver(null);
+      fetchDrivers();
+      if (hasAssignedVehicle) {
+        fetchVehicles();
+      }
+    } catch (err) {
+      console.error("Delete driver failed:", err);
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete driver");
+    } finally {
+      setDeletingDriverId(null);
+    }
+  };
+
+  const columns: GridColDef[] = [
       {
         field: "employeeCode",
         headerName: "Employee Code",
@@ -254,7 +348,7 @@ export default function Drivers() {
       {
         field: "warehouseAddress",
         headerName: "Warehouse",
-        width: 250,
+        width: 270,
         valueGetter: (value) => value || "N/A",
       },
       {
@@ -317,15 +411,18 @@ export default function Drivers() {
       {
         field: "actions",
         headerName: "Actions",
-        width: 220,
+        width: 250,
         sortable: false,
         renderCell: (params: GridRenderCellParams<Driver>) => {
+          const row = params.row;
+          const isDeleting = deletingDriverId === row.id;
+
           return (
             <div className="flex gap-2 items-center h-full">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setDetailDriver(params.row);
+                  setDetailDriver(row);
                   setIsDetailModalOpen(true);
                 }}
                 className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors text-xs font-medium"
@@ -335,7 +432,7 @@ export default function Drivers() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEditingDriver(params.row);
+                  setEditingDriver(row);
                   setIsEditModalOpen(true);
                 }}
                 className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium"
@@ -345,20 +442,20 @@ export default function Drivers() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // TODO: Implement delete logic
-                  console.log("Delete driver", params.row.id);
+                  handleDeleteDriver(row);
                 }}
-                className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors text-xs font-medium"
+                disabled={isDeleting}
+                className={`px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors text-xs font-medium ${
+                  isDeleting ? "opacity-60 cursor-not-allowed" : ""
+                }`}
               >
-                Delete
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           );
         },
       },
-    ],
-    []
-  );
+  ];
 
   return (
     <>
@@ -376,6 +473,7 @@ export default function Drivers() {
               Add Driver
             </button>
           </div>
+          {deleteError ? <div className="mt-3 text-sm text-red-600">{deleteError}</div> : null}
         </div>
 
         <MuiBox sx={{ width: "100%" }}>

@@ -57,26 +57,13 @@ export default function CustomerWarehouses() {
 
   const columns: GridColDef[] = useMemo(
     () => [
-      { field: "name", headerName: "Name", width: 200, valueGetter: (value) => value || "N/A" },
-      { field: "address", headerName: "Address", width: 320, sortable: false, valueGetter: (value) => value || "N/A" },
+      { field: "name", headerName: "Name", width: 150, valueGetter: (value) => value || "N/A" },
+      { field: "address", headerName: "Address", width: 200, sortable: false, valueGetter: (value) => value || "N/A" },
       {
         field: "representativeName",
         headerName: "Representative",
-        width: 200,
+        width: 120,
         valueGetter: (value) => value || "N/A",
-      },
-      { field: "contactPhone", headerName: "Phone", width: 160, valueGetter: (value) => value || "N/A" },
-      {
-        field: "pendingWeight",
-        headerName: "Pending (kg)",
-        width: 140,
-        valueGetter: (value) => String(value ?? 0),
-      },
-      {
-        field: "totalPendingOrders",
-        headerName: "Orders",
-        width: 110,
-        valueGetter: (value) => String(value ?? 0),
       },
       {
         field: "status",
@@ -86,6 +73,20 @@ export default function CustomerWarehouses() {
           <StatusBadge status={(params.value as BrandWarehouseStatus) ?? "ACTIVE"} />
         ),
       },
+      // { field: "contactPhone", headerName: "Phone", width: 120, valueGetter: (value) => value || "N/A" },
+      {
+        field: "pendingWeight",
+        headerName: "Pending (kg)",
+        width: 120,
+        valueGetter: (value) => String(value ?? 0),
+      },
+      {
+        field: "totalPendingOrders",
+        headerName: "Orders",
+        width: 110,
+        valueGetter: (value) => String(value ?? 0),
+      },
+      
       {
         field: "actions",
         headerName: "Actions",
