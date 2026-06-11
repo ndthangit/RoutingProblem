@@ -13,6 +13,7 @@ export default function Layout() {
     let next = 'dashboard';
     if (path.startsWith('/orders')) next = 'orders';
     else if (path.startsWith('/fleet')) next = 'fleet';
+    else if (path.startsWith('/drivers/register')) next = 'driverRegister';
     else if (path.startsWith('/drivers')) next = 'drivers';
     else if (path.startsWith('/warehouses')) next = 'warehouses';
     else if (path.startsWith('/customer-warehouses')) next = 'customerWarehouses';

@@ -18,6 +18,32 @@ def _get_service(request: Request) -> DriverService:
     return DriverService(cb)
 
 
+def _bind_driver_to_current_user(event: DriverEvent, current_user: User) -> DriverEvent:
+    if not current_user.sub:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current user has no Keycloak subject")
+
+    event = event.model_copy(deep=True, update={"owner_email": current_user.email})
+    event.driver.id = current_user.sub
+    event.driver.sub = current_user.sub
+
+    if current_user.username:
+        event.driver.username = current_user.username
+    if current_user.email:
+        event.driver.email = current_user.email
+    if current_user.firstName and not event.driver.firstName:
+        event.driver.firstName = current_user.firstName
+    if current_user.lastName and not event.driver.lastName:
+        event.driver.lastName = current_user.lastName
+    if current_user.phone and not event.driver.phone:
+        event.driver.phone = current_user.phone
+
+    event.driver.enabled = current_user.enabled
+    event.driver.emailVerified = current_user.emailVerified
+    event.driver.createdTimestamp = current_user.createdTimestamp
+    event.driver.attributes = current_user.attributes
+    return event
+
+
 @router.post("", response_model=Driver, status_code=status.HTTP_201_CREATED)
 async def create_driver(
     payload: DriverEvent,
@@ -34,6 +60,58 @@ async def create_driver(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return await service.create_driver(event)
+
+
+@router.get("/me", response_model=Driver)
+async def get_my_driver(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.sub:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current user has no Keycloak subject")
+
+    service = _get_service(request)
+    driver = await service.get_driver(current_user.sub)
+    if driver is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Driver not found")
+    return driver
+
+
+@router.post("/me", response_model=Driver, status_code=status.HTTP_201_CREATED)
+async def create_my_driver(
+    payload: DriverEvent,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    service = _get_service(request)
+    event = _bind_driver_to_current_user(payload, current_user)
+
+    try:
+        service.validate_event_type_for_operation("create", event.event_type)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return await service.create_driver(event)
+
+
+@router.put("/me", response_model=Driver)
+async def update_my_driver(
+    payload: DriverEvent,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    service = _get_service(request)
+    event = _bind_driver_to_current_user(payload, current_user)
+
+    try:
+        service.validate_event_type_for_operation("update", event.event_type)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    updated = await service.update_driver(event)
+    if updated is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Driver not found")
+    return updated
 
 
 @router.get("/{driver_id}", response_model=Driver)

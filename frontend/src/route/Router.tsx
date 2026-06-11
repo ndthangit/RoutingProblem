@@ -12,6 +12,7 @@ import WarehouseRegistrationPage from "../pages/CustomerWarehouse/WarehouseRegis
 import Geography from "../pages/Geography";
 import RoutesPage from "../pages/Routes";
 import Schedules from "../pages/Schedules";
+import DriverRegistrationPage from "../pages/Driver/DriverRegistrationPage";
 
 export function AppRouter() {
   return (
@@ -69,6 +70,9 @@ export function AppRouter() {
             </Route>
                 <Route element={<ProtectedRoute requiredRole="warehouse_register" />}>
               <Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />
+            </Route>
+                <Route element={<ProtectedRoute requiredRole="DRIVER" />}>
+              <Route path="/drivers/register" element={<DriverRegistrationPage />} />
             </Route>
 
 

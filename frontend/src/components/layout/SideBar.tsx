@@ -112,6 +112,11 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
     navigate('/warehouses/register');
   };
 
+  const handleDriverRegistration = () => {
+    setShowUserMenu(false);
+    navigate('/drivers/register');
+  };
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (initialized && !keycloak?.authenticated) {
@@ -194,6 +199,16 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
                 >
                   <Icons.Warehouse className="w-5 h-5 text-slate-400" />
                   <span className="text-sm font-medium text-white">Đăng ký kho</span>
+                </button>
+              )}
+
+              {userRoles.includes('DRIVER') && (
+                <button
+                  onClick={handleDriverRegistration}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left"
+                >
+                  <Icons.Badge className="w-5 h-5 text-slate-400" />
+                  <span className="text-sm font-medium text-white">Driver profile</span>
                 </button>
               )}
 
