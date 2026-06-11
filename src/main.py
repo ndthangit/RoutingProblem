@@ -13,7 +13,7 @@ from src.config.config import settings
 from src.config.couchbase import get_couchbase_lifespan
 from src.config.keycloak import keycloak_config, map_user
 from src.models.consumer import kafka_consumer
-from src.models.producer import kafka_producer
+from src.models.producer import ensure_kafka_topics, kafka_producer
 from src.api.vehicles import router as vehicles_router
 from src.api.drivers import router as drivers_router
 from src.api.brand_warehouses import router as brand_warehouses_router
@@ -67,6 +67,7 @@ async def app_lifespan(app: FastAPI):
         # Kafka producer - connect
         try:
             kafka_producer.connect()
+            ensure_kafka_topics([settings.KAFKA_TOPIC_PROMPT, settings.KAFKA_TOPIC_ORDER_EVENTS])
             logger.info("✅ Kafka producer connected")
         except Exception as e:
             logger.error(f"❌ Failed to connect Kafka producer: {e}")
@@ -74,7 +75,8 @@ async def app_lifespan(app: FastAPI):
         # Kafka consumer - connect AND start
         try:
             if settings.KAFKA_CONSUMER_ENABLED:
-                kafka_consumer.connect()
+                cb = getattr(app.state, "couchbase", None)
+                kafka_consumer.connect(cb)
                 await kafka_consumer.start()
                 logger.info("✅ Kafka consumer connected and started")
             else:
@@ -175,6 +177,7 @@ async def debug_consumer():
             "enabled": settings.KAFKA_CONSUMER_ENABLED if hasattr(settings, 'KAFKA_CONSUMER_ENABLED') else "not set",
             "bootstrap_servers": settings.KAFKA_BOOTSTRAP_SERVERS,
             "topic": settings.KAFKA_TOPIC_PROMPT,
+            "order_topic": settings.KAFKA_TOPIC_ORDER_EVENTS,
         }
     }
 

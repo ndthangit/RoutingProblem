@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
 from couchbase.exceptions import CouchbaseException
 
 from src.config.couchbase import CouchbaseClient
+from src.models.order_event_kafka import list_order_events_from_kafka
 from src.models.order import Order, OrderEvent, OrderEventType
 from src.models.customer_warehouse import CustomerWarehouseEvent, CustomerWarehouseEventType
 from src.models.routing import Point
@@ -15,15 +17,10 @@ from src.services.order_customer_warehouse_service import OrderCustomerWarehouse
 from src.services.order_point_service import OrderPointService
 
 ORDER_COLLECTION = "order"
-ORDER_EVENT_COLLECTION = "order_event"
 
 
 def _doc_id(order_id: str) -> str:
     return f"order::{order_id}"
-
-
-def _event_doc_id(order_id: str, event_id: str) -> str:
-    return f"order_event::{order_id}::{event_id}"
 
 
 class OrderService:
@@ -54,20 +51,35 @@ class OrderService:
 
         return left.address == right.address and left.name == right.name
 
-    async def _persist_event(self, event: OrderEvent) -> None:
-        await self._cb.upsert_document(
-            _event_doc_id(event.order.id, event.event_id),
-            event.to_dict(),
-            ORDER_EVENT_COLLECTION,
+    async def _apply_customer_warehouse_load(
+        self,
+        cw_service: CustomerWarehouseService,
+        customer_warehouse,
+        order: Order,
+        event: OrderEvent,
+    ) -> None:
+        updated_cw = customer_warehouse.model_copy(deep=True)
+        updated_cw.pending_weight = (updated_cw.pending_weight or 0.0) + order.package.weight_kg
+        updated_cw.total_pending_orders = (updated_cw.total_pending_orders or 0) + 1
+        cw_event = CustomerWarehouseEvent(
+            eventType=CustomerWarehouseEventType.LOAD_VOLUME_UPDATED,
+            customerWarehouse=updated_cw,
+            ownerEmail=event.owner_email,
         )
+        await cw_service.update_customer_warehouse(cw_event)
 
     async def create_order(self, event: OrderEvent) -> Order:
-        """Create an order from an event envelope and persist both aggregate + event."""
+        """Create an order from an event envelope and persist the aggregate."""
         # Ensure eventType is the expected one for creating an order.
-        if event.event_type != event.event_type.ORDER_CREATED:
+        if event.event_type != OrderEventType.ORDER_CREATED:
             raise ValueError(f"Invalid eventType for create: {event.event_type}")
 
+        existing = await self.get_order(event.order.id)
+        if existing is not None:
+            return existing
+
         cw_service = CustomerWarehouseService(self._cb)
+        routing_service = RoutingService()
 
         # ---------------- ORIGIN ----------------
         # New schema: order.origin is a Point.
@@ -76,35 +88,62 @@ class OrderService:
             # Treat as customer warehouse id (old behavior)
             event.order.origin = Point(address=event.order.origin)
 
-        customer_warehouse = None
-        # If origin.id looks like a customer_warehouse id (or client explicitly sets it), resolve & denormalize.
-        if event.order.origin and getattr(event.order.origin, "id", None):
-            try:
-                customer_warehouse = await cw_service.get_customer_warehouse(event.order.origin.id)
-            except Exception:
-                customer_warehouse = None
-
-        if customer_warehouse is not None:
-            if customer_warehouse.coordinate is None:
-                raise ValueError(
-                    f"Invalid origin: customer warehouse '{customer_warehouse.id}' has no coordinate"
-                )
-            # Denormalize for routing
-            event.order.origin.address = customer_warehouse.address
-            event.order.origin.coordinate = customer_warehouse.coordinate
-        else:
-            # If not resolved from warehouse, ensure coordinate exists (geocode if missing)
-            if event.order.origin.coordinate is None:
-                event.order.origin.coordinate = await RoutingService().geocode_address(event.order.origin.address)
-
         # ---------------- DESTINATION ----------------
         # New schema: order.destination is a Point.
         # Backward-compat: if a client still sends destination as a string.
         if isinstance(event.order.destination, str):  # type: ignore[unreachable]
             event.order.destination = Point(address=event.order.destination)
 
-        if event.order.destination.coordinate is None:
-            event.order.destination.coordinate = await RoutingService().geocode_address(event.order.destination.address)
+        origin_id = getattr(event.order.origin, "id", None) if event.order.origin else None
+        customer_warehouse_task = (
+            asyncio.create_task(cw_service.get_customer_warehouse(origin_id)) if origin_id else None
+        )
+        origin_geocode_task = (
+            asyncio.create_task(routing_service.geocode_address(event.order.origin.address))
+            if not origin_id and event.order.origin.coordinate is None
+            else None
+        )
+        destination_geocode_task = (
+            asyncio.create_task(routing_service.geocode_address(event.order.destination.address))
+            if event.order.destination.coordinate is None
+            else None
+        )
+        background_tasks = [
+            task
+            for task in (customer_warehouse_task, origin_geocode_task, destination_geocode_task)
+            if task is not None
+        ]
+
+        customer_warehouse = None
+        try:
+            # If origin.id looks like a customer_warehouse id, resolve and denormalize it.
+            if customer_warehouse_task is not None:
+                try:
+                    customer_warehouse = await customer_warehouse_task
+                except Exception:
+                    customer_warehouse = None
+
+            if customer_warehouse is not None:
+                if customer_warehouse.coordinate is None:
+                    raise ValueError(
+                        f"Invalid origin: customer warehouse '{customer_warehouse.id}' has no coordinate"
+                    )
+                event.order.origin.address = customer_warehouse.address
+                event.order.origin.coordinate = customer_warehouse.coordinate
+            elif event.order.origin.coordinate is None:
+                if origin_geocode_task is not None:
+                    event.order.origin.coordinate = await origin_geocode_task
+                else:
+                    event.order.origin.coordinate = await routing_service.geocode_address(event.order.origin.address)
+
+            if destination_geocode_task is not None:
+                event.order.destination.coordinate = await destination_geocode_task
+        except Exception:
+            for task in background_tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*background_tasks, return_exceptions=True)
+            raise
 
         order = event.order
         order.routes = await OrderPointService(self._cb).build_order_points(
@@ -112,21 +151,16 @@ class OrderService:
             customer_warehouse=customer_warehouse,
         )
 
-        # Persist order + order event
+        # Persist the aggregate first; then fan out independent side-effects.
         await self._cb.upsert_document(_doc_id(order.id), order.to_dict(), ORDER_COLLECTION)
-        await self._persist_event(event)
 
-        # Emit and apply CustomerWarehouse LOAD update (pendingWeight + pending orders)
+        post_persist_tasks = []
         if customer_warehouse is not None:
-            updated_cw = customer_warehouse.model_copy(deep=True)
-            updated_cw.pending_weight = (updated_cw.pending_weight or 0.0) + order.package.weight_kg
-            updated_cw.total_pending_orders = (updated_cw.total_pending_orders or 0) + 1
-            cw_event = CustomerWarehouseEvent(
-                eventType=CustomerWarehouseEventType.LOAD_VOLUME_UPDATED,
-                customerWarehouse=updated_cw,
-                ownerEmail=event.owner_email,
+            post_persist_tasks.append(
+                self._apply_customer_warehouse_load(cw_service, customer_warehouse, order, event)
             )
-            await cw_service.update_customer_warehouse(cw_event)
+        if post_persist_tasks:
+            await asyncio.gather(*post_persist_tasks)
 
         return order
 
@@ -242,67 +276,42 @@ class OrderService:
 
         return updated_count
 
-    async def update_order(self, order_id: str, order: Order) -> Optional[Order]:
-        existing = await self.get_order(order_id)
-        if existing is None:
-            return None
+    async def apply_event(self, event: OrderEvent) -> OrderEvent:
+        if event.event_type == OrderEventType.ORDER_CREATED:
+            await self.create_order(event)
+            return event
 
-        order = self._merge_order_update(existing, order)
-
-        await self._cb.upsert_document(_doc_id(order_id), order.to_dict(), ORDER_COLLECTION)
-        return order
-
-    async def delete_order(self, order_id: str) -> bool:
-        existing = await self.get_order(order_id)
-        if existing is None:
-            return False
-
-        try:
-            await self._cb.remove_document(_doc_id(order_id), ORDER_COLLECTION)
-            return True
-        except CouchbaseException:
-            return False
-
-    async def append_event(self, event: OrderEvent) -> OrderEvent:
-        # Ensure the order exists before writing history.
         existing = await self.get_order(event.order.id)
+        if event.event_type == OrderEventType.ORDER_DELETED and existing is None:
+            return event
+
         if existing is None:
             raise ValueError("Order not found")
 
         if event.event_type == OrderEventType.ORDER_UPDATED:
             event.order = self._merge_order_update(existing, event.order)
-        else:
-            # Keep the stored order immutable fields stable for history-only events.
-            event.order.created_at = existing.created_at
 
-        await self._persist_event(event)
+            # Apply side-effects for specific updates (e.g. PICKED_UP decrements pending load).
+            await OrderCustomerWarehouseService(self._cb).handle_order_updated(event)
 
-        # Apply side-effects for specific updates (e.g. PICKED_UP decrements pending load).
-        await OrderCustomerWarehouseService(self._cb).handle_order_updated(event)
-
-        if event.event_type == OrderEventType.ORDER_UPDATED:
             await self._cb.upsert_document(
                 _doc_id(event.order.id),
                 event.order.to_dict(),
                 ORDER_COLLECTION,
             )
+            return event
 
-        return event
+        if event.event_type == OrderEventType.ORDER_DELETED:
+            event.order.created_at = existing.created_at
+            await self._cb.remove_document(_doc_id(event.order.id), ORDER_COLLECTION)
+            return event
+
+        raise ValueError(f"Unsupported order eventType: {event.event_type}")
 
     async def list_events(self, order_id: str, *, limit: int = 200, offset: int = 0) -> list[OrderEvent]:
-        scope_name = self._cb.scope.name if self._cb.scope else "default"
-        statement = (
-            f"SELECT e.* FROM `{self._cb.bucket.name}`.`{scope_name}`.`{ORDER_EVENT_COLLECTION}` e "
-            # New schema stores nested order object. Keep a fallback for old documents if any.
-            "WHERE e.order.id = $order_id OR e.orderId = $order_id "
-            "ORDER BY e.timestamp DESC "
-            "LIMIT $limit OFFSET $offset"
+        return await asyncio.to_thread(
+            list_order_events_from_kafka,
+            order_id,
+            limit=limit,
+            offset=offset,
         )
-
-        try:
-            result = await self._cb.query(statement, order_id=order_id, limit=limit, offset=offset)
-            rows = list(result)
-            return [OrderEvent.model_validate(row) for row in rows]
-        except CouchbaseException as e:
-            print(f"Couchbase query failed: {e}")
-            return []

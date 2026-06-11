@@ -1,0 +1,150 @@
+{
+  "direct_path": {
+    "start": {
+      "id": "start",
+      "name": "start",
+      "address": "start address",
+      "coordinate": {
+        "lon": 0.0,
+        "lat": 0.0
+      }
+    },
+    "goal": {
+      "id": "goal",
+      "name": "goal",
+      "address": "goal address",
+      "coordinate": {
+        "lon": 0.5,
+        "lat": 0.0
+      }
+    },
+    "depots": [],
+    "expectedPath": ["start", "goal"]
+  },
+  "intermediate_depot": {
+    "start": {
+      "id": "start",
+      "name": "start",
+      "address": "start address",
+      "coordinate": {
+        "lon": 0.0,
+        "lat": 0.0
+      }
+    },
+    "goal": {
+      "id": "goal",
+      "name": "goal",
+      "address": "goal address",
+      "coordinate": {
+        "lon": 1.6,
+        "lat": 0.0
+      }
+    },
+    "depots": [
+      {
+        "id": "ignored-depot",
+        "name": "ignored-depot",
+        "address": "ignored-depot address"
+      },
+      {
+        "id": "middle-depot",
+        "name": "middle-depot",
+        "address": "middle-depot address",
+        "coordinate": {
+          "lon": 0.8,
+          "lat": 0.0
+        }
+      }
+    ],
+    "expectedPath": ["start", "middle-depot", "goal"]
+  },
+  "no_route": {
+    "start": {
+      "id": "start",
+      "name": "start",
+      "address": "start address",
+      "coordinate": {
+        "lon": 0.0,
+        "lat": 0.0
+      }
+    },
+    "goal": {
+      "id": "goal",
+      "name": "goal",
+      "address": "goal address",
+      "coordinate": {
+        "lon": 2.0,
+        "lat": 0.0
+      }
+    },
+    "depots": []
+  },
+  "missing_coordinate_cases": [
+    {
+      "start": {
+        "id": "start",
+        "name": "start",
+        "address": "start address"
+      },
+      "goal": {
+        "id": "goal",
+        "name": "goal",
+        "address": "goal address",
+        "coordinate": {
+          "lon": 0.5,
+          "lat": 0.0
+        }
+      },
+      "depots": []
+    },
+    {
+      "start": {
+        "id": "start",
+        "name": "start",
+        "address": "start address",
+        "coordinate": {
+          "lon": 0.0,
+          "lat": 0.0
+        }
+      },
+      "goal": {
+        "id": "goal",
+        "name": "goal",
+        "address": "goal address"
+      },
+      "depots": []
+    }
+  ],
+  "same_point": {
+    "start": {
+      "id": "same",
+      "name": "same",
+      "address": "same address",
+      "coordinate": {
+        "lon": 0.0,
+        "lat": 0.0
+      }
+    },
+    "goal": {
+      "id": "same",
+      "name": "same",
+      "address": "same address",
+      "coordinate": {
+        "lon": 0.0,
+        "lat": 0.0
+      }
+    },
+    "depots": [
+      {
+        "id": "unused-depot",
+        "name": "unused-depot",
+        "address": "unused-depot address",
+        "coordinate": {
+          "lon": 0.5,
+          "lat": 0.0
+        }
+      }
+    ],
+    "expectedPath": ["same"]
+  }
+}

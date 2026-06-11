@@ -165,12 +165,12 @@ class Settings(BaseSettings):
     )
 
     KAFKA_BOOTSTRAP_SERVERS: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    # KAFKA_TOPIC_PROMPT: str = os.getenv("KAFKA_TOPIC_PROMPT", "topic")
     KAFKA_PRODUCER_CLIENT_ID: str = os.getenv("KAFKA_PRODUCER_CLIENT_ID", "producer")
 
     # ── Schema Registry ───────────────────────────────────────────────────────────
     SCHEMA_REGISTRY_URL: str = os.getenv("SCHEMA_REGISTRY_URL", "http://localhost:8080")
-    KAFKA_TOPIC_PROMPT: str = "user-prompts"
+    KAFKA_TOPIC_PROMPT: str = os.getenv("KAFKA_TOPIC_PROMPT", "user-prompts")
+    KAFKA_TOPIC_ORDER_EVENTS: str = os.getenv("KAFKA_TOPIC_ORDER_EVENTS", "order-events")
 
     # Consumer settings
     KAFKA_CONSUMER_ENABLED: bool = True

@@ -1,12 +1,14 @@
 import logging
+import json
 from io import BytesIO
 from pathlib import Path
 import uuid
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from confluent_kafka import Producer
+from confluent_kafka.admin import AdminClient, NewTopic
 from confluent_kafka.serialization import StringSerializer
 
 import avro.schema
@@ -17,6 +19,40 @@ from src.config.config import settings
 logger = logging.getLogger(__name__)
 
 SCHEMA_FILE_PATH = Path(__file__).resolve().parents[1] / "schema" / "message.avsc"
+
+if TYPE_CHECKING:
+    from src.models.order import OrderEvent
+
+
+def ensure_kafka_topics(topic_names: list[str], *, num_partitions: int = 1, replication_factor: int = 1) -> None:
+    """Create Kafka topics if they do not already exist."""
+    admin = AdminClient({"bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS})
+    metadata = admin.list_topics(timeout=10)
+    existing_topics = set(metadata.topics.keys())
+    missing_topics = [topic for topic in topic_names if topic and topic not in existing_topics]
+
+    if not missing_topics:
+        return
+
+    futures = admin.create_topics(
+        [
+            NewTopic(
+                topic,
+                num_partitions=num_partitions,
+                replication_factor=replication_factor,
+            )
+            for topic in missing_topics
+        ]
+    )
+
+    for topic, future in futures.items():
+        try:
+            future.result()
+            logger.info("Created Kafka topic %s", topic)
+        except Exception as e:
+            if "TOPIC_ALREADY_EXISTS" in str(e):
+                continue
+            raise
 
 
 def _load_prompt_event_schema() -> avro.schema.Schema:
@@ -86,7 +122,7 @@ class KafkaAvroProducer:
 
     def _delivery_report(self, err, msg):
         if err:
-            logger.error("Delivery failed for session %s: %s", msg.key(), err)
+            logger.error("Delivery failed for key %s: %s", msg.key(), err)
         else:
             logger.info(
                 "Event delivered to %s [%d] @ offset %d",
@@ -117,6 +153,41 @@ class KafkaAvroProducer:
         # Non-blocking flush (at most 5 s before returning)
         self._producer.poll(0)
         return event.session_id
+
+    def send_order_event(self, event: "OrderEvent", *, flush_timeout: float = 5.0) -> str:
+        """
+        Produce an OrderEvent to Kafka.
+
+        Payload format is exactly OrderEvent.to_dict(); the Kafka topic is the
+        order event store.
+        """
+        if self._producer is None:
+            raise RuntimeError("KafkaAvroProducer is not connected. Call connect() first.")
+
+        topic = settings.KAFKA_TOPIC_ORDER_EVENTS
+        key = self._string_serializer(event.order.id)
+        value = json.dumps(event.to_dict(), ensure_ascii=False).encode("utf-8")
+        delivery_errors: list[str] = []
+
+        def delivery_report(err, msg):
+            self._delivery_report(err, msg)
+            if err:
+                delivery_errors.append(str(err))
+
+        self._producer.produce(
+            topic=topic,
+            key=key,
+            value=value,
+            on_delivery=delivery_report,
+        )
+
+        remaining = self._producer.flush(flush_timeout)
+        if remaining > 0:
+            raise TimeoutError(f"Timed out producing order event to Kafka topic '{topic}'")
+        if delivery_errors:
+            raise RuntimeError("; ".join(delivery_errors))
+
+        return event.order.id
 
     def flush(self, timeout: float = 10.0):
         """Block until all outstanding messages are delivered."""
