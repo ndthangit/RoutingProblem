@@ -130,6 +130,7 @@ class DeliveryPlanService:
 
             plan = Plan(
                 vehicleId=vehicles[vehicle_id].id,
+                driverId=vehicles[vehicle_id].driver_id,
                 origin=depot.id,
                 destination=depot.id,
                 points=[loc.to_dict() for loc in route_nodes],

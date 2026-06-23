@@ -380,6 +380,7 @@ export default function PlanDetailsModal({ isOpen, onClose, plan, onPlanUpdated 
             </Typography>
             <FieldRow label="ID" value={displayPlan.id} />
             <FieldRow label="Vehicle" value={displayPlan.vehicleId} />
+            <FieldRow label="Driver" value={displayPlan.driverId} />
             <FieldRow label="Status" value={displayPlan.status} />
             <FieldRow label="Origin" value={displayPlan.origin} />
             <FieldRow label="Destination" value={displayPlan.destination} />

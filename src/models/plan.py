@@ -31,6 +31,11 @@ class Plan(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
     vehicle_id: str = Field(..., alias="vehicleId")
+    driver_id: Optional[str] = Field(
+        default=None,
+        alias="driverId",
+        description="ID của driver thực hiện plan này",
+    )
 
     # Prefer camelCase on API; accept legacy snake_case if a stored doc exists.
     status: PlanStatus = Field(

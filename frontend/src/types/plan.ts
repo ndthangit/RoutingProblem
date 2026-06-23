@@ -37,6 +37,7 @@ export interface PlanPoint {
 export interface Plan {
   id: string;
   vehicleId: string;
+  driverId?: string | null;
   status: PlanStatus;
 
   origin: string;

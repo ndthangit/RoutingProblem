@@ -78,6 +78,7 @@ export default function RoutesPage() {
     () => [
       { field: "id", headerName: "Plan ID", width: 120 },
       { field: "vehicleId", headerName: "Vehicle", width: 180, valueGetter: (value) => value || "N/A" },
+      { field: "driverId", headerName: "Driver", width: 180, valueGetter: (value) => value || "N/A" },
       { field: "status", headerName: "Status", width: 140, valueGetter: (value) => value || "N/A" },
       { field: "origin", headerName: "Origin", width: 220, valueGetter: (value) => value || "N/A" },
       { field: "destination", headerName: "Destination", width: 220, valueGetter: (value) => value || "N/A" },
