@@ -13,6 +13,7 @@ import Geography from "../pages/Geography";
 import RoutesPage from "../pages/Routes";
 import Schedules from "../pages/Schedules";
 import DriverRegistrationPage from "../pages/Driver/DriverRegistrationPage";
+import UserProfilePage from "../pages/UserProfile";
 
 export function AppRouter() {
   return (
@@ -39,6 +40,7 @@ export function AppRouter() {
             {/*<Route path="/geography" element={<Geography />} />*/}
             {/*<Route path="/warehouses/register" element={<WarehouseRegistrationPage />} />*/}
 
+            <Route path="/profile" element={<UserProfilePage />} />
 
              <Route element={<ProtectedRoute requiredRole="dashboard" />}>
               <Route path="/dashboard" element={<Dashboard />} />

@@ -98,13 +98,9 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
   };
 
   const handleUserProfile = () => {
-    // Có thể điều hướng đến trang profile hoặc mở Keycloak account management
-    if (keycloak) {
-      // Mở Keycloak account management trong tab mới
-      const accountUrl = keycloak.createAccountUrl();
-      window.open(accountUrl, '_blank');
-    }
+    setActiveTab('profile');
     setShowUserMenu(false);
+    navigate('/profile');
   };
 
   const handleWarehouseRegistration = () => {

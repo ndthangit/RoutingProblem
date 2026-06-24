@@ -3,6 +3,8 @@ themes
 
 .idea
 
+docs
+
 **__pycache__/
 *.pyc
 *.pyo

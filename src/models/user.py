@@ -68,3 +68,14 @@ class User(BaseModel):
             "attributes": self.attributes,
 
         }
+
+
+class UserProfileUpdate(BaseModel):
+    firstName: str = Field(default="", max_length=128)
+    lastName: str = Field(default="", max_length=128)
+    phone: Optional[str] = Field(default=None, max_length=32)
+
+
+class UserProfileResponse(BaseModel):
+    exists: bool
+    user: User
