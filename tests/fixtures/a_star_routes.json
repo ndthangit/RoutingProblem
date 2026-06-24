@@ -1,150 +1,2280 @@
 {
-  "direct_path": {
-    "start": {
-      "id": "start",
-      "name": "start",
-      "address": "start address",
-      "coordinate": {
-        "lon": 0.0,
-        "lat": 0.0
-      }
-    },
-    "goal": {
-      "id": "goal",
-      "name": "goal",
-      "address": "goal address",
-      "coordinate": {
-        "lon": 0.5,
-        "lat": 0.0
-      }
-    },
-    "depots": [],
-    "expectedPath": ["start", "goal"]
+  "_meta": {
+    "description": "Benchmark data for A*. Useful depots are placed on the route corridor with ~89km between consecutive points (<100km segment limit). Extra depots are placed far east as distractors, so the shortest valid path should use only the useful depots, not every depot in the fixture.",
+    "max_segment_km": 100,
+    "useful_step_km_approx": 89,
+    "route_lon": 105.84,
+    "noise_lon": 108.0,
+    "cases": [
+      "bench_10",
+      "bench_15",
+      "bench_20",
+      "bench_30",
+      "bench_50",
+      "bench_100"
+    ]
   },
-  "intermediate_depot": {
+  "bench_10": {
+    "_description": "10 depots total: 3 useful corridor depots and 7 noise depots. Expected path_len=5.",
     "start": {
-      "id": "start",
-      "name": "start",
-      "address": "start address",
+      "id": "bench_10-start",
+      "name": "Start",
+      "address": "Start",
       "coordinate": {
-        "lon": 0.0,
-        "lat": 0.0
+        "lon": 105.84,
+        "lat": 21.0
       }
     },
     "goal": {
-      "id": "goal",
-      "name": "goal",
-      "address": "goal address",
+      "id": "bench_10-goal",
+      "name": "Goal",
+      "address": "Goal",
       "coordinate": {
-        "lon": 1.6,
-        "lat": 0.0
+        "lon": 105.84,
+        "lat": 17.8
       }
     },
     "depots": [
       {
-        "id": "ignored-depot",
-        "name": "ignored-depot",
-        "address": "ignored-depot address"
+        "id": "bench_10-u0",
+        "name": "Useful depot 0",
+        "address": "Useful depot 0",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 20.2
+        }
       },
       {
-        "id": "middle-depot",
-        "name": "middle-depot",
-        "address": "middle-depot address",
+        "id": "bench_10-u1",
+        "name": "Useful depot 1",
+        "address": "Useful depot 1",
         "coordinate": {
-          "lon": 0.8,
-          "lat": 0.0
+          "lon": 105.84,
+          "lat": 19.4
+        }
+      },
+      {
+        "id": "bench_10-u2",
+        "name": "Useful depot 2",
+        "address": "Useful depot 2",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 18.6
+        }
+      },
+      {
+        "id": "bench_10-x0",
+        "name": "Noise depot 0",
+        "address": "Noise depot 0",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 21.0
+        }
+      },
+      {
+        "id": "bench_10-x1",
+        "name": "Noise depot 1",
+        "address": "Noise depot 1",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.65
+        }
+      },
+      {
+        "id": "bench_10-x2",
+        "name": "Noise depot 2",
+        "address": "Noise depot 2",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.3
+        }
+      },
+      {
+        "id": "bench_10-x3",
+        "name": "Noise depot 3",
+        "address": "Noise depot 3",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.95
+        }
+      },
+      {
+        "id": "bench_10-x4",
+        "name": "Noise depot 4",
+        "address": "Noise depot 4",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.6
+        }
+      },
+      {
+        "id": "bench_10-x5",
+        "name": "Noise depot 5",
+        "address": "Noise depot 5",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.25
+        }
+      },
+      {
+        "id": "bench_10-x6",
+        "name": "Noise depot 6",
+        "address": "Noise depot 6",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.9
         }
       }
     ],
-    "expectedPath": ["start", "middle-depot", "goal"]
+    "expectedPath": [
+      "bench_10-start",
+      "bench_10-u0",
+      "bench_10-u1",
+      "bench_10-u2",
+      "bench_10-goal"
+    ]
   },
-  "no_route": {
+  "bench_15": {
+    "_description": "15 depots total: 5 useful corridor depots and 10 noise depots. Expected path_len=7.",
     "start": {
-      "id": "start",
-      "name": "start",
-      "address": "start address",
+      "id": "bench_15-start",
+      "name": "Start",
+      "address": "Start",
       "coordinate": {
-        "lon": 0.0,
-        "lat": 0.0
+        "lon": 105.84,
+        "lat": 21.0
       }
     },
     "goal": {
-      "id": "goal",
-      "name": "goal",
-      "address": "goal address",
+      "id": "bench_15-goal",
+      "name": "Goal",
+      "address": "Goal",
       "coordinate": {
-        "lon": 2.0,
-        "lat": 0.0
-      }
-    },
-    "depots": []
-  },
-  "missing_coordinate_cases": [
-    {
-      "start": {
-        "id": "start",
-        "name": "start",
-        "address": "start address"
-      },
-      "goal": {
-        "id": "goal",
-        "name": "goal",
-        "address": "goal address",
-        "coordinate": {
-          "lon": 0.5,
-          "lat": 0.0
-        }
-      },
-      "depots": []
-    },
-    {
-      "start": {
-        "id": "start",
-        "name": "start",
-        "address": "start address",
-        "coordinate": {
-          "lon": 0.0,
-          "lat": 0.0
-        }
-      },
-      "goal": {
-        "id": "goal",
-        "name": "goal",
-        "address": "goal address"
-      },
-      "depots": []
-    }
-  ],
-  "same_point": {
-    "start": {
-      "id": "same",
-      "name": "same",
-      "address": "same address",
-      "coordinate": {
-        "lon": 0.0,
-        "lat": 0.0
-      }
-    },
-    "goal": {
-      "id": "same",
-      "name": "same",
-      "address": "same address",
-      "coordinate": {
-        "lon": 0.0,
-        "lat": 0.0
+        "lon": 105.84,
+        "lat": 16.2
       }
     },
     "depots": [
       {
-        "id": "unused-depot",
-        "name": "unused-depot",
-        "address": "unused-depot address",
+        "id": "bench_15-u0",
+        "name": "Useful depot 0",
+        "address": "Useful depot 0",
         "coordinate": {
-          "lon": 0.5,
-          "lat": 0.0
+          "lon": 105.84,
+          "lat": 20.2
+        }
+      },
+      {
+        "id": "bench_15-u1",
+        "name": "Useful depot 1",
+        "address": "Useful depot 1",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 19.4
+        }
+      },
+      {
+        "id": "bench_15-u2",
+        "name": "Useful depot 2",
+        "address": "Useful depot 2",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 18.6
+        }
+      },
+      {
+        "id": "bench_15-u3",
+        "name": "Useful depot 3",
+        "address": "Useful depot 3",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.8
+        }
+      },
+      {
+        "id": "bench_15-u4",
+        "name": "Useful depot 4",
+        "address": "Useful depot 4",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.0
+        }
+      },
+      {
+        "id": "bench_15-x0",
+        "name": "Noise depot 0",
+        "address": "Noise depot 0",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 21.0
+        }
+      },
+      {
+        "id": "bench_15-x1",
+        "name": "Noise depot 1",
+        "address": "Noise depot 1",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.65
+        }
+      },
+      {
+        "id": "bench_15-x2",
+        "name": "Noise depot 2",
+        "address": "Noise depot 2",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.3
+        }
+      },
+      {
+        "id": "bench_15-x3",
+        "name": "Noise depot 3",
+        "address": "Noise depot 3",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.95
+        }
+      },
+      {
+        "id": "bench_15-x4",
+        "name": "Noise depot 4",
+        "address": "Noise depot 4",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.6
+        }
+      },
+      {
+        "id": "bench_15-x5",
+        "name": "Noise depot 5",
+        "address": "Noise depot 5",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.25
+        }
+      },
+      {
+        "id": "bench_15-x6",
+        "name": "Noise depot 6",
+        "address": "Noise depot 6",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.9
+        }
+      },
+      {
+        "id": "bench_15-x7",
+        "name": "Noise depot 7",
+        "address": "Noise depot 7",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.55
+        }
+      },
+      {
+        "id": "bench_15-x8",
+        "name": "Noise depot 8",
+        "address": "Noise depot 8",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.2
+        }
+      },
+      {
+        "id": "bench_15-x9",
+        "name": "Noise depot 9",
+        "address": "Noise depot 9",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.85
         }
       }
     ],
-    "expectedPath": ["same"]
+    "expectedPath": [
+      "bench_15-start",
+      "bench_15-u0",
+      "bench_15-u1",
+      "bench_15-u2",
+      "bench_15-u3",
+      "bench_15-u4",
+      "bench_15-goal"
+    ]
+  },
+  "bench_20": {
+    "_description": "20 depots total: 7 useful corridor depots and 13 noise depots. Expected path_len=9.",
+    "start": {
+      "id": "bench_20-start",
+      "name": "Start",
+      "address": "Start",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": 21.0
+      }
+    },
+    "goal": {
+      "id": "bench_20-goal",
+      "name": "Goal",
+      "address": "Goal",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": 14.6
+      }
+    },
+    "depots": [
+      {
+        "id": "bench_20-u0",
+        "name": "Useful depot 0",
+        "address": "Useful depot 0",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 20.2
+        }
+      },
+      {
+        "id": "bench_20-u1",
+        "name": "Useful depot 1",
+        "address": "Useful depot 1",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 19.4
+        }
+      },
+      {
+        "id": "bench_20-u2",
+        "name": "Useful depot 2",
+        "address": "Useful depot 2",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 18.6
+        }
+      },
+      {
+        "id": "bench_20-u3",
+        "name": "Useful depot 3",
+        "address": "Useful depot 3",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.8
+        }
+      },
+      {
+        "id": "bench_20-u4",
+        "name": "Useful depot 4",
+        "address": "Useful depot 4",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.0
+        }
+      },
+      {
+        "id": "bench_20-u5",
+        "name": "Useful depot 5",
+        "address": "Useful depot 5",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 16.2
+        }
+      },
+      {
+        "id": "bench_20-u6",
+        "name": "Useful depot 6",
+        "address": "Useful depot 6",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 15.4
+        }
+      },
+      {
+        "id": "bench_20-x0",
+        "name": "Noise depot 0",
+        "address": "Noise depot 0",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 21.0
+        }
+      },
+      {
+        "id": "bench_20-x1",
+        "name": "Noise depot 1",
+        "address": "Noise depot 1",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.65
+        }
+      },
+      {
+        "id": "bench_20-x2",
+        "name": "Noise depot 2",
+        "address": "Noise depot 2",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.3
+        }
+      },
+      {
+        "id": "bench_20-x3",
+        "name": "Noise depot 3",
+        "address": "Noise depot 3",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.95
+        }
+      },
+      {
+        "id": "bench_20-x4",
+        "name": "Noise depot 4",
+        "address": "Noise depot 4",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.6
+        }
+      },
+      {
+        "id": "bench_20-x5",
+        "name": "Noise depot 5",
+        "address": "Noise depot 5",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.25
+        }
+      },
+      {
+        "id": "bench_20-x6",
+        "name": "Noise depot 6",
+        "address": "Noise depot 6",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.9
+        }
+      },
+      {
+        "id": "bench_20-x7",
+        "name": "Noise depot 7",
+        "address": "Noise depot 7",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.55
+        }
+      },
+      {
+        "id": "bench_20-x8",
+        "name": "Noise depot 8",
+        "address": "Noise depot 8",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.2
+        }
+      },
+      {
+        "id": "bench_20-x9",
+        "name": "Noise depot 9",
+        "address": "Noise depot 9",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.85
+        }
+      },
+      {
+        "id": "bench_20-x10",
+        "name": "Noise depot 10",
+        "address": "Noise depot 10",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.5
+        }
+      },
+      {
+        "id": "bench_20-x11",
+        "name": "Noise depot 11",
+        "address": "Noise depot 11",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.15
+        }
+      },
+      {
+        "id": "bench_20-x12",
+        "name": "Noise depot 12",
+        "address": "Noise depot 12",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.8
+        }
+      }
+    ],
+    "expectedPath": [
+      "bench_20-start",
+      "bench_20-u0",
+      "bench_20-u1",
+      "bench_20-u2",
+      "bench_20-u3",
+      "bench_20-u4",
+      "bench_20-u5",
+      "bench_20-u6",
+      "bench_20-goal"
+    ]
+  },
+  "bench_30": {
+    "_description": "30 depots total: 10 useful corridor depots and 20 noise depots. Expected path_len=12.",
+    "start": {
+      "id": "bench_30-start",
+      "name": "Start",
+      "address": "Start",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": 21.0
+      }
+    },
+    "goal": {
+      "id": "bench_30-goal",
+      "name": "Goal",
+      "address": "Goal",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": 12.2
+      }
+    },
+    "depots": [
+      {
+        "id": "bench_30-u0",
+        "name": "Useful depot 0",
+        "address": "Useful depot 0",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 20.2
+        }
+      },
+      {
+        "id": "bench_30-u1",
+        "name": "Useful depot 1",
+        "address": "Useful depot 1",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 19.4
+        }
+      },
+      {
+        "id": "bench_30-u2",
+        "name": "Useful depot 2",
+        "address": "Useful depot 2",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 18.6
+        }
+      },
+      {
+        "id": "bench_30-u3",
+        "name": "Useful depot 3",
+        "address": "Useful depot 3",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.8
+        }
+      },
+      {
+        "id": "bench_30-u4",
+        "name": "Useful depot 4",
+        "address": "Useful depot 4",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.0
+        }
+      },
+      {
+        "id": "bench_30-u5",
+        "name": "Useful depot 5",
+        "address": "Useful depot 5",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 16.2
+        }
+      },
+      {
+        "id": "bench_30-u6",
+        "name": "Useful depot 6",
+        "address": "Useful depot 6",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 15.4
+        }
+      },
+      {
+        "id": "bench_30-u7",
+        "name": "Useful depot 7",
+        "address": "Useful depot 7",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 14.6
+        }
+      },
+      {
+        "id": "bench_30-u8",
+        "name": "Useful depot 8",
+        "address": "Useful depot 8",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 13.8
+        }
+      },
+      {
+        "id": "bench_30-u9",
+        "name": "Useful depot 9",
+        "address": "Useful depot 9",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 13.0
+        }
+      },
+      {
+        "id": "bench_30-x0",
+        "name": "Noise depot 0",
+        "address": "Noise depot 0",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 21.0
+        }
+      },
+      {
+        "id": "bench_30-x1",
+        "name": "Noise depot 1",
+        "address": "Noise depot 1",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.65
+        }
+      },
+      {
+        "id": "bench_30-x2",
+        "name": "Noise depot 2",
+        "address": "Noise depot 2",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.3
+        }
+      },
+      {
+        "id": "bench_30-x3",
+        "name": "Noise depot 3",
+        "address": "Noise depot 3",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.95
+        }
+      },
+      {
+        "id": "bench_30-x4",
+        "name": "Noise depot 4",
+        "address": "Noise depot 4",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.6
+        }
+      },
+      {
+        "id": "bench_30-x5",
+        "name": "Noise depot 5",
+        "address": "Noise depot 5",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.25
+        }
+      },
+      {
+        "id": "bench_30-x6",
+        "name": "Noise depot 6",
+        "address": "Noise depot 6",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.9
+        }
+      },
+      {
+        "id": "bench_30-x7",
+        "name": "Noise depot 7",
+        "address": "Noise depot 7",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.55
+        }
+      },
+      {
+        "id": "bench_30-x8",
+        "name": "Noise depot 8",
+        "address": "Noise depot 8",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.2
+        }
+      },
+      {
+        "id": "bench_30-x9",
+        "name": "Noise depot 9",
+        "address": "Noise depot 9",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.85
+        }
+      },
+      {
+        "id": "bench_30-x10",
+        "name": "Noise depot 10",
+        "address": "Noise depot 10",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.5
+        }
+      },
+      {
+        "id": "bench_30-x11",
+        "name": "Noise depot 11",
+        "address": "Noise depot 11",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.15
+        }
+      },
+      {
+        "id": "bench_30-x12",
+        "name": "Noise depot 12",
+        "address": "Noise depot 12",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.8
+        }
+      },
+      {
+        "id": "bench_30-x13",
+        "name": "Noise depot 13",
+        "address": "Noise depot 13",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.45
+        }
+      },
+      {
+        "id": "bench_30-x14",
+        "name": "Noise depot 14",
+        "address": "Noise depot 14",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.1
+        }
+      },
+      {
+        "id": "bench_30-x15",
+        "name": "Noise depot 15",
+        "address": "Noise depot 15",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.75
+        }
+      },
+      {
+        "id": "bench_30-x16",
+        "name": "Noise depot 16",
+        "address": "Noise depot 16",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.4
+        }
+      },
+      {
+        "id": "bench_30-x17",
+        "name": "Noise depot 17",
+        "address": "Noise depot 17",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.05
+        }
+      },
+      {
+        "id": "bench_30-x18",
+        "name": "Noise depot 18",
+        "address": "Noise depot 18",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.7
+        }
+      },
+      {
+        "id": "bench_30-x19",
+        "name": "Noise depot 19",
+        "address": "Noise depot 19",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.35
+        }
+      }
+    ],
+    "expectedPath": [
+      "bench_30-start",
+      "bench_30-u0",
+      "bench_30-u1",
+      "bench_30-u2",
+      "bench_30-u3",
+      "bench_30-u4",
+      "bench_30-u5",
+      "bench_30-u6",
+      "bench_30-u7",
+      "bench_30-u8",
+      "bench_30-u9",
+      "bench_30-goal"
+    ]
+  },
+  "bench_50": {
+    "_description": "50 depots total: 17 useful corridor depots and 33 noise depots. Expected path_len=19.",
+    "start": {
+      "id": "bench_50-start",
+      "name": "Start",
+      "address": "Start",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": 21.0
+      }
+    },
+    "goal": {
+      "id": "bench_50-goal",
+      "name": "Goal",
+      "address": "Goal",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": 6.6
+      }
+    },
+    "depots": [
+      {
+        "id": "bench_50-u0",
+        "name": "Useful depot 0",
+        "address": "Useful depot 0",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 20.2
+        }
+      },
+      {
+        "id": "bench_50-u1",
+        "name": "Useful depot 1",
+        "address": "Useful depot 1",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 19.4
+        }
+      },
+      {
+        "id": "bench_50-u2",
+        "name": "Useful depot 2",
+        "address": "Useful depot 2",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 18.6
+        }
+      },
+      {
+        "id": "bench_50-u3",
+        "name": "Useful depot 3",
+        "address": "Useful depot 3",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.8
+        }
+      },
+      {
+        "id": "bench_50-u4",
+        "name": "Useful depot 4",
+        "address": "Useful depot 4",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.0
+        }
+      },
+      {
+        "id": "bench_50-u5",
+        "name": "Useful depot 5",
+        "address": "Useful depot 5",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 16.2
+        }
+      },
+      {
+        "id": "bench_50-u6",
+        "name": "Useful depot 6",
+        "address": "Useful depot 6",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 15.4
+        }
+      },
+      {
+        "id": "bench_50-u7",
+        "name": "Useful depot 7",
+        "address": "Useful depot 7",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 14.6
+        }
+      },
+      {
+        "id": "bench_50-u8",
+        "name": "Useful depot 8",
+        "address": "Useful depot 8",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 13.8
+        }
+      },
+      {
+        "id": "bench_50-u9",
+        "name": "Useful depot 9",
+        "address": "Useful depot 9",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 13.0
+        }
+      },
+      {
+        "id": "bench_50-u10",
+        "name": "Useful depot 10",
+        "address": "Useful depot 10",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 12.2
+        }
+      },
+      {
+        "id": "bench_50-u11",
+        "name": "Useful depot 11",
+        "address": "Useful depot 11",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 11.4
+        }
+      },
+      {
+        "id": "bench_50-u12",
+        "name": "Useful depot 12",
+        "address": "Useful depot 12",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 10.6
+        }
+      },
+      {
+        "id": "bench_50-u13",
+        "name": "Useful depot 13",
+        "address": "Useful depot 13",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 9.8
+        }
+      },
+      {
+        "id": "bench_50-u14",
+        "name": "Useful depot 14",
+        "address": "Useful depot 14",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 9.0
+        }
+      },
+      {
+        "id": "bench_50-u15",
+        "name": "Useful depot 15",
+        "address": "Useful depot 15",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 8.2
+        }
+      },
+      {
+        "id": "bench_50-u16",
+        "name": "Useful depot 16",
+        "address": "Useful depot 16",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 7.4
+        }
+      },
+      {
+        "id": "bench_50-x0",
+        "name": "Noise depot 0",
+        "address": "Noise depot 0",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 21.0
+        }
+      },
+      {
+        "id": "bench_50-x1",
+        "name": "Noise depot 1",
+        "address": "Noise depot 1",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.65
+        }
+      },
+      {
+        "id": "bench_50-x2",
+        "name": "Noise depot 2",
+        "address": "Noise depot 2",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.3
+        }
+      },
+      {
+        "id": "bench_50-x3",
+        "name": "Noise depot 3",
+        "address": "Noise depot 3",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.95
+        }
+      },
+      {
+        "id": "bench_50-x4",
+        "name": "Noise depot 4",
+        "address": "Noise depot 4",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.6
+        }
+      },
+      {
+        "id": "bench_50-x5",
+        "name": "Noise depot 5",
+        "address": "Noise depot 5",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.25
+        }
+      },
+      {
+        "id": "bench_50-x6",
+        "name": "Noise depot 6",
+        "address": "Noise depot 6",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.9
+        }
+      },
+      {
+        "id": "bench_50-x7",
+        "name": "Noise depot 7",
+        "address": "Noise depot 7",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.55
+        }
+      },
+      {
+        "id": "bench_50-x8",
+        "name": "Noise depot 8",
+        "address": "Noise depot 8",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.2
+        }
+      },
+      {
+        "id": "bench_50-x9",
+        "name": "Noise depot 9",
+        "address": "Noise depot 9",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.85
+        }
+      },
+      {
+        "id": "bench_50-x10",
+        "name": "Noise depot 10",
+        "address": "Noise depot 10",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.5
+        }
+      },
+      {
+        "id": "bench_50-x11",
+        "name": "Noise depot 11",
+        "address": "Noise depot 11",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.15
+        }
+      },
+      {
+        "id": "bench_50-x12",
+        "name": "Noise depot 12",
+        "address": "Noise depot 12",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.8
+        }
+      },
+      {
+        "id": "bench_50-x13",
+        "name": "Noise depot 13",
+        "address": "Noise depot 13",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.45
+        }
+      },
+      {
+        "id": "bench_50-x14",
+        "name": "Noise depot 14",
+        "address": "Noise depot 14",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.1
+        }
+      },
+      {
+        "id": "bench_50-x15",
+        "name": "Noise depot 15",
+        "address": "Noise depot 15",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.75
+        }
+      },
+      {
+        "id": "bench_50-x16",
+        "name": "Noise depot 16",
+        "address": "Noise depot 16",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.4
+        }
+      },
+      {
+        "id": "bench_50-x17",
+        "name": "Noise depot 17",
+        "address": "Noise depot 17",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.05
+        }
+      },
+      {
+        "id": "bench_50-x18",
+        "name": "Noise depot 18",
+        "address": "Noise depot 18",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.7
+        }
+      },
+      {
+        "id": "bench_50-x19",
+        "name": "Noise depot 19",
+        "address": "Noise depot 19",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.35
+        }
+      },
+      {
+        "id": "bench_50-x20",
+        "name": "Noise depot 20",
+        "address": "Noise depot 20",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.0
+        }
+      },
+      {
+        "id": "bench_50-x21",
+        "name": "Noise depot 21",
+        "address": "Noise depot 21",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 13.65
+        }
+      },
+      {
+        "id": "bench_50-x22",
+        "name": "Noise depot 22",
+        "address": "Noise depot 22",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 13.3
+        }
+      },
+      {
+        "id": "bench_50-x23",
+        "name": "Noise depot 23",
+        "address": "Noise depot 23",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 12.95
+        }
+      },
+      {
+        "id": "bench_50-x24",
+        "name": "Noise depot 24",
+        "address": "Noise depot 24",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 12.6
+        }
+      },
+      {
+        "id": "bench_50-x25",
+        "name": "Noise depot 25",
+        "address": "Noise depot 25",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 12.25
+        }
+      },
+      {
+        "id": "bench_50-x26",
+        "name": "Noise depot 26",
+        "address": "Noise depot 26",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 11.9
+        }
+      },
+      {
+        "id": "bench_50-x27",
+        "name": "Noise depot 27",
+        "address": "Noise depot 27",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 11.55
+        }
+      },
+      {
+        "id": "bench_50-x28",
+        "name": "Noise depot 28",
+        "address": "Noise depot 28",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 11.2
+        }
+      },
+      {
+        "id": "bench_50-x29",
+        "name": "Noise depot 29",
+        "address": "Noise depot 29",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 10.85
+        }
+      },
+      {
+        "id": "bench_50-x30",
+        "name": "Noise depot 30",
+        "address": "Noise depot 30",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 10.5
+        }
+      },
+      {
+        "id": "bench_50-x31",
+        "name": "Noise depot 31",
+        "address": "Noise depot 31",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 10.15
+        }
+      },
+      {
+        "id": "bench_50-x32",
+        "name": "Noise depot 32",
+        "address": "Noise depot 32",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 9.8
+        }
+      }
+    ],
+    "expectedPath": [
+      "bench_50-start",
+      "bench_50-u0",
+      "bench_50-u1",
+      "bench_50-u2",
+      "bench_50-u3",
+      "bench_50-u4",
+      "bench_50-u5",
+      "bench_50-u6",
+      "bench_50-u7",
+      "bench_50-u8",
+      "bench_50-u9",
+      "bench_50-u10",
+      "bench_50-u11",
+      "bench_50-u12",
+      "bench_50-u13",
+      "bench_50-u14",
+      "bench_50-u15",
+      "bench_50-u16",
+      "bench_50-goal"
+    ]
+  },
+  "bench_100": {
+    "_description": "100 depots total: 34 useful corridor depots and 66 noise depots. Expected path_len=36.",
+    "start": {
+      "id": "bench_100-start",
+      "name": "Start",
+      "address": "Start",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": 21.0
+      }
+    },
+    "goal": {
+      "id": "bench_100-goal",
+      "name": "Goal",
+      "address": "Goal",
+      "coordinate": {
+        "lon": 105.84,
+        "lat": -7.0
+      }
+    },
+    "depots": [
+      {
+        "id": "bench_100-u0",
+        "name": "Useful depot 0",
+        "address": "Useful depot 0",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 20.2
+        }
+      },
+      {
+        "id": "bench_100-u1",
+        "name": "Useful depot 1",
+        "address": "Useful depot 1",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 19.4
+        }
+      },
+      {
+        "id": "bench_100-u2",
+        "name": "Useful depot 2",
+        "address": "Useful depot 2",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 18.6
+        }
+      },
+      {
+        "id": "bench_100-u3",
+        "name": "Useful depot 3",
+        "address": "Useful depot 3",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.8
+        }
+      },
+      {
+        "id": "bench_100-u4",
+        "name": "Useful depot 4",
+        "address": "Useful depot 4",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 17.0
+        }
+      },
+      {
+        "id": "bench_100-u5",
+        "name": "Useful depot 5",
+        "address": "Useful depot 5",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 16.2
+        }
+      },
+      {
+        "id": "bench_100-u6",
+        "name": "Useful depot 6",
+        "address": "Useful depot 6",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 15.4
+        }
+      },
+      {
+        "id": "bench_100-u7",
+        "name": "Useful depot 7",
+        "address": "Useful depot 7",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 14.6
+        }
+      },
+      {
+        "id": "bench_100-u8",
+        "name": "Useful depot 8",
+        "address": "Useful depot 8",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 13.8
+        }
+      },
+      {
+        "id": "bench_100-u9",
+        "name": "Useful depot 9",
+        "address": "Useful depot 9",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 13.0
+        }
+      },
+      {
+        "id": "bench_100-u10",
+        "name": "Useful depot 10",
+        "address": "Useful depot 10",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 12.2
+        }
+      },
+      {
+        "id": "bench_100-u11",
+        "name": "Useful depot 11",
+        "address": "Useful depot 11",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 11.4
+        }
+      },
+      {
+        "id": "bench_100-u12",
+        "name": "Useful depot 12",
+        "address": "Useful depot 12",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 10.6
+        }
+      },
+      {
+        "id": "bench_100-u13",
+        "name": "Useful depot 13",
+        "address": "Useful depot 13",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 9.8
+        }
+      },
+      {
+        "id": "bench_100-u14",
+        "name": "Useful depot 14",
+        "address": "Useful depot 14",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 9.0
+        }
+      },
+      {
+        "id": "bench_100-u15",
+        "name": "Useful depot 15",
+        "address": "Useful depot 15",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 8.2
+        }
+      },
+      {
+        "id": "bench_100-u16",
+        "name": "Useful depot 16",
+        "address": "Useful depot 16",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 7.4
+        }
+      },
+      {
+        "id": "bench_100-u17",
+        "name": "Useful depot 17",
+        "address": "Useful depot 17",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 6.6
+        }
+      },
+      {
+        "id": "bench_100-u18",
+        "name": "Useful depot 18",
+        "address": "Useful depot 18",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 5.8
+        }
+      },
+      {
+        "id": "bench_100-u19",
+        "name": "Useful depot 19",
+        "address": "Useful depot 19",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 5.0
+        }
+      },
+      {
+        "id": "bench_100-u20",
+        "name": "Useful depot 20",
+        "address": "Useful depot 20",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 4.2
+        }
+      },
+      {
+        "id": "bench_100-u21",
+        "name": "Useful depot 21",
+        "address": "Useful depot 21",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 3.4
+        }
+      },
+      {
+        "id": "bench_100-u22",
+        "name": "Useful depot 22",
+        "address": "Useful depot 22",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 2.6
+        }
+      },
+      {
+        "id": "bench_100-u23",
+        "name": "Useful depot 23",
+        "address": "Useful depot 23",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 1.8
+        }
+      },
+      {
+        "id": "bench_100-u24",
+        "name": "Useful depot 24",
+        "address": "Useful depot 24",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 1.0
+        }
+      },
+      {
+        "id": "bench_100-u25",
+        "name": "Useful depot 25",
+        "address": "Useful depot 25",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": 0.2
+        }
+      },
+      {
+        "id": "bench_100-u26",
+        "name": "Useful depot 26",
+        "address": "Useful depot 26",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -0.6
+        }
+      },
+      {
+        "id": "bench_100-u27",
+        "name": "Useful depot 27",
+        "address": "Useful depot 27",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -1.4
+        }
+      },
+      {
+        "id": "bench_100-u28",
+        "name": "Useful depot 28",
+        "address": "Useful depot 28",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -2.2
+        }
+      },
+      {
+        "id": "bench_100-u29",
+        "name": "Useful depot 29",
+        "address": "Useful depot 29",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -3.0
+        }
+      },
+      {
+        "id": "bench_100-u30",
+        "name": "Useful depot 30",
+        "address": "Useful depot 30",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -3.8
+        }
+      },
+      {
+        "id": "bench_100-u31",
+        "name": "Useful depot 31",
+        "address": "Useful depot 31",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -4.6
+        }
+      },
+      {
+        "id": "bench_100-u32",
+        "name": "Useful depot 32",
+        "address": "Useful depot 32",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -5.4
+        }
+      },
+      {
+        "id": "bench_100-u33",
+        "name": "Useful depot 33",
+        "address": "Useful depot 33",
+        "coordinate": {
+          "lon": 105.84,
+          "lat": -6.2
+        }
+      },
+      {
+        "id": "bench_100-x0",
+        "name": "Noise depot 0",
+        "address": "Noise depot 0",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 21.0
+        }
+      },
+      {
+        "id": "bench_100-x1",
+        "name": "Noise depot 1",
+        "address": "Noise depot 1",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.65
+        }
+      },
+      {
+        "id": "bench_100-x2",
+        "name": "Noise depot 2",
+        "address": "Noise depot 2",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 20.3
+        }
+      },
+      {
+        "id": "bench_100-x3",
+        "name": "Noise depot 3",
+        "address": "Noise depot 3",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.95
+        }
+      },
+      {
+        "id": "bench_100-x4",
+        "name": "Noise depot 4",
+        "address": "Noise depot 4",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.6
+        }
+      },
+      {
+        "id": "bench_100-x5",
+        "name": "Noise depot 5",
+        "address": "Noise depot 5",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 19.25
+        }
+      },
+      {
+        "id": "bench_100-x6",
+        "name": "Noise depot 6",
+        "address": "Noise depot 6",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.9
+        }
+      },
+      {
+        "id": "bench_100-x7",
+        "name": "Noise depot 7",
+        "address": "Noise depot 7",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.55
+        }
+      },
+      {
+        "id": "bench_100-x8",
+        "name": "Noise depot 8",
+        "address": "Noise depot 8",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 18.2
+        }
+      },
+      {
+        "id": "bench_100-x9",
+        "name": "Noise depot 9",
+        "address": "Noise depot 9",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.85
+        }
+      },
+      {
+        "id": "bench_100-x10",
+        "name": "Noise depot 10",
+        "address": "Noise depot 10",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.5
+        }
+      },
+      {
+        "id": "bench_100-x11",
+        "name": "Noise depot 11",
+        "address": "Noise depot 11",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 17.15
+        }
+      },
+      {
+        "id": "bench_100-x12",
+        "name": "Noise depot 12",
+        "address": "Noise depot 12",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.8
+        }
+      },
+      {
+        "id": "bench_100-x13",
+        "name": "Noise depot 13",
+        "address": "Noise depot 13",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.45
+        }
+      },
+      {
+        "id": "bench_100-x14",
+        "name": "Noise depot 14",
+        "address": "Noise depot 14",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 16.1
+        }
+      },
+      {
+        "id": "bench_100-x15",
+        "name": "Noise depot 15",
+        "address": "Noise depot 15",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.75
+        }
+      },
+      {
+        "id": "bench_100-x16",
+        "name": "Noise depot 16",
+        "address": "Noise depot 16",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.4
+        }
+      },
+      {
+        "id": "bench_100-x17",
+        "name": "Noise depot 17",
+        "address": "Noise depot 17",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 15.05
+        }
+      },
+      {
+        "id": "bench_100-x18",
+        "name": "Noise depot 18",
+        "address": "Noise depot 18",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.7
+        }
+      },
+      {
+        "id": "bench_100-x19",
+        "name": "Noise depot 19",
+        "address": "Noise depot 19",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.35
+        }
+      },
+      {
+        "id": "bench_100-x20",
+        "name": "Noise depot 20",
+        "address": "Noise depot 20",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 14.0
+        }
+      },
+      {
+        "id": "bench_100-x21",
+        "name": "Noise depot 21",
+        "address": "Noise depot 21",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 13.65
+        }
+      },
+      {
+        "id": "bench_100-x22",
+        "name": "Noise depot 22",
+        "address": "Noise depot 22",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 13.3
+        }
+      },
+      {
+        "id": "bench_100-x23",
+        "name": "Noise depot 23",
+        "address": "Noise depot 23",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 12.95
+        }
+      },
+      {
+        "id": "bench_100-x24",
+        "name": "Noise depot 24",
+        "address": "Noise depot 24",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 12.6
+        }
+      },
+      {
+        "id": "bench_100-x25",
+        "name": "Noise depot 25",
+        "address": "Noise depot 25",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 12.25
+        }
+      },
+      {
+        "id": "bench_100-x26",
+        "name": "Noise depot 26",
+        "address": "Noise depot 26",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 11.9
+        }
+      },
+      {
+        "id": "bench_100-x27",
+        "name": "Noise depot 27",
+        "address": "Noise depot 27",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 11.55
+        }
+      },
+      {
+        "id": "bench_100-x28",
+        "name": "Noise depot 28",
+        "address": "Noise depot 28",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 11.2
+        }
+      },
+      {
+        "id": "bench_100-x29",
+        "name": "Noise depot 29",
+        "address": "Noise depot 29",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 10.85
+        }
+      },
+      {
+        "id": "bench_100-x30",
+        "name": "Noise depot 30",
+        "address": "Noise depot 30",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 10.5
+        }
+      },
+      {
+        "id": "bench_100-x31",
+        "name": "Noise depot 31",
+        "address": "Noise depot 31",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 10.15
+        }
+      },
+      {
+        "id": "bench_100-x32",
+        "name": "Noise depot 32",
+        "address": "Noise depot 32",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 9.8
+        }
+      },
+      {
+        "id": "bench_100-x33",
+        "name": "Noise depot 33",
+        "address": "Noise depot 33",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 9.45
+        }
+      },
+      {
+        "id": "bench_100-x34",
+        "name": "Noise depot 34",
+        "address": "Noise depot 34",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 9.1
+        }
+      },
+      {
+        "id": "bench_100-x35",
+        "name": "Noise depot 35",
+        "address": "Noise depot 35",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 8.75
+        }
+      },
+      {
+        "id": "bench_100-x36",
+        "name": "Noise depot 36",
+        "address": "Noise depot 36",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 8.4
+        }
+      },
+      {
+        "id": "bench_100-x37",
+        "name": "Noise depot 37",
+        "address": "Noise depot 37",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 8.05
+        }
+      },
+      {
+        "id": "bench_100-x38",
+        "name": "Noise depot 38",
+        "address": "Noise depot 38",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 7.7
+        }
+      },
+      {
+        "id": "bench_100-x39",
+        "name": "Noise depot 39",
+        "address": "Noise depot 39",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 7.35
+        }
+      },
+      {
+        "id": "bench_100-x40",
+        "name": "Noise depot 40",
+        "address": "Noise depot 40",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 7.0
+        }
+      },
+      {
+        "id": "bench_100-x41",
+        "name": "Noise depot 41",
+        "address": "Noise depot 41",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 6.65
+        }
+      },
+      {
+        "id": "bench_100-x42",
+        "name": "Noise depot 42",
+        "address": "Noise depot 42",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 6.3
+        }
+      },
+      {
+        "id": "bench_100-x43",
+        "name": "Noise depot 43",
+        "address": "Noise depot 43",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 5.95
+        }
+      },
+      {
+        "id": "bench_100-x44",
+        "name": "Noise depot 44",
+        "address": "Noise depot 44",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 5.6
+        }
+      },
+      {
+        "id": "bench_100-x45",
+        "name": "Noise depot 45",
+        "address": "Noise depot 45",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 5.25
+        }
+      },
+      {
+        "id": "bench_100-x46",
+        "name": "Noise depot 46",
+        "address": "Noise depot 46",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 4.9
+        }
+      },
+      {
+        "id": "bench_100-x47",
+        "name": "Noise depot 47",
+        "address": "Noise depot 47",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 4.55
+        }
+      },
+      {
+        "id": "bench_100-x48",
+        "name": "Noise depot 48",
+        "address": "Noise depot 48",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 4.2
+        }
+      },
+      {
+        "id": "bench_100-x49",
+        "name": "Noise depot 49",
+        "address": "Noise depot 49",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 3.85
+        }
+      },
+      {
+        "id": "bench_100-x50",
+        "name": "Noise depot 50",
+        "address": "Noise depot 50",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 3.5
+        }
+      },
+      {
+        "id": "bench_100-x51",
+        "name": "Noise depot 51",
+        "address": "Noise depot 51",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 3.15
+        }
+      },
+      {
+        "id": "bench_100-x52",
+        "name": "Noise depot 52",
+        "address": "Noise depot 52",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 2.8
+        }
+      },
+      {
+        "id": "bench_100-x53",
+        "name": "Noise depot 53",
+        "address": "Noise depot 53",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 2.45
+        }
+      },
+      {
+        "id": "bench_100-x54",
+        "name": "Noise depot 54",
+        "address": "Noise depot 54",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 2.1
+        }
+      },
+      {
+        "id": "bench_100-x55",
+        "name": "Noise depot 55",
+        "address": "Noise depot 55",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 1.75
+        }
+      },
+      {
+        "id": "bench_100-x56",
+        "name": "Noise depot 56",
+        "address": "Noise depot 56",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 1.4
+        }
+      },
+      {
+        "id": "bench_100-x57",
+        "name": "Noise depot 57",
+        "address": "Noise depot 57",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 1.05
+        }
+      },
+      {
+        "id": "bench_100-x58",
+        "name": "Noise depot 58",
+        "address": "Noise depot 58",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 0.7
+        }
+      },
+      {
+        "id": "bench_100-x59",
+        "name": "Noise depot 59",
+        "address": "Noise depot 59",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 0.35
+        }
+      },
+      {
+        "id": "bench_100-x60",
+        "name": "Noise depot 60",
+        "address": "Noise depot 60",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": 0.0
+        }
+      },
+      {
+        "id": "bench_100-x61",
+        "name": "Noise depot 61",
+        "address": "Noise depot 61",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": -0.35
+        }
+      },
+      {
+        "id": "bench_100-x62",
+        "name": "Noise depot 62",
+        "address": "Noise depot 62",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": -0.7
+        }
+      },
+      {
+        "id": "bench_100-x63",
+        "name": "Noise depot 63",
+        "address": "Noise depot 63",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": -1.05
+        }
+      },
+      {
+        "id": "bench_100-x64",
+        "name": "Noise depot 64",
+        "address": "Noise depot 64",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": -1.4
+        }
+      },
+      {
+        "id": "bench_100-x65",
+        "name": "Noise depot 65",
+        "address": "Noise depot 65",
+        "coordinate": {
+          "lon": 108.0,
+          "lat": -1.75
+        }
+      }
+    ],
+    "expectedPath": [
+      "bench_100-start",
+      "bench_100-u0",
+      "bench_100-u1",
+      "bench_100-u2",
+      "bench_100-u3",
+      "bench_100-u4",
+      "bench_100-u5",
+      "bench_100-u6",
+      "bench_100-u7",
+      "bench_100-u8",
+      "bench_100-u9",
+      "bench_100-u10",
+      "bench_100-u11",
+      "bench_100-u12",
+      "bench_100-u13",
+      "bench_100-u14",
+      "bench_100-u15",
+      "bench_100-u16",
+      "bench_100-u17",
+      "bench_100-u18",
+      "bench_100-u19",
+      "bench_100-u20",
+      "bench_100-u21",
+      "bench_100-u22",
+      "bench_100-u23",
+      "bench_100-u24",
+      "bench_100-u25",
+      "bench_100-u26",
+      "bench_100-u27",
+      "bench_100-u28",
+      "bench_100-u29",
+      "bench_100-u30",
+      "bench_100-u31",
+      "bench_100-u32",
+      "bench_100-u33",
+      "bench_100-goal"
+    ]
   }
 }
