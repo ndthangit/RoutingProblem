@@ -1,5 +1,47 @@
 services:
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: routing-backend
+    env_file:
+      - .env
+    environment:
+      API_V1_PREFIX: /v1
+      HOST_FRONTEND: http://localhost:${FRONTEND_PORT:-8080}
+      KAFKA_BOOTSTRAP_SERVERS: broker:29092
+      KAFKA_TOPIC_PROMPT: ${KAFKA_TOPIC_PROMPT:-user-prompts}
+      KAFKA_TOPIC_ORDER_EVENTS: ${KAFKA_TOPIC_ORDER_EVENTS:-order-events}
+      KAFKA_PRODUCER_CLIENT_ID: ${KAFKA_PRODUCER_CLIENT_ID:-routingproblem-producer}
+    depends_on:
+      broker:
+        condition: service_started
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - RoutingProblem
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_HOST_BACKEND: ${VITE_HOST_BACKEND:-}
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:-http://localhost:8092/auth}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-master}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-multiagents-client}
+    container_name: routing-frontend
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - RoutingProblem
+    restart: unless-stopped
+
 
   broker:
     image: confluentinc/cp-kafka:8.0.0
@@ -32,6 +74,8 @@ services:
       - RoutingProblem
 
   schema-registry:
+    profiles:
+      - kafka-extra
     image: confluentinc/cp-schema-registry:8.0.0
     hostname: schema-registry
     container_name: schema-registry
@@ -47,6 +91,8 @@ services:
       - RoutingProblem
 
   connect:
+    profiles:
+      - kafka-extra
     image: cnfldemos/kafka-connect-datagen:0.6.4-7.6.0
     hostname: connect
     container_name: connect
